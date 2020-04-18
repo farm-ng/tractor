@@ -1,0 +1,12 @@
+version: '2'
+services:
+  frontend:
+    build: ./frontend
+    ports:
+      - "80:80"
+  rtkrover:
+    image: farmng/rtkrover
+    command: rtkrcv -p 2023
+    expose:
+      - "2023"
+  
