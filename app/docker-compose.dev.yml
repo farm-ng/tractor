@@ -1,0 +1,5 @@
+version: '2'
+services:
+  rtkrover:
+    ports:
+      - "2023:2023" # only for dev

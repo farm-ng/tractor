@@ -70,12 +70,13 @@ def main():
         rlist,wlist,xlist=select.select([periodic, canbus, joystick], [], [])
         if periodic in rlist:
             n_periods =periodic.read()
-            speed = -joystick.axis_states['y']
-            turn = -joystick.axis_states['z']
-            left, right = steering(speed,turn)
-            #print('periodic %d speed %f left %f right %f'%(n_periods, speed, left, right))
-            send_rpm_command(canbus, 7, 13000*right)
-            send_rpm_command(canbus, 9, 13000*left)
+            if joystick.axis_states['brake'] == 1.0:
+                speed = -joystick.axis_states['y']
+                turn = -joystick.axis_states['z']
+                left, right = steering(speed,turn)
+                #print('periodic %d speed %f left %f right %f'%(n_periods, speed, left, right))
+                send_rpm_command(canbus, 7, 5000*right)
+                send_rpm_command(canbus, 9, 5000*left)
         if joystick in rlist:
             joystick.read_event()
         if canbus in rlist:

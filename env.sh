@@ -1,3 +1,4 @@
+#!/bin/bash
 # Get directory where this script is located
 SOURCE="${BASH_SOURCE[0]}"
 while [ -h "$SOURCE" ]; do # resolve $SOURCE until the file is no longer a symlink
@@ -7,5 +8,15 @@ while [ -h "$SOURCE" ]; do # resolve $SOURCE until the file is no longer a symli
   # relative to the path where the symlink file was located
   [[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE"
 done
-export FARM_NG_ROOT=$( cd "$( dirname "${SOURCE}" )" >/dev/null 2>&1 && pwd )
-export PYTHONPATH=$FARM_NG_ROOT/python
+
+SETUP="$( dirname "${SOURCE}" )"/setup.bash
+RCFILE="$( dirname "${SOURCE}" )"/bashrc
+
+COMMAND=$@
+if [[ -z "$COMMAND" ]] ; then
+    COMMAND="bash --rcfile $RCFILE"
+fi
+source $SETUP
+$COMMAND
+
+

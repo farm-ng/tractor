@@ -1,0 +1,5 @@
+app
+.*
+*~
+*.pyc
+*__pycache__

@@ -1,12 +1,24 @@
 version: '2'
 services:
-  frontend:
-    build: ./frontend
-    ports:
-      - "80:80"
   rtkrover:
     image: farmng/rtkrover
-    command: rtkrcv -p 2023
+    privileged: true
+    command: rtkrcv -p 2023 -m 2024 -s -o /etc/farm_ng/rtkrover/rtkrcv.conf
+    devices:
+      - "/dev/ttyACM0:/dev/ttyACM0"
     expose:
-      - "2023"
-  
+      - 2023
+      - 2024
+      - 9797
+    #ports:
+    #  - "2023:2023" # uncomment only for dev
+    volumes:
+      - /etc/farm_ng/rtkrover:/etc/farm_ng/rtkrover
+  frontend:
+    depends_on:
+      - rtkrover
+    build:
+      dockerfile: ./app/frontend/Dockerfile
+      context: ../
+    ports:
+      - "80:8080"
