@@ -1,0 +1,21 @@
+FROM balenalib/%%BALENA_MACHINE_NAME%%-debian:stretch
+
+# Install build tools and remove layer cache afterwards
+RUN apt-get -q update && apt-get install -yq --no-install-recommends \
+	build-essential \
+	git \
+	&& apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Switch to working directory for our app
+WORKDIR /usr/src/app
+COPY ./ ./
+RUN git clone -b rtklib_2.4.3 https://github.com/tomojitakasu/RTKLIB
+
+RUN cd RTKLIB/app/str2str/gcc && \
+    make && \
+    make install
+
+ENV UDEV=1
+CMD while true; do sleep 5; echo sleeping; done;
+CMD /usr/local/bin/str2str -in serial://ttyACM0:115200:8:n:1#ubx -out tcpsvr://:5015 -c m8t_1hz_usb.cmd
+
