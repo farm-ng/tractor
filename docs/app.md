@@ -27,7 +27,7 @@ farmer@tractor01:~$
 ```
 
 
-# docker-compose
+# app/tractor
 
 The following assume you are inside ``tractor/env.sh``:
 
@@ -38,13 +38,13 @@ farmer@tractor01:~$ ~/code/tractor/env.sh
 To build the tractor app on the tractor/xavier (TODO(rublee) make workflow from workstation with docker-compose or balena):
 
 ```bash
-cd $FARM_NG_ROOT/app
+cd $FARM_NG_ROOT/app/tractor
 docker-compose build
 ```
 
 To bring up the tractor app:
 ```bash
-cd $FARM_NG_ROOT/app
+cd $FARM_NG_ROOT/app/tractor
 docker-compose -d up
 ```
 
@@ -67,10 +67,10 @@ docker-compose logs
 
 To develop the front end on the robot:
 ```bash
-cd $FARM_NG_ROOT/app
+cd $FARM_NG_ROOT/app/tractor
 # stop the app
 docker-compose down
-# start rtkrover service, expose 2023 telnet port to host
+# start rtkrover service, expose 2023 telnet port to host network
 docker-compose -f docker-compose.yml -f docker-compose.dev.yml up -d rtkrover
 # start the frontend from terminal on the xavier host
 python3 -m farm_ng.tractor.frontend

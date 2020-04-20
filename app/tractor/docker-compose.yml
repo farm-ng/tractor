@@ -18,7 +18,7 @@ services:
     depends_on:
       - rtkrover
     build:
-      dockerfile: ./app/frontend/Dockerfile
-      context: ../
+      dockerfile: ./app/tractor/Dockerfile.frontend
+      context: ../../
     ports:
       - "80:8080"
