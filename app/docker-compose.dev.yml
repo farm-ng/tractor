@@ -3,3 +3,4 @@ services:
   rtkrover:
     ports:
       - "2023:2023" # only for dev
+      - "9797:9797" # only for dev
