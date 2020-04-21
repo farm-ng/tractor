@@ -2,7 +2,6 @@ version: '2'
 networks: {}
 volumes:
   etc_data:
-  resin-data: {}    
 services:
   rtkrover:
     build:
@@ -32,12 +31,15 @@ services:
   canbus:
     build:
       context: app/tractor/canbus/
+    cap_add:
+        - all
     privileged: true
     tty: true
     restart: always
     network_mode: host
     volumes:
-      - 'resin-data:/data'
+      - /dev:/dev
+      - /lib/modules:/lib/modules
     labels:
       io.resin.features.kernel-modules: '1'
       io.resin.features.firmware: '1'
