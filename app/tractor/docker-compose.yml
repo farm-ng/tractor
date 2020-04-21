@@ -7,6 +7,7 @@ services:
       dockerfile: app/tractor/Dockerfile.rtkrover
       context: ./
     privileged: true
+    restart: always
     devices:
       - "/dev/ttyACM0:/dev/ttyACM0"
     expose:
@@ -16,11 +17,10 @@ services:
     volumes:
       - "/etc/farm_ng:/etc/farm_ng"
   frontend:
-    depends_on:
-      - rtkrover
     build:
       dockerfile: app/tractor/Dockerfile.frontend
       context: ./
+    restart: always
     ports:
       - "80:8080"
     volumes:
@@ -29,7 +29,8 @@ services:
     build:
       context: app/tractor/canbus/
     cap_add:
-        - all
+      - all
+    restart: always
     privileged: true
     tty: true
     restart: always

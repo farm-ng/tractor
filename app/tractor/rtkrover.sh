@@ -13,6 +13,6 @@ if [ -f /etc/farm_ng/rtkrover/m8t_5hz_usb.cmd ]; then
 else
    mkdir -p  /etc/farm_ng/rtkrover/
    cp /usr/src/app/etc/farm_ng/rtkrover/m8t_5hz_usb.cmd  /etc/farm_ng/rtkrover/
-fi 
+fi
 
 rtkrcv -p 2023 -m 2024 -s -o /etc/farm_ng/rtkrover/rtkrcv.conf
