@@ -1,7 +1,6 @@
 version: '2'
 networks: {}
-volumes:
-  etc_data:
+volumes: {}
 services:
   rtkrover:
     build:
@@ -14,10 +13,8 @@ services:
       - 2023
       - 2024
       - 9797
-    #ports:
-    #  - "2023:2023" # uncomment only for dev
     volumes:
-      - "etc_data:/etc/farm_ng"
+      - "/etc/farm_ng:/etc/farm_ng"
   frontend:
     depends_on:
       - rtkrover
@@ -27,7 +24,7 @@ services:
     ports:
       - "80:8080"
     volumes:
-      - "etc_data:/etc/farm_ng"
+      - "/etc/farm_ng:/etc/farm_ng"
   canbus:
     build:
       context: app/tractor/canbus/
@@ -40,9 +37,3 @@ services:
     volumes:
       - /dev:/dev
       - /lib/modules:/lib/modules
-    labels:
-      io.resin.features.kernel-modules: '1'
-      io.resin.features.firmware: '1'
-      io.resin.features.dbus: '1'
-      io.resin.features.supervisor-api: '1'
-      io.resin.features.resin-api: '1'
