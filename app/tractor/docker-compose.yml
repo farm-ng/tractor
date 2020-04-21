@@ -1,9 +1,14 @@
 version: '2'
+networks: {}
+volumes:
+  etc_data:
+  resin-data: {}    
 services:
   rtkrover:
-    image: farmng/rtkrover
+    build:
+      dockerfile: app/tractor/Dockerfile.rtkrover
+      context: ./
     privileged: true
-    command: rtkrcv -p 2023 -m 2024 -s -o /etc/farm_ng/rtkrover/rtkrcv.conf
     devices:
       - "/dev/ttyACM0:/dev/ttyACM0"
     expose:
@@ -13,12 +18,29 @@ services:
     #ports:
     #  - "2023:2023" # uncomment only for dev
     volumes:
-      - /etc/farm_ng/rtkrover:/etc/farm_ng/rtkrover
+      - "etc_data:/etc/farm_ng"
   frontend:
     depends_on:
       - rtkrover
     build:
-      dockerfile: ./app/tractor/Dockerfile.frontend
-      context: ../../
+      dockerfile: app/tractor/Dockerfile.frontend
+      context: ./
     ports:
       - "80:8080"
+    volumes:
+      - "etc_data:/etc/farm_ng"
+  canbus:
+    build:
+      context: app/tractor/canbus/
+    privileged: true
+    tty: true
+    restart: always
+    network_mode: host
+    volumes:
+      - 'resin-data:/data'
+    labels:
+      io.resin.features.kernel-modules: '1'
+      io.resin.features.firmware: '1'
+      io.resin.features.dbus: '1'
+      io.resin.features.supervisor-api: '1'
+      io.resin.features.resin-api: '1'
