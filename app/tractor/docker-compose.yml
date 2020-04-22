@@ -28,7 +28,7 @@ services:
   driver:
     build:
       context: ./
-      dockerfile: app/tractor/driver/
+      dockerfile: app/tractor/driver/Dockerfile
     cap_add:
       - all
     restart: always

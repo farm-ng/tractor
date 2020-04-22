@@ -1,35 +1,44 @@
-from farm_ng.canbus import CANSocket, format_data
-import socket
-from farm_ng.joystick import Joystick
-import sys
-import select
 import linuxfd
-import time
 import math
+import select
+import socket
 import struct
+import sys
+import time
+import logging
 
-VESC_SET_DUTY=0
-VESC_SET_CURRENT=1
-VESC_SET_CURRENT_BRAKE=2
-VESC_SET_RPM=3
-VESC_SET_POS=4
-        
+from farm_ng.canbus import CANSocket, format_data
+from farm_ng.joystick import MaybeJoystick
+
+VESC_SET_DUTY = 0
+VESC_SET_CURRENT = 1
+VESC_SET_CURRENT_BRAKE = 2
+VESC_SET_RPM = 3
+VESC_SET_POS = 4
+
+
+logger = logging.getLogger("dr")
+logger.setLevel(logging.INFO)
+
+
 def send_rpm_command(canbus, motor_id, rpm):
-    RPM_FORMAT='>i' #big endian, int32
-    data=struct.pack(RPM_FORMAT, int(rpm))
-    cob_id = int(motor_id) |(VESC_SET_RPM << 8)
-    #print('send %x'%cob_id)
+    RPM_FORMAT = ">i"  # big endian, int32
+    data = struct.pack(RPM_FORMAT, int(rpm))
+    cob_id = int(motor_id) | (VESC_SET_RPM << 8)
+    # print('send %x'%cob_id)
     canbus.send(cob_id, data, flags=socket.CAN_EFF_FLAG)
 
+
 def main_testfwd():
-    canbus = CANSocket('can0')
+    canbus = CANSocket("can0")
     while True:
         send_rpm_command(canbus, 9, 3000)
         send_rpm_command(canbus, 7, 3000)
         time.sleep(0.02)
- 
+
+
 def steering(x, y):
-    #https://electronics.stackexchange.com/a/293108
+    # https://electronics.stackexchange.com/a/293108
     # convert to polar
     r = math.hypot(x, y)
     t = math.atan2(y, x)
@@ -51,43 +60,47 @@ def steering(x, y):
 
     return left, right
 
-def main():
-    command_rate_hz=50
-    command_period_seconds=1.0/command_rate_hz
-    
-    canbus = CANSocket('can0')
-    joystick = Joystick()
 
-    #rtc=False means a monotonic clock for realtime loop as it won't be adjusted by the system admin
-    periodic = linuxfd.timerfd(rtc=False, nonBlocking=True) 
+def main():
+    command_rate_hz = 50
+    command_period_seconds = 1.0 / command_rate_hz
+
+    canbus = CANSocket("can0")
+    joystick = MaybeJoystick("/dev/input/js0")
+
+    # rtc=False means a monotonic clock for realtime loop as it won't be adjusted by the system admin
+    periodic = linuxfd.timerfd(rtc=False, nonBlocking=True)
     # here we start a timer that will fire in one second, and then each command period after that
     periodic.settime(value=1.0, interval=command_period_seconds)
 
-    
     # Main event loop
-    
+    fd_list = [periodic, canbus, joystick]
+
     while True:
-        rlist,wlist,xlist=select.select([periodic, canbus, joystick], [], [])
+        rlist, wlist, xlist = select.select(fd_list, [], [])
+
         if periodic in rlist:
-            n_periods =periodic.read()
-            if joystick.axis_states['brake'] == 1.0:
-                speed = -joystick.axis_states['y']
-                turn = -joystick.axis_states['z']
-                left, right = steering(speed,turn)
-                #print('periodic %d speed %f left %f right %f'%(n_periods, speed, left, right))
-                send_rpm_command(canbus, 7, 5000*right)
-                send_rpm_command(canbus, 9, 5000*left)
+            n_periods = periodic.read()
+            if joystick.get_axis_state("brake", -1) == 1.0:
+                speed = -joystick.get_axis_state("y", 0)
+                turn = -joystick.get_axis_state("z", 0)
+                left, right = steering(speed, turn)
+                # print('periodic %d speed %f left %f right %f'%(n_periods, speed, left, right))
+                send_rpm_command(canbus, 7, 5000 * right)
+                send_rpm_command(canbus, 9, 5000 * left)
+            else:
+                send_rpm_command(canbus, 7, 0)
+                send_rpm_command(canbus, 9, 0)
         if joystick in rlist:
             joystick.read_event()
         if canbus in rlist:
             cob_id, data = canbus.recv()
-            #print('%s %03x#%s' % ('can0', cob_id, format_data(data)))
+            # print('%s %03x#%s' % ('can0', cob_id, format_data(data)))
 
 
 if __name__ == "__main__":
     try:
         main()
     except OSError as e:
-      print(e)
-      sys.exit(e.errno)
-
+        logger.warning(traceback.format_exception(type(e), e))
+        sys.exit(e.errno)
