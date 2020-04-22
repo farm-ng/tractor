@@ -25,9 +25,10 @@ services:
       - "80:8080"
     volumes:
       - "/etc/farm_ng:/etc/farm_ng"
-  canbus:
+  driver:
     build:
-      context: app/tractor/canbus/
+      context: ./
+      dockerfile: app/tractor/driver/
     cap_add:
       - all
     restart: always

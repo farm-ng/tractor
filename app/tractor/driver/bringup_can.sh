@@ -24,9 +24,3 @@ ip link set can0 up
 
 ip -details -statistics link show can0
 
-#silent forever loop
-set +x
-while true; do
-    sleep 5
-done
-
