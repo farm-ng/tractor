@@ -29,6 +29,16 @@ def send_rpm_command(canbus, motor_id, rpm):
     canbus.send(cob_id, data, flags=socket.CAN_EFF_FLAG)
 
 
+def send_current_command(canbus, motor_id, current_amps):
+    CURRENT_FORMAT = ">i"  # big endian, int32
+    data = struct.pack(
+        CURRENT_FORMAT, int(max(min(current_amps * 1000, 20000), -20000))
+    )
+    cob_id = int(motor_id) | (VESC_SET_CURRENT << 8)
+    # print('send %x'%cob_id)
+    canbus.send(cob_id, data, flags=socket.CAN_EFF_FLAG)
+
+
 def main_testfwd():
     canbus = CANSocket("can0")
     while True:
@@ -89,8 +99,13 @@ def main():
                 send_rpm_command(canbus, 7, 5000 * right)
                 send_rpm_command(canbus, 9, 5000 * left)
             else:
-                send_rpm_command(canbus, 7, 0)
-                send_rpm_command(canbus, 9, 0)
+                if joystick.is_connected():
+                    send_rpm_command(canbus, 7, 0)
+                    send_rpm_command(canbus, 9, 0)
+                else:
+                    send_current_command(canbus, 7, 0)
+                    send_current_command(canbus, 9, 0)
+
         if joystick in rlist:
             joystick.read_event()
         if canbus in rlist:

@@ -17,6 +17,7 @@ import select
 
 
 logger = logging.getLogger("jk")
+
 logger.setLevel(logging.INFO)
 
 
@@ -172,7 +173,15 @@ class Joystick(object):
                 # print("%s: %.3f" % (axis, fvalue))
 
 
-class MaybeJoystick:
+class MaybeJoystick(object):
+    """This class wraps joystick, and silently swallows if the joystick is
+present or not.  It exposes the fileno() interface, and attempts to
+connect to the joystick every second if its not currently connected.
+
+Using this interface, you can't access the axis_states directly, use
+    the function get_axis_state and give it a default value.
+    """
+
     def __init__(self, device):
         self.device = device
         self.joystick = None
@@ -209,9 +218,12 @@ class MaybeJoystick:
                 logger.warning("Error reading joystick: %s" % (str(e)))
                 self.joystick = None
 
+    def is_connected(self):
+        return self.joystick is not None
+
 
 if __name__ == "__main__":
-    js = Joystick()
+    js = Joystick("/dev/input/js0")
 
     # Main event loop
     while True:

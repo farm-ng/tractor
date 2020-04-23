@@ -6,9 +6,12 @@ env.sh makes it easy to setup the paths required on bare
 metal to play with things. Its also used inside our dockers to prefix
 commands so that ``python -m farm_ng.joystick`` actually works.
 
-It starts a new bash shell, sourcing a custom bashrc found in the root of the git repository ``$FARM_NG_ROOT/bashrc`` and sourcing ``$FARM_NG_ROOT/setup.bash``. 
+It starts a new bash shell, sourcing a custom bashrc found in the root
+of the git repository ``$FARM_NG_ROOT/bashrc`` and sourcing
+``$FARM_NG_ROOT/setup.bash``.
 
-``FARM_NG_ROOT`` is exported by exported by ``setup.bash``, and points to the root of the tractor git repository.
+``FARM_NG_ROOT`` is exported by exported by ``setup.bash``, and points
+to the root of the tractor git repository.
 
 To enter bash subshell using env.sh:
 
@@ -35,7 +38,8 @@ The following assume you are inside ``tractor/env.sh``:
 farmer@tractor01:~$ ~/code/tractor/env.sh
 ```
 
-To build the tractor app on the tractor/xavier (TODO(rublee) make workflow from workstation with docker-compose or balena):
+To build the tractor app on the tractor/xavier (TODO(rublee) make
+workflow for building on a workstation with docker-compose or balena):
 
 ```bash
 cd $FARM_NG_ROOT/tractor
