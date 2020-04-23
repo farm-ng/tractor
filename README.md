@@ -1,7 +1,11 @@
-#tractor
-
+## Welcome to farm-ng/tractor documentation
 A low cost open source autonomous electric tractor.
 
-See the docs/ subfolder for how to build, test, and use the tractor.
+Please see our wiki for project info and how to contribute at [https://github.com/farm-ng/tractor/wiki](https://github.com/farm-ng/tractor/wiki)
 
-Please see our wiki for project documentation at https://github.com/farm-ng/tractor/wiki
+* [app/tractor/README.md](app/tractor/README.md) for how to build run the tractor software on the tractor.
+
+* [app/rtkbase/README.md](app/rtkbase/README.md) for how to deploy the rtk base station.
+
+
+
