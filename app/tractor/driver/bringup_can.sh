@@ -23,4 +23,3 @@ ip link set can0 type can bitrate 1000000 berr-reporting off one-shot off restar
 ip link set can0 up
 
 ip -details -statistics link show can0
-

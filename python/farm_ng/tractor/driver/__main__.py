@@ -1,13 +1,12 @@
-import linuxfd
+import logging
 import math
 import select
 import socket
 import struct
-import sys
 import time
-import logging
 
-from farm_ng.canbus import CANSocket, format_data
+import linuxfd
+from farm_ng.canbus import CANSocket
 from farm_ng.joystick import MaybeJoystick
 
 VESC_SET_DUTY = 0
@@ -17,12 +16,12 @@ VESC_SET_RPM = 3
 VESC_SET_POS = 4
 
 
-logger = logging.getLogger("dr")
+logger = logging.getLogger('dr')
 logger.setLevel(logging.INFO)
 
 
 def send_rpm_command(canbus, motor_id, rpm):
-    RPM_FORMAT = ">i"  # big endian, int32
+    RPM_FORMAT = '>i'  # big endian, int32
     data = struct.pack(RPM_FORMAT, int(rpm))
     cob_id = int(motor_id) | (VESC_SET_RPM << 8)
     # print('send %x'%cob_id)
@@ -30,9 +29,9 @@ def send_rpm_command(canbus, motor_id, rpm):
 
 
 def send_current_command(canbus, motor_id, current_amps):
-    CURRENT_FORMAT = ">i"  # big endian, int32
+    CURRENT_FORMAT = '>i'  # big endian, int32
     data = struct.pack(
-        CURRENT_FORMAT, int(max(min(current_amps * 1000, 20000), -20000))
+        CURRENT_FORMAT, int(max(min(current_amps * 1000, 20000), -20000)),
     )
     cob_id = int(motor_id) | (VESC_SET_CURRENT << 8)
     # print('send %x'%cob_id)
@@ -40,7 +39,7 @@ def send_current_command(canbus, motor_id, current_amps):
 
 
 def main_testfwd():
-    canbus = CANSocket("can0")
+    canbus = CANSocket('can0')
     while True:
         send_rpm_command(canbus, 9, 3000)
         send_rpm_command(canbus, 7, 3000)
@@ -75,12 +74,14 @@ def main():
     command_rate_hz = 50
     command_period_seconds = 1.0 / command_rate_hz
 
-    canbus = CANSocket("can0")
-    joystick = MaybeJoystick("/dev/input/js0")
+    canbus = CANSocket('can0')
+    joystick = MaybeJoystick('/dev/input/js0')
 
-    # rtc=False means a monotonic clock for realtime loop as it won't be adjusted by the system admin
+    # rtc=False means a monotonic clock for realtime loop as it won't
+    # be adjusted by the system admin
     periodic = linuxfd.timerfd(rtc=False, nonBlocking=True)
-    # here we start a timer that will fire in one second, and then each command period after that
+    # here we start a timer that will fire in one second, and then
+    # each command period after that
     periodic.settime(value=1.0, interval=command_period_seconds)
 
     # Main event loop
@@ -91,11 +92,14 @@ def main():
 
         if periodic in rlist:
             n_periods = periodic.read()
-            if joystick.get_axis_state("brake", -1) == 1.0:
-                speed = -joystick.get_axis_state("y", 0)
-                turn = -joystick.get_axis_state("z", 0)
+            if joystick.get_axis_state('brake', -1) == 1.0:
+                speed = -joystick.get_axis_state('y', 0)
+                turn = -joystick.get_axis_state('z', 0)
                 left, right = steering(speed, turn)
-                # print('periodic %d speed %f left %f right %f'%(n_periods, speed, left, right))
+                logger.debug(
+                    'periodic %d speed %f left %f right %f',
+                    n_periods, speed, left, right,
+                )
                 send_rpm_command(canbus, 7, 5000 * right)
                 send_rpm_command(canbus, 9, 5000 * left)
             else:
@@ -113,9 +117,5 @@ def main():
             # print('%s %03x#%s' % ('can0', cob_id, format_data(data)))
 
 
-if __name__ == "__main__":
-    try:
-        main()
-    except OSError as e:
-        logger.warning(traceback.format_exception(type(e), e))
-        sys.exit(e.errno)
+if __name__ == '__main__':
+    main()

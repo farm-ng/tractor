@@ -16,8 +16,8 @@ to the root of the tractor git repository.
 To enter bash subshell using env.sh:
 
 ```bash
-farmer@tractor01:~$ ~/code/tractor/env.sh 
-f-g:farmer@tractor01:~$ echo $FARM_NG_ROOT 
+farmer@tractor01:~$ ~/code/tractor/env.sh
+f-g:farmer@tractor01:~$ echo $FARM_NG_ROOT
 /home/farmer/code/tractor
 f-g:farmer@tractor01:~$ cd $FARM_NG_ROOT
 ```
@@ -66,7 +66,7 @@ docker-compose logs
 
 To look at just a single service's logs:
 ```
-docker-compose logs rtkrover 
+docker-compose logs rtkrover
 ```
 
 To develop the front end on the robot:

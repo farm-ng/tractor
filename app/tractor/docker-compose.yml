@@ -31,7 +31,6 @@ services:
       dockerfile: app/tractor/driver/Dockerfile
     cap_add:
       - all
-    restart: always
     privileged: true
     tty: true
     restart: always

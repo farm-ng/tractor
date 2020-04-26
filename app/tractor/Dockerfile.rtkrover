@@ -15,7 +15,7 @@ RUN cd RTKLIB/app/rtkrcv/gcc && \
     make -j$(nproc) && \
     make install
 
-WORKDIR /usr/src/app    
+WORKDIR /usr/src/app
 RUN rm -rf RTKLIB
 COPY ./app/tractor/rtkrover.sh ./
 COPY ./etc/farm_ng/rtkrover ./etc/farm_ng/rtkrover
@@ -23,5 +23,3 @@ RUN find ./etc/farm_ng
 RUN [ cross-build-end ]
 ENV UDEV=1
 CMD /usr/src/app/rtkrover.sh
-
-

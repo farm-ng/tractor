@@ -4,14 +4,14 @@
 
 
 // _VARIABLES //
-// can break these _HEADING chunks into discrete files later... 
-// and import into a main .scss file with the @import _filename.scss syntax 
+// can break these _HEADING chunks into discrete files later...
+// and import into a main .scss file with the @import _filename.scss syntax
 // defining general system variables
 
 $easeTime:0.25s;
 $margin-top: 58px;
 
-// this isn't working, we must be importing bootstrap _variables.scss after this file. 
+// this isn't working, we must be importing bootstrap _variables.scss after this file.
 // in fact, I need to learn where bootstrap will live entirely on our repo, how best to build it
 $primary: #e83e8c !important;
 
@@ -39,157 +39,157 @@ $teal: #20c9a6 !default;
 $cyan: #36b9cc !default;
 $black: #000 !default;
 
-$bg-grey:  rgba(0,0,0,.03) !default; 
+$bg-grey:  rgba(0,0,0,.03) !default;
 
 
 $colors:(
-    "matteBlackLight": "#303337", 
-    "matteBlackDark": "#212121", 
-    "matteGrey": "#878d8d", 
+    "matteBlackLight": "#303337",
+    "matteBlackDark": "#212121",
+    "matteGrey": "#878d8d",
     "matteRed": "#ec6271",
-    "mattePink": "#e83e8c", 
-    "white": "#fff" , 
-    
+    "mattePink": "#e83e8c",
+    "white": "#fff" ,
+
 );
 
 // populate variables for background and text formatting
 @each $colorName, $colorValue in $colors {
     .bg-#{$colorName}{
-        background-color: #{$colorValue}; 
+        background-color: #{$colorValue};
     }
     .text-#{$colorName} {
         color: #{$colorValue};
     }
-} 
+}
 
 
 
 body{
     @extend .bg-matteBlackDark;
-    @extend .text-matteGrey;  
+    @extend .text-matteGrey;
 }
 
 
 
 
 
-// _NAVS // 
+// _NAVS //
 // Navbar Left Styles
 .wrapper {
     margin-top: rem($margin-top);
-    
+
     .sideMenu{
-        position: fixed; 
+        position: fixed;
         top: 0;
         bottom: 0;
-        left: 0; 
+        left: 0;
         margin: rem($margin-top) auto auto;
-        width: rem(140px); 
+        width: rem(140px);
         //border: 1px solid cyan;
-        transition: all ease $easeTime; 
-        transform: translateX(-100%); 
-        z-index: 2000; 
-        
+        transition: all ease $easeTime;
+        transform: translateX(-100%);
+        z-index: 2000;
+
     }
     .content{
-        width: 100%; 
-        margin-left: rem(0px); 
-        transition: all ease $easeTime; 
+        width: 100%;
+        margin-left: rem(0px);
+        transition: all ease $easeTime;
     }
-    //    
-    &.active { 
+    //
+    &.active {
         .sideMenu {
-            transform: translateX(0); 
+            transform: translateX(0);
             }
     }
 }
 
 // Navbar Left Media Transform
-// this sets .wrapper based on device width 
-// this is how we change the behavior for the navbar for desktop vs mobile (resize button)   
+// this sets .wrapper based on device width
+// this is how we change the behavior for the navbar for desktop vs mobile (resize button)
 @media (min-width:992px){
     .wrapper{
         .sideMenu {
-            transform: translateX(0); 
+            transform: translateX(0);
         }
-        .content { 
-            margin-left: rem(140px); 
+        .content {
+            margin-left: rem(140px);
         }
         // here, when the resize button is active... reduce size.
-        // also, we will adjust the icon margins and turn off the text  
+        // also, we will adjust the icon margins and turn off the text
         &.active{
             .sideMenu{
-                width: rem(50px); 
+                width: rem(50px);
                 .nav-link {
-                    text-align: center; 
-                    .icon { 
-                        margin-right: 0; 
+                    text-align: center;
+                    .icon {
+                        margin-right: 0;
                     }
-                    .text { 
-                        display: none; 
+                    .text {
+                        display: none;
                     }
                 }
             }
-            .content{ 
+            .content{
                 margin-left: rem(80px)
             }
         }
-    }  
-} 
+    }
+}
 
-// Navbar Left Link Styles // 
+// Navbar Left Link Styles //
 .nav-link{
-    display: block; 
-    white-space: nowrap; 
-    // targeting the icons first... 
+    display: block;
+    white-space: nowrap;
+    // targeting the icons first...
     .icon{
         margin-right: rem(4px);
-        font-size: rem(30px); 
-        vertical-align: middle; 
-        height: rem(32px); 
-        width: rem(32px); 
+        font-size: rem(30px);
+        vertical-align: middle;
+        height: rem(32px);
+        width: rem(32px);
         //border: 2px solid cyan;
-        // this is coloring the icons  
-        @extend .text-matteGrey; 
+        // this is coloring the icons
+        @extend .text-matteGrey;
         display: inline-flex;
-        justify-content: center; 
-        align-items: center; 
+        justify-content: center;
+        align-items: center;
     }
     .text {
-        font-size: rem(12px); 
-        @extend .text-matteGrey; 
+        font-size: rem(12px);
+        @extend .text-matteGrey;
     }
-    // hovering behavior... 
-    &:hover, 
+    // hovering behavior...
+    &:hover,
     &.active {
-        @extend .bg-matteBlackDark; 
+        @extend .bg-matteBlackDark;
         .icon,
         .text{
-            @extend .text-mattePink; 
+            @extend .text-mattePink;
         }
     }
-} 
-  
-  
-  
-  
-  
-// _PRE // 
+}
+
+
+
+
+
+// _PRE //
 // these are styles for the <pre> tags
-// in our case, this is the incoming rtkstatus logfiles 
+// in our case, this is the incoming rtkstatus logfiles
 
 pre {
     margin-top: rem(10px);
-    margin-left: rem(10px); 
-    display: infline-flex; 
-    font-family: monospace; 
-    white-space: wrap;  
-    font-size: rem(14px); 
+    margin-left: rem(10px);
+    display: infline-flex;
+    font-family: monospace;
+    white-space: wrap;
+    font-size: rem(14px);
     @extend .text-matteGrey;
-    //border: 2px solid cyan; 
-    justify-content: center; 
-    align-items: center; 
-    
+    //border: 2px solid cyan;
+    justify-content: center;
+    align-items: center;
+
 }
 
 
@@ -197,7 +197,7 @@ pre {
 
 
 
-// _BUTTONS // 
+// _BUTTONS //
 // settings for button behaviors
 
 .btn-circle {
@@ -224,24 +224,24 @@ pre {
 
 // _CARD
 // default settings for cards
-    
-.card-header { 
-    @extend .text-mattePink; 
-    font-family: monospace; 
-    font-size: rem(16px); 
-}
-.card-body { 
-    @extend .text-matteGrey; 
-    font-size: rem(12px); 
-}
-    
 
-// _NAVTABS 
+.card-header {
+    @extend .text-mattePink;
+    font-family: monospace;
+    font-size: rem(16px);
+}
+.card-body {
+    @extend .text-matteGrey;
+    font-size: rem(12px);
+}
+
+
+// _NAVTABS
 // settins for nav tabs in cards
- 
+
 .nav-tabs {
   background-color:     rgba(0,0,0,.03)!important;
-  border-bottom: 1px solid pink; 
+  border-bottom: 1px solid pink;
 }
 
 .tab-content {
@@ -250,9 +250,9 @@ pre {
     padding:            5px
 }
 
-.tab-pane { 
+.tab-pane {
      .text {
-        font-size: rem(12px); 
-        @extend .text-matteGrey; 
+        font-size: rem(12px);
+        @extend .text-matteGrey;
     }
 }

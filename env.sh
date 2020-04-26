@@ -18,5 +18,3 @@ if [[ -z "$COMMAND" ]] ; then
 fi
 source $SETUP
 $COMMAND
-
-

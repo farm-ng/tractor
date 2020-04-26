@@ -6,6 +6,3 @@ Please see our wiki for project info and how to contribute at [https://github.co
 * [app/tractor/README.md](app/tractor/README.md) for how to build run the tractor software on the tractor.
 
 * [app/rtkbase/README.md](app/rtkbase/README.md) for how to deploy the rtk base station.
-
-
-

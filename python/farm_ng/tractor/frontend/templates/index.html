@@ -6,9 +6,9 @@
     <!-- responsive viewport meta tag for proper rendering across devices -->
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <meta http-equiv="X-UA-Compatible" content="ie=edge"/>
-    
+
     <!-- Bootstrap CSS -->
-    <!-- we source from remote rather than a local copy here, 
+    <!-- we source from remote rather than a local copy here,
         because some browsers will already have this cached; faster load times -->
     <!-- Using Content Delivery Network (CDN) for bootstrap here.  -->
     <link
@@ -16,41 +16,41 @@
       href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
       integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm"
       crossorigin="anonymous"
-    />    
+    />
     <!-- This is a directory for the icons this example is using... -->
-    <link 
-        rel="stylesheet" 
+    <link
+        rel="stylesheet"
         href="https://cdnjs.cloudflare.com/ajax/libs/material-design-icons/3.0.1/iconfont/material-icons.min.css"
-        />        
-    <!-- Adding our own .scss style sheet here.  
-        This was brutal for me, goddamn curly brackets to pass variable from Tornado... :)  
+        />
+    <!-- Adding our own .scss style sheet here.
+        This was brutal for me, goddamn curly brackets to pass variable from Tornado... :)
         note - this style.css file is compiled using SASS, from the style.scss file in same directory
-        I have a little program running that automatically updates when changes are saved. 
+        I have a little program running that automatically updates when changes are saved.
         Could switch to using GULP or something that does all of this more easily
         -->
     <link rel="stylesheet" href="{{ static_url("style.css") }}">
 
   </head>
-  
+
   <body>
 
     <!-- Navbar Top -->
 	<nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
-	  <button class="navbar-toggler sideMenuToggler" type="button"> 
+	  <button class="navbar-toggler sideMenuToggler" type="button">
 	   <span class="navbar-toggler-icon"></span>
 	  </button>
-         
+
 	  <a href="#" class="navbar-brand"
          ><i class="material-icons icon">
          filter_vintage
          </i><span class="text">  Farm-ng</span
-      ></a>	  
+      ></a>
 	  <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
 	    <span class="navbar-toggler-icon"></span>
 	  </button>
 	</nav>
 	<!-- End Navbar Top  -->
-	
+
 	<!-- Navbar Left  -->
 	<div class="wrapper d-flex">
 	   <!--here we are adding the class bg-matteBlackLight we defined in style.scss as default color for the sidebar-->
@@ -63,14 +63,14 @@
 	                       <i class="material-icons icon">traffic</i>
 	                       <span class="text">status</span>
 	                       </a>
-	               </li>   
+	               </li>
 	              <li class="nav-item">
                        <a href="#" class="nav-link px-2"
                            ><i class="material-icons icon">
                            image
                            </i><span class="text">cam</span
                            ></a>
-                    </li>   
+                    </li>
                   <li class="nav-item">
                        <a href="#" class="nav-link px-2"
                            ><i class="material-icons icon">
@@ -85,37 +85,37 @@
                            </i><span class="text">resize</span
                            ></a>
                    </li>
-	           </ul> 
+	           </ul>
 	       </div>
 	   </div>
 	   <!-- End Navbar Left-->
-	   
+
 	   <!-- MAIN PAGE CONTENT -->
 	   <div class="content">
-	   <main> 
+	   <main>
         <!-- Begin Page Content -->
         <div class="container-fluid">
         <!-- Page Heading -->
           <h1 class="h3 mb-4 text-gray-800"></h1>
-          
-          
+
+
           <!-- Row1 Content -->
           <div class="row">
-	      
+
             <!-- Solution Status Card -->
             <div class="col-xl-3 col-md-6 mb-3">
                 <div class="card border-secondary bg-dark" style="max-width: 18rem;">
                   <!-- Card Header -->
                   <div class="card-header">solution status</div>
-                       
+
                   <!-- Start Card Body with Sweet Traffic Light Buttons  -->
                   <div class="card-body">
                     <div class="row">
                         <div class="col-md-6">
                       <p class="card-text text-secondary">fixed</p>
-                        </div>    
+                        </div>
                         <div class="col-md-6 float-right">
-                           <div class="btn-group float-right" role="group"> 
+                           <div class="btn-group float-right" role="group">
                               <button type="button" class="btn btn-lg btn-success"></button>
                               <button type="button" class="btn btn-lg btn-danger"></button>
                               <button type="button" class="btn btn-lg btn-warning"></button>
@@ -124,15 +124,15 @@
                     </div>
                   </div>
                   <!-- End Card Body -->
-                </div>                
+                </div>
             </div>
-            <!-- Solution Status Card End -->	      
-	      
-	        
+            <!-- Solution Status Card End -->
+
+
 	        <!-- Position Mode Card -->
-	        <!-- this is saying 
-	           we'll have 3 columns (of 12), 
-	           default medium size 6?, 
+	        <!-- this is saying
+	           we'll have 3 columns (of 12),
+	           default medium size 6?,
 	           margin-bottom= 3rem (3 * font-size(16px) = 48pixels -->
 	        <div class="col-xl-3 col-md-6 mb-3">
 				<div class="card border-secondary bg-dark" style="max-width: 18rem;">
@@ -145,13 +145,13 @@
 				</div>
 	        </div>
 	        <!-- Position Mode Card End -->
-          
-          
-          
 
 
-            
-            
+
+
+
+
+
             <!-- Velocity Card -->
             <div class="col-xl-3 col-md-6 mb-3">
                 <div class="card border-secondary bg-dark" style="max-width: 18rem;">
@@ -164,7 +164,7 @@
                 </div>
             </div>
             <!-- Velocity Card End -->
-          
+
           </div>
           <!-- Row1 Content -->
 
@@ -197,18 +197,18 @@
 	              </div>
 	            </div>
 			  </div>
-          </div>    
-          <!-- Row2 Content End -->    
-    
+          </div>
+          <!-- Row2 Content End -->
 
-    
-    
-    
+
+
+
+
           <!-- Row4 Content -->
 	      <div class="row">
 	            <div class="col-lg-9">
 	              <!-- add dark theme, border, size  -->
-	              <div class="card bg-dark border-secondary mb-4"> 
+	              <div class="card bg-dark border-secondary mb-4">
 	                <div class="card-header py-3">rtkrover_status</div>
 	                  <!-- <h6 class="m-0 font-weight-bold text-secondary">RTKLog</h6> -->
 		            <div class="card-body">
@@ -227,25 +227,23 @@
 		        </div>
 	      </div>
 		  <!-- End Row4 Content -->
-		      
+
         </div>
 	    <!-- End Page Content  -->
-    </main>	   
-    
-    
+    </main>
+
+
     <!-- Optional JavaScript -->
     <!-- jQuery first, then Popper.js, then Bootstrap JS -->
     <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
-    
+
     <!-- <script src="js/jquery.slimscroll.min.js"></script> -->
     <!-- so here we are passing in a URL from the __main__.py script, hence the curly brackets. This points to our .js file   -->
     <script src="{{ static_url("rtkrover_status.js") }}" type="text/javascript"></script>
-    <script src="{{ static_url("script.js") }}" type="text/javascript"></script>  
-    
-      
+    <script src="{{ static_url("script.js") }}" type="text/javascript"></script>
+
+
   </body>
 </html>
-
-
