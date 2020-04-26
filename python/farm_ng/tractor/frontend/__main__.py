@@ -132,6 +132,32 @@ def rtkrcv_telnet_loop(rtkrover_host):
             logger.warning(exception_message)
 
 
+@tornado.gen.coroutine
+def rtkrcv_tcpcli_loop(rtkrover_host):
+    backoff = 0.25
+    while True:
+        try:
+            yield tornado.gen.sleep(backoff)
+            logger.info('connecting to rtkrover host: %s' % rtkrover_host)
+            stream = yield tornado.tcpclient.TCPClient().connect(
+                rtkrover_host, 9797, timeout=5,
+            )
+            logger.info('connected to rtkrover host: %s' % rtkrover_host)
+            backoff = 0.25  # reset backoff
+            while True:
+                message = yield stream.read_until(b'\n')
+                logger.info('message %s' % message)
+        except Exception as e:
+            backoff = min(backoff*2, 10)
+            exception_message = (
+                '''Exception in rtkrover tcpcli comms
+                {}\nretry in {:f} seconds {:f}'''.format(
+                    e, backoff, time.time(),
+                )
+            )
+            logger.warning(exception_message)
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--rtkrover-host', default='localhost')
@@ -140,6 +166,7 @@ def main():
     app.listen(8080)
     loop = tornado.ioloop.IOLoop.current()
     loop.spawn_callback(rtkrcv_telnet_loop, args.rtkrover_host)
+    loop.spawn_callback(rtkrcv_tcpcli_loop, args.rtkrover_host)
     loop.start()
 
 
