@@ -23,6 +23,7 @@ class Application(tornado.web.Application):
         handlers = [
             # GET request, called from root directory localhost:8080/
             (r'/', MainHandler),
+            (r'/mapper', MapperHandler),
             (r'/rtkroverstatussocket', RtkRoverSocketHandler),
             (r'/rtkroversolutionsocket', RtkRoverSolutionSocketHandler),
         ]
@@ -32,6 +33,7 @@ class Application(tornado.web.Application):
             template_path=os.path.join(os.path.dirname(__file__), 'templates'),
             static_path=os.path.join(os.path.dirname(__file__), 'static'),
             xsrf_cookies=True,
+            debug=True,
         )
 
         print(settings)
@@ -43,6 +45,11 @@ class Application(tornado.web.Application):
 class MainHandler(tornado.web.RequestHandler):
     def get(self):
         self.render('index.html', messages=RtkRoverSocketHandler.cache)
+
+
+class MapperHandler(tornado.web.RequestHandler):
+    def get(self):
+        self.render('mapper.html')
 
 
 class RtkRoverSocketHandler(tornado.websocket.WebSocketHandler):
@@ -228,6 +235,13 @@ def rtkrcv_tcpcli_loop(rtkrover_host, rtkrover_tcpcli_port=9797):
                 gps_state = dict(zip(field_names, fields))
                 # replace the status integer with the string name
                 gps_state['status'] = status_map[gps_state['status']]
+                gps_state['e_baseline_m'] = float(gps_state['e_baseline_m'])
+                gps_state['n_baseline_m'] = float(gps_state['n_baseline_m'])
+                gps_state['u_baseline_m'] = float(gps_state['u_baseline_m'])
+
+                gps_state['std_e_m'] = float(gps_state['std_e_m'])
+                gps_state['std_n_m'] = float(gps_state['std_n_m'])
+                gps_state['std_u_m'] = float(gps_state['std_u_m'])
 
                 RtkRoverSolutionSocketHandler.send_solution(gps_state)
                 logger.debug('message %s', gps_state)
