@@ -36,9 +36,10 @@ import errno
 import socket
 import struct
 import sys
+import asyncio
 
 
-class CANSocket:
+class CANSocket(object):
     FORMAT = '<IB3x8s'
     FD_FORMAT = '<IB3x64s'
     CAN_RAW_FD_FRAMES = 5
@@ -49,7 +50,11 @@ class CANSocket:
         )
         if interface is not None:
             self.bind(interface)
+        self.readers = []
 
+    def add_reader(self, reader):
+        self.readers.append(reader)
+        
     def fileno(self):
         # for select.
         return self.sock.fileno()
@@ -72,7 +77,11 @@ class CANSocket:
             cob_id, length, data = struct.unpack(self.FD_FORMAT, can_pkt)
 
         cob_id &= socket.CAN_EFF_MASK
-        return (cob_id, data[:length])
+        data = data[:length]
+        for reader in self.readers:
+            reader(cob_id, data)
+        return cob_id, data
+
 
 
 def format_data(data):
@@ -121,10 +130,12 @@ def listen_cmd(args):
         sys.exit(e.errno)
 
     print(f'Listening on {args.interface}')
-
-    while True:
+    loop = asyncio.get_event_loop()
+    def read():
         cob_id, data = s.recv()
-        print('{} {:03x}#{}'.format(args.interface, cob_id, format_data(data)))
+        print('{} {:05x}#{}'.format(args.interface, cob_id, format_data(data)))
+    loop.add_reader(s, read)
+    loop.run_forever()
 
 
 def parse_args():

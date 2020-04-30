@@ -12,19 +12,18 @@
 # Copied from
 # https://gist.githubusercontent.com/rdb/8864666/raw/516178252bbe1cfe8067145b11223ee54c5d9698/js_linux.py
 #
+import fcntl
 import array
+import asyncio
+import linuxfd
 import logging
 import select
 import struct
-from fcntl import ioctl
-
-import linuxfd
+import os
+import sys
 
 
 logger = logging.getLogger('jk')
-
-logger.setLevel(logging.INFO)
-
 
 # These constants were borrowed from linux/input.h
 axis_names = {
@@ -106,29 +105,30 @@ class Joystick:
 
         # Open the joystick device.
         fn = device
-        print('Opening %s...' % fn)
+        logger.info('Opening %s...', fn)
         self.jsdev = open(fn, 'rb')
+
 
         # Get the device name.
         # buf = bytearray(63)
         buf = array.array('B', [0] * 64)
         # JSIOCGNAME(len)
-        ioctl(self.jsdev, 0x80006A13 + (0x10000 * len(buf)), buf)
+        fcntl.ioctl(self.jsdev, 0x80006A13 + (0x10000 * len(buf)), buf)
         js_name = buf.tobytes().rstrip(b'\x00').decode('utf-8')
-        print('Device name: %s' % js_name)
+        logger.info('Device name: %s', js_name)
 
         # Get number of axes and buttons.
         buf = array.array('B', [0])
-        ioctl(self.jsdev, 0x80016A11, buf)  # JSIOCGAXES
+        fcntl.ioctl(self.jsdev, 0x80016A11, buf)  # JSIOCGAXES
         num_axes = buf[0]
 
         buf = array.array('B', [0])
-        ioctl(self.jsdev, 0x80016A12, buf)  # JSIOCGBUTTONS
+        fcntl.ioctl(self.jsdev, 0x80016A12, buf)  # JSIOCGBUTTONS
         num_buttons = buf[0]
 
         # Get the axis map.
         buf = array.array('B', [0] * 0x40)
-        ioctl(self.jsdev, 0x80406A32, buf)  # JSIOCGAXMAP
+        fcntl.ioctl(self.jsdev, 0x80406A32, buf)  # JSIOCGAXMAP
 
         for axis in buf[:num_axes]:
             axis_name = axis_names.get(axis, 'unknown(0x%02x)' % axis)
@@ -137,19 +137,22 @@ class Joystick:
 
         # Get the button map.
         buf = array.array('H', [0] * 200)
-        ioctl(self.jsdev, 0x80406A34, buf)  # JSIOCGBTNMAP
+        fcntl.ioctl(self.jsdev, 0x80406A34, buf)  # JSIOCGBTNMAP
 
         for btn in buf[:num_buttons]:
             btn_name = button_names.get(btn, 'unknown(0x%03x)' % btn)
             self.button_map.append(btn_name)
             self.button_states[btn_name] = 0
 
-        print('%d axes found: %s' % (num_axes, ', '.join(self.axis_map)))
-        print(
-            '%d buttons found: %s' %
-            (num_buttons, ', '.join(self.button_map)),
-        )
+        logger.info('%d axes found: %s',num_axes, ', '.join(self.axis_map))
+        logger.info(
+            '%d buttons found: %s',
+            num_buttons, ', '.join(self.button_map))
 
+
+        flag = fcntl.fcntl(self.jsdev, fcntl.F_GETFL)
+        fcntl.fcntl(self.jsdev, fcntl.F_SETFL, flag | os.O_NONBLOCK)
+        
     def fileno(self):
         return self.jsdev.fileno()
 
@@ -161,25 +164,23 @@ class Joystick:
         time, value, type, number = struct.unpack('IhBB', evbuf)
 
         if type & 0x80:
-            print('(initial)', end='')
+            logger.debug('(initial)')
 
         if type & 0x01:
             button = self.button_map[number]
             if button:
                 self.button_states[button] = value
                 if value:
-                    # print("%s pressed" % (button))
-                    pass
+                    logger.debug("%s pressed",button)
                 else:
-                    # print("%s released" % (button))
-                    pass
+                    logger.debug("%s released",button)
 
         if type & 0x02:
             axis = self.axis_map[number]
             if axis:
                 fvalue = value / 32767.0
                 self.axis_states[axis] = fvalue
-                # print("%s: %.3f" % (axis, fvalue))
+                logger.debug("%s: %.3f",axis, fvalue)
 
 
 class MaybeJoystick:
@@ -196,7 +197,6 @@ Using this interface, you can't access the axis_states directly, use
         self.joystick = None
         self.timer = linuxfd.timerfd(rtc=False, nonBlocking=True)
         self.timer.settime(value=1.0, interval=1.0)
-        self.open_joystick()
 
     def open_joystick(self):
         try:
@@ -227,19 +227,18 @@ Using this interface, you can't access the axis_states directly, use
             try:
                 self.joystick.read_event()
             except OSError as e:
-                logger.warning('Error reading joystick: %s' % (str(e)))
+                logger.warning('Error reading joystick: %s',e)
                 self.joystick = None
 
     def is_connected(self):
         return self.joystick is not None
 
+    def __call__(self):
+        self.read_event()
 
 if __name__ == '__main__':
-    js = Joystick('/dev/input/js0')
-
-    # Main event loop
-    while True:
-        rlist, wlist, xlist = select.select([js], [], [])
-
-        if js in rlist:
-            js.read_event()
+    logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
+    loop = asyncio.get_event_loop()
+    js = MaybeJoystick('/dev/input/js0')
+    loop.add_reader(js, js)
+    loop.run_forever()
