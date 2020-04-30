@@ -167,8 +167,8 @@ def main():
         periodic.read()
         if count[0] % command_rate_hz == 0:
             logger.info('right: %s\nleft: %s', right_motor.get_state(), left_motor.get_state())
-        right_motor.send_velocity_command(1.0)
-        left_motor.send_velocity_command(1.0)
+        #right_motor.send_velocity_command(1.0)
+        #left_motor.send_velocity_command(1.0)
         count[0] += 1
         
     loop.add_reader(can_socket, lambda: can_socket.recv())
