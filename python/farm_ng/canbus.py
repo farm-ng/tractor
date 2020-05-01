@@ -32,14 +32,14 @@
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 import argparse
+import asyncio
 import errno
 import socket
 import struct
 import sys
-import asyncio
 
 
-class CANSocket(object):
+class CANSocket:
     FORMAT = '<IB3x8s'
     FD_FORMAT = '<IB3x64s'
     CAN_RAW_FD_FRAMES = 5
@@ -57,7 +57,7 @@ class CANSocket(object):
 
     def add_reader(self, reader):
         self.readers.append(reader)
-        
+
     def fileno(self):
         # for select.
         return self.sock.fileno()
@@ -84,7 +84,6 @@ class CANSocket(object):
         for reader in self.readers:
             reader(cob_id, data)
         return cob_id, data
-
 
 
 def format_data(data):
@@ -134,6 +133,7 @@ def listen_cmd(args):
 
     print(f'Listening on {args.interface}')
     loop = asyncio.get_event_loop()
+
     def read():
         cob_id, data = s.recv()
         print('{} {:05x}#{}'.format(args.interface, cob_id, format_data(data)))

@@ -12,15 +12,15 @@
 # Copied from
 # https://gist.githubusercontent.com/rdb/8864666/raw/516178252bbe1cfe8067145b11223ee54c5d9698/js_linux.py
 #
-import fcntl
 import array
 import asyncio
-import linuxfd
+import fcntl
 import logging
-import select
-import struct
 import os
+import struct
 import sys
+
+import linuxfd
 
 
 logger = logging.getLogger('joystick')
@@ -109,7 +109,6 @@ class Joystick:
         logger.info('Opening %s...', fn)
         self.jsdev = open(fn, 'rb')
 
-
         # Get the device name.
         # buf = bytearray(63)
         buf = array.array('B', [0] * 64)
@@ -145,15 +144,15 @@ class Joystick:
             self.button_map.append(btn_name)
             self.button_states[btn_name] = 0
 
-        logger.info('%d axes found: %s',num_axes, ', '.join(self.axis_map))
+        logger.info('%d axes found: %s', num_axes, ', '.join(self.axis_map))
         logger.info(
             '%d buttons found: %s',
-            num_buttons, ', '.join(self.button_map))
-
+            num_buttons, ', '.join(self.button_map),
+        )
 
         flag = fcntl.fcntl(self.jsdev, fcntl.F_GETFL)
         fcntl.fcntl(self.jsdev, fcntl.F_SETFL, flag | os.O_NONBLOCK)
-        
+
     def fileno(self):
         return self.jsdev.fileno()
 
@@ -172,16 +171,16 @@ class Joystick:
             if button:
                 self.button_states[button] = value
                 if value:
-                    logger.debug("%s pressed",button)
+                    logger.debug('%s pressed', button)
                 else:
-                    logger.debug("%s released",button)
+                    logger.debug('%s released', button)
 
         if type & 0x02:
             axis = self.axis_map[number]
             if axis:
                 fvalue = value / 32767.0
                 self.axis_states[axis] = fvalue
-                logger.debug("%s: %.3f",axis, fvalue)
+                logger.debug('%s: %.3f', axis, fvalue)
 
 
 class MaybeJoystick:
@@ -210,10 +209,10 @@ Using this interface, you can't access the axis_states directly, use
         try:
             self.joystick.read_event()
         except OSError as e:
-            logger.warning('Error reading joystick: %s',e)
+            logger.warning('Error reading joystick: %s', e)
             self.event_loop.remove_reader(self.joystick)
             self.joystick = None
-        
+
     def open_joystick(self):
         try:
             self.joystick = Joystick(self.device)
@@ -226,7 +225,6 @@ Using this interface, you can't access the axis_states directly, use
         if self.joystick is None:
             return default
         return self.joystick.axis_states[axis]
-
 
     def is_connected(self):
         return self.joystick is not None
