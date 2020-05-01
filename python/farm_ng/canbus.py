@@ -44,12 +44,15 @@ class CANSocket(object):
     FD_FORMAT = '<IB3x64s'
     CAN_RAW_FD_FRAMES = 5
 
-    def __init__(self, interface=None):
+    def __init__(self, interface=None, event_loop=None):
         self.sock = socket.socket(
             socket.PF_CAN, socket.SOCK_RAW, socket.CAN_RAW,
         )
         if interface is not None:
             self.bind(interface)
+        self.event_loop = event_loop
+        if self.event_loop is not None:
+            self.event_loop.add_reader(self.sock.fileno(), self.recv)
         self.readers = []
 
     def add_reader(self, reader):

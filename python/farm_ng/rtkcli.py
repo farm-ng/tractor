@@ -4,6 +4,7 @@ import re
 import sys
 
 logger = logging.getLogger('rtkcli')
+logger.setLevel(logging.INFO)
 
 _status_map = {
     '1': 'fix', '2': 'float', '3': 'sbas',
@@ -47,11 +48,14 @@ class RtkClient(object):
         ('std_vue',float),
     ]
 
-    def __init__(self, rtkhost, rtkport):
+    def __init__(self, rtkhost, rtkport, event_loop=None):
         self.rtkhost = rtkhost
         self.rtkport = rtkport
         self.n_states = 10000
         self.gps_states = []
+        self.event_loop = event_loop
+        if self.event_loop is not None:
+            self.event_loop.create_task(self.run())
         
     async def connect(self):
         self.reader, self.writer = await asyncio.open_connection(
@@ -82,7 +86,7 @@ class RtkClient(object):
         while True:
             try:
                 await self.connect_and_read_loop()
-            except RuntimeError as e:
+            except OSError as e:
                 logger.error(e)
                 await asyncio.sleep(1)
 

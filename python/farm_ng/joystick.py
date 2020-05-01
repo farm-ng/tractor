@@ -23,7 +23,8 @@ import os
 import sys
 
 
-logger = logging.getLogger('jk')
+logger = logging.getLogger('joystick')
+logger.setLevel(logging.INFO)
 
 # These constants were borrowed from linux/input.h
 axis_names = {
@@ -192,15 +193,31 @@ Using this interface, you can't access the axis_states directly, use
     the function get_axis_state and give it a default value.
     """
 
-    def __init__(self, device):
+    def __init__(self, device, event_loop):
         self.device = device
+        self.event_loop = event_loop
         self.joystick = None
         self.timer = linuxfd.timerfd(rtc=False, nonBlocking=True)
         self.timer.settime(value=1.0, interval=1.0)
+        self.event_loop.add_reader(self.timer, self._read_timer)
 
+    def _read_timer(self):
+        self.timer.read()
+        if self.joystick is None:
+            self.open_joystick()
+
+    def _read_joystick(self):
+        try:
+            self.joystick.read_event()
+        except OSError as e:
+            logger.warning('Error reading joystick: %s',e)
+            self.event_loop.remove_reader(self.joystick)
+            self.joystick = None
+        
     def open_joystick(self):
         try:
             self.joystick = Joystick(self.device)
+            self.event_loop.add_reader(self.joystick, self._read_joystick)
         except FileNotFoundError as e:
             logger.warning("Couldn't open joystick: %s" % str(e))
             self.joystick = None
@@ -210,35 +227,14 @@ Using this interface, you can't access the axis_states directly, use
             return default
         return self.joystick.axis_states[axis]
 
-    def fileno(self):
-        if self.joystick is None:
-            return self.timer.fileno()
-        else:
-            return self.joystick.fileno()
-
-    def read_event(self):
-        if self.joystick is None:
-            logger.warning(
-                'Joystick is none, timer count %s' %
-                (self.timer.read()),
-            )
-            self.open_joystick()
-        else:
-            try:
-                self.joystick.read_event()
-            except OSError as e:
-                logger.warning('Error reading joystick: %s',e)
-                self.joystick = None
 
     def is_connected(self):
         return self.joystick is not None
 
-    def __call__(self):
-        self.read_event()
 
 if __name__ == '__main__':
+    logger.setLevel(logging.DEBUG)
     logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
     loop = asyncio.get_event_loop()
-    js = MaybeJoystick('/dev/input/js0')
-    loop.add_reader(js, js)
+    js = MaybeJoystick('/dev/input/js0', loop)
     loop.run_forever()

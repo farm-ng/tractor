@@ -11,7 +11,10 @@ import sys
 import socket
 from farm_ng.canbus import CANSocket
 
-logger = logging.getLogger('motor')
+logger = logging.getLogger('farm_ng.motor')
+
+logger.setLevel(logging.INFO)
+
 
 VESC_SET_DUTY = 0
 VESC_SET_CURRENT = 1
