@@ -111,8 +111,11 @@
                   <!-- Start Card Body with Sweet Traffic Light Buttons  -->
                   <div class="card-body">
                     <div class="row">
-                        <div class="col-md-6">
-                      <p class="card-text text-secondary">fixed</p>
+                      <div class="col-md-6">
+			<!-- rtksolution status message, updated by rtkrover_solution.js websocket-->
+			<p class="card-text text-secondary" id="rtk_status">
+			    NA
+			  </p>
                         </div>
                         <div class="col-md-6 float-right">
                            <div class="btn-group float-right" role="group">
@@ -139,8 +142,8 @@
 				  <div class="card-header">tractor position enu</div>
 				  <div class="card-body">
 				    <!-- <h5 class="card-title">Dark card title</h5> -->
-				    <p class="card-text text-secondary">(east, north, up)</p>
-				    <p class="card-text text-secondary">(std)</p>
+				    <p class="card-text text-secondary" id="rtk_baseline">(east, north, up)</p>
+				    <p class="card-text text-secondary" id="rtk_baseline_std">(std)</p>
 				  </div>
 				</div>
 	        </div>
@@ -242,6 +245,7 @@
     <!-- <script src="js/jquery.slimscroll.min.js"></script> -->
     <!-- so here we are passing in a URL from the __main__.py script, hence the curly brackets. This points to our .js file   -->
     <script src="{{ static_url("rtkrover_status.js") }}" type="text/javascript"></script>
+    <script src="{{ static_url("rtkrover_solution.js") }}" type="text/javascript"></script>
     <script src="{{ static_url("script.js") }}" type="text/javascript"></script>
 
 

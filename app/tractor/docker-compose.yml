@@ -10,6 +10,9 @@ services:
     restart: always
     devices:
       - "/dev/ttyACM0:/dev/ttyACM0"
+    ports: # only for development, disable in production
+      - "2023:2023"
+      - "9797:9797"
     expose:
       - 2023
       - 2024
