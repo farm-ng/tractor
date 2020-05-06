@@ -1,6 +1,6 @@
-import * as THREE from './third_party/three.module.js';
+import * as THREE from '/third_party/three.module.js';
 
-import { OrbitControls } from './third_party/OrbitControls.js';
+import { OrbitControls } from '/third_party/OrbitControls.js';
 
 var camera, controls, scene, renderer, meshes, gps_grid;
 

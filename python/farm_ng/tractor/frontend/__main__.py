@@ -20,9 +20,18 @@ logger.setLevel(logging.INFO)
 
 class Application(tornado.web.Application):
     def __init__(self):
+        third_party_path = os.path.join(
+            os.environ['FARM_NG_ROOT'],
+            'jsm/third_party',
+        )
+
         handlers = [
             # GET request, called from root directory localhost:8080/
             (r'/', MainHandler),
+            (
+                r'/third_party/(.*)', tornado.web.StaticFileHandler,
+                dict(path=third_party_path),
+            ),
             (r'/mapper', MapperHandler),
             (r'/rtkroverstatussocket', RtkRoverSocketHandler),
             (r'/rtkroversolutionsocket', RtkRoverSolutionSocketHandler),
