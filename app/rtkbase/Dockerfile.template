@@ -16,5 +16,5 @@ RUN cd RTKLIB/app/str2str/gcc && \
     make install
 
 ENV UDEV=1
-CMD while true; do sleep 5; echo sleeping; done;
+
 CMD /usr/local/bin/str2str -in serial://ttyACM0:115200:8:n:1#ubx -out tcpsvr://:5015 -c m8t_1hz_usb.cmd
