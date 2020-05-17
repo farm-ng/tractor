@@ -50,14 +50,19 @@ class RtkClient:
         ('std_vue', float),
     ]
 
-    def __init__(self, rtkhost, rtkport, event_loop=None):
+    def __init__(self, rtkhost, rtkport, rtktelnetport, event_loop=None):
         self.rtkhost = rtkhost
         self.rtkport = rtkport
+        self.rtktelnetport = rtktelnetport
+
         self.n_states = 10000
+        self.n_status_messages = 100
+        self.status_messages = []
         self.gps_states = []
         self.event_loop = event_loop
         if self.event_loop is not None:
             self.event_loop.create_task(self.run())
+            self.event_loop.create_task(self.run_telnet())
 
     async def connect(self):
         self.reader, self.writer = await asyncio.open_connection(
@@ -97,9 +102,43 @@ class RtkClient:
                 logger.error(e)
                 await asyncio.sleep(1)
 
+    async def connect_and_read_telnet_loop(self):
+        reader, writer = await asyncio.open_connection(
+            self.rtkhost, self.rtktelnetport,
+        )
+        while True:
+            logger.info(
+                'connected to rtkrover telnet host: %s',
+                self.rtkhost, self.rtktelnetport,
+            )
+            message = await reader.readuntil(b'password: ')
+            message = message.strip(b'\xff\xfb\x03\xff\xfb\x01\r\n\x1b[1m')
+            logger.info(message.decode('ascii'))
+            await writer.write(b'admin\r\n')
+            message = await reader.readuntil(b'\r\n')
+            logging.info(message.decode('ascii'))
+            yield writer.write(b'status 1\r\n')
+            while True:
+                message = yield reader.readuntil(b'\x1b[2J')
+                status_msg_ascii = escape_ansi(
+                    message.rstrip(b'\x1b[2J').decode('ascii'),
+                )
+                self.status_messages.append(status_msg_ascii)
+                logger.debug(status_msg_ascii)
+                if len(self.status_messages) > self.n_status_messages:
+                    self.status_messages.pop(0)
+
+    async def run_telnet(self):
+        while True:
+            try:
+                await self.connect_and_read_telnet_loop()
+            except OSError as e:
+                logger.error(e)
+                await asyncio.sleep(1)
+
 
 def main():
-    rtk_client = RtkClient('localhost', 9797)
+    rtk_client = RtkClient('localhost', 9797, 2023)
     loop = asyncio.get_event_loop()
     # Blocking call which returns when the hello_world() coroutine is done
     loop.run_until_complete(rtk_client.run())

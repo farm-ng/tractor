@@ -266,14 +266,16 @@ def rtkrcv_tcpcli_loop(rtkrover_host, rtkrover_tcpcli_port=9797):
 
 
 def main():
+    tornado.platform.asyncio.AsyncIOMainLoop().install()
+    loop = asyncio.get_event_loop()
+
     parser = argparse.ArgumentParser()
     parser.add_argument('--rtkrover-host', default='localhost')
     args = parser.parse_args()
     app = Application()
     app.listen(8080)
-    loop = tornado.ioloop.IOLoop.current()
-    loop.spawn_callback(rtkrcv_telnet_loop, args.rtkrover_host)
-    loop.spawn_callback(rtkrcv_tcpcli_loop, args.rtkrover_host)
+    #loop.spawn_callback(rtkrcv_telnet_loop, args.rtkrover_host)
+    #loop.spawn_callback(rtkrcv_tcpcli_loop, args.rtkrover_host)
     loop.start()
 
 
