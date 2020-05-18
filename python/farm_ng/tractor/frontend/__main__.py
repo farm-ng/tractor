@@ -8,6 +8,7 @@ from typing import Set
 
 import tornado.gen
 import tornado.ioloop
+import tornado.platform.asyncio
 import tornado.tcpclient
 import tornado.web
 import tornado.websocket
