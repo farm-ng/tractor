@@ -11,10 +11,10 @@ _status_map = {
 }
 
 
-
 def _escape_ansi(line):
     ansi_escape = re.compile(r'(\x9B|\x1B\[)[0-?]*[ -\/]*[@-~]')
     return ansi_escape.sub('', line)
+
 
 def _status_mapper(value):
     return _status_map[value]
@@ -54,7 +54,7 @@ class RtkClient:
         ('std_vue', float),
     ]
 
-    def __init__(self, rtkhost, rtkport, rtktelnetport, event_loop=None):
+    def __init__(self, rtkhost, rtkport, rtktelnetport, event_loop=None, status_callback=None, solution_callback=None):
         self.rtkhost = rtkhost
         self.rtkport = rtkport
         self.rtktelnetport = rtktelnetport
@@ -64,10 +64,13 @@ class RtkClient:
         self.status_messages = []
         self.gps_states = []
         self.event_loop = event_loop
+
+        self.status_callback = status_callback
+        self.solution_callback = solution_callback
+
         if self.event_loop is not None:
             self.event_loop.create_task(self.run_telnet())
             self.event_loop.create_task(self.run())
-
 
     async def connect(self):
         self.reader, self.writer = await asyncio.open_connection(
@@ -89,6 +92,10 @@ class RtkClient:
             key: mapf(value) for (key, mapf),
             value in zip(RtkClient.field_names, fields)
         }
+
+        if self.solution_callback is not None:
+            self.solution_callback(gps_state)
+
         self.gps_states.append(gps_state)
         logger.debug(gps_state)
         if len(self.gps_states) > self.n_states:
@@ -128,6 +135,9 @@ class RtkClient:
                 status_msg_ascii = _escape_ansi(
                     message.rstrip(b'\x1b[2J').decode('ascii'),
                 )
+                if self.status_callback is not None:
+                    self.status_callback(status_msg_ascii)
+
                 self.status_messages.append(status_msg_ascii)
                 logger.debug(status_msg_ascii)
                 if len(self.status_messages) > self.n_status_messages:
@@ -144,10 +154,9 @@ class RtkClient:
 
 def main():
     loop = asyncio.get_event_loop()
-    rtk_client = RtkClient('localhost', 9797, 2023, loop)
-    # Blocking call which returns when the hello_world() coroutine is done
+    rtkclient = RtkClient('localhost', 9797, 2023, loop)
+    logger.info('rtk client: %s', rtkclient)
     loop.run_forever()
-    loop.close()
 
 
 if __name__ == '__main__':
