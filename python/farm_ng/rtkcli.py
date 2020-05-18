@@ -4,13 +4,17 @@ import re
 import sys
 
 logger = logging.getLogger('rtkcli')
-logger.setLevel(logging.INFO)
 
 _status_map = {
     '1': 'fix', '2': 'float', '3': 'sbas',
     '4': 'dgps', '5': 'single', '6': 'ppp',
 }
 
+
+
+def _escape_ansi(line):
+    ansi_escape = re.compile(r'(\x9B|\x1B\[)[0-?]*[ -\/]*[@-~]')
+    return ansi_escape.sub('', line)
 
 def _status_mapper(value):
     return _status_map[value]
@@ -61,8 +65,9 @@ class RtkClient:
         self.gps_states = []
         self.event_loop = event_loop
         if self.event_loop is not None:
-            self.event_loop.create_task(self.run())
             self.event_loop.create_task(self.run_telnet())
+            self.event_loop.create_task(self.run())
+
 
     async def connect(self):
         self.reader, self.writer = await asyncio.open_connection(
@@ -108,19 +113,19 @@ class RtkClient:
         )
         while True:
             logger.info(
-                'connected to rtkrover telnet host: %s',
+                'connected to rtkrover telnet host: %s %d',
                 self.rtkhost, self.rtktelnetport,
             )
             message = await reader.readuntil(b'password: ')
             message = message.strip(b'\xff\xfb\x03\xff\xfb\x01\r\n\x1b[1m')
             logger.info(message.decode('ascii'))
-            await writer.write(b'admin\r\n')
-            message = await reader.readuntil(b'\r\n')
-            logging.info(message.decode('ascii'))
-            yield writer.write(b'status 1\r\n')
+            writer.write(b'admin\r\n')
+            message = await reader.readuntil(b'rtkrcv>')
+            logger.info('222' + message.decode('ascii'))
+            writer.write(b'status 1\r\n')
             while True:
-                message = yield reader.readuntil(b'\x1b[2J')
-                status_msg_ascii = escape_ansi(
+                message = await reader.readuntil(b'\x1b[2J')
+                status_msg_ascii = _escape_ansi(
                     message.rstrip(b'\x1b[2J').decode('ascii'),
                 )
                 self.status_messages.append(status_msg_ascii)
@@ -138,13 +143,14 @@ class RtkClient:
 
 
 def main():
-    rtk_client = RtkClient('localhost', 9797, 2023)
     loop = asyncio.get_event_loop()
+    rtk_client = RtkClient('localhost', 9797, 2023, loop)
     # Blocking call which returns when the hello_world() coroutine is done
-    loop.run_until_complete(rtk_client.run())
+    loop.run_forever()
     loop.close()
 
 
 if __name__ == '__main__':
     logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
+    logger.setLevel(logging.DEBUG)
     main()
