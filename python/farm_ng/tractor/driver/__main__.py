@@ -56,7 +56,14 @@ class TractorController:
             radius, gear_ratio, poll_pairs, 9, self.can_socket,
         )
 
-        self.rtk_client = RtkClient(rtk_client_host, 9797, event_loop)
+        self.rtk_client = RtkClient(
+            rtkhost=rtk_client_host,
+            rtkport=9797,
+            rtktelnetport=2023,
+            event_loop=event_loop,
+            status_callback=None,
+            solution_callback=None,
+        )
 
         self.control_timer = Periodic(
             self.command_period_seconds, self.event_loop,
@@ -67,7 +74,8 @@ class TractorController:
         if (self.n_cycle % (2*self.command_rate_hz)) == 0:
             logger.info('right VESC: %s', self.right_motor.get_state())
             logger.info('left VESC: %s', self.left_motor.get_state())
-            logger.info('gps solution: %s', self.rtk_client.gps_states[-1])
+            if len(self.rtk_client.gps_states) >= 1:
+                logger.info('gps solution: %s', self.rtk_client.gps_states[-1])
         self.n_cycle += 1
 
         # called once each command period

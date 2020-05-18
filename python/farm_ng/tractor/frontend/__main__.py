@@ -136,7 +136,7 @@ def main():
     app.listen(8080)
 
     rtkclient = RtkClient(
-        rtkhos=args.rtkrover_host,
+        rtkhost=args.rtkrover_host,
         rtkport=9797,
         rtktelnetport=2023,
         event_loop=loop,
