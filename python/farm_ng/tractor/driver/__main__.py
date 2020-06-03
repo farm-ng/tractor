@@ -97,7 +97,7 @@ class TractorController:
 
 
 def main():
-    logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
+    logging.basicConfig(stream=sys.stdout, level=logging.INFO)
     event_loop = asyncio.get_event_loop()
     controller = TractorController(event_loop, 'localhost')
     logger.info('Created controller %s', controller)
