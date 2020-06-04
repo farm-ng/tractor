@@ -27,3 +27,8 @@ message RtkSolution {
   Vec3 std_velocity_enu = 12;
   Vec3 std_velocity_en_nu_ue = 13;
 }
+
+// human readable status message from the rtk service.
+message RtkServiceStatus {
+  string message = 1;
+}

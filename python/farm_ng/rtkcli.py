@@ -5,6 +5,7 @@ import sys
 
 import farm_ng.proio_utils
 from farm_ng.periodic import Periodic
+from farm_ng_proto.tractor.v1.rtk_pb2 import RtkServiceStatus
 from farm_ng_proto.tractor.v1.rtk_pb2 import RtkSolution
 from google.protobuf.text_format import MessageToString
 
@@ -194,6 +195,12 @@ class RtkClient:
 
                 self.status_messages.append(status_msg_ascii)
                 logger.debug(status_msg_ascii)
+                status_pb = RtkServiceStatus()
+                status_pb.message = status_msg_ascii
+                plog.writer().push(
+                    plog.make_event({'rtk/service_status': status_pb}),
+                )
+
                 if len(self.status_messages) > self.n_status_messages:
                     self.status_messages.pop(0)
 
@@ -210,7 +217,7 @@ def main():
     loop = asyncio.get_event_loop()
     rtkclient = RtkClient('localhost', 9797, 2023, loop)
     logger.info('rtk client: %s', rtkclient)
-    _ = Periodic(5, loop, lambda: plog.writer().flush())
+    _ = Periodic(30, loop, lambda: plog.writer().flush())
     loop.run_forever()
 
 
