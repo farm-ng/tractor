@@ -1,4 +1,4 @@
-from farmng.tractor.v1 import geometry_pb2
+from farm_ng_proto.tractor.v1 import geometry_pb2
 from liegroups import SE3
 
 

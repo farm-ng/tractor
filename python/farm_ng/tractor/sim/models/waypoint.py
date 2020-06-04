@@ -1,8 +1,8 @@
-from dataclasses import dataclass
 from typing import Optional
 
+from dataclasses import dataclass
 from farm_ng.tractor.sim.models.duration import Duration
-from farmng.tractor.v1 import waypoint_pb2
+from farm_ng_proto.tractor.v1 import waypoint_pb2
 from google.protobuf import wrappers_pb2
 
 

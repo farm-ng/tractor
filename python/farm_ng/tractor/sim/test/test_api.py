@@ -1,9 +1,9 @@
 import pytest
 import requests
-from farmng.tractor.v1 import waypoint_pb2
+from farm_ng_proto.tractor.v1 import waypoint_pb2
 
 PORT = 8989
-BASE_URL = 'http://localhost:' + str(PORT) + '/twirp/farmng.tractor.v1.WaypointService'
+BASE_URL = 'http://localhost:' + str(PORT) + '/twirp/farm_ng_proto.tractor.v1.WaypointService'
 
 
 def _create_waypoint(waypoint):

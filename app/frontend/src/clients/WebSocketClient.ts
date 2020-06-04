@@ -1,4 +1,4 @@
-import { Status } from "../../genproto/farmng/tractor/v1/status";
+import { Status } from "../../genproto/farm_ng_proto/tractor/v1/status";
 import { IWebSocketClient } from "../models/IWebSocketClient";
 import { IWebSocketMessage } from "../models/IWebSocketMessage";
 

@@ -1,6 +1,6 @@
 import "jest";
 import "node-fetch";
-import { WaypointServiceClientImpl } from "../genproto/farmng/tractor/v1/waypoint_service";
+import { WaypointServiceClientImpl } from "../genproto/farm_ng_proto/tractor/v1/waypoint_service";
 import { createTwirpClient } from "../src/clients/createTwirpClient";
 import { TwirpError } from "../src/clients/TwirpError";
 

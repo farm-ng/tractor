@@ -7,6 +7,7 @@ import sys
 
 import linuxfd
 from farm_ng.canbus import CANSocket
+from farm_ng_proto.tractor.v1 import motor_pb2
 
 logger = logging.getLogger('farm_ng.motor')
 
@@ -34,7 +35,11 @@ def vesc_parse_status_msg_1(data):
     current /= 1e1
     duty_cycle /= 1e3
     logger.debug('rpm %d current %f duty_cycle %f', rpm, current, duty_cycle)
-    return dict(rpm=rpm, current=current, duty_cycle=duty_cycle)
+    state = motor_pb2.MotorControllerState()
+    state.rpm.value = rpm
+    state.current.value = current
+    state.duty_cycle.value = duty_cycle
+    return state
 
 
 def vesc_parse_status_msg_2(data):
@@ -49,7 +54,10 @@ def vesc_parse_status_msg_2(data):
         'amp_hours %f amp_hours_charged %f',
         amp_hours, amp_hours_charged,
     )
-    return dict(amp_hours=amp_hours, amp_hours_charged=amp_hours_charged)
+    state = motor_pb2.MotorControllerState()
+    state.amp_hours.value = amp_hours
+    state.amp_hours_charged.value = amp_hours_charged
+    return state
 
 
 def vesc_parse_status_msg_3(data):
@@ -64,7 +72,10 @@ def vesc_parse_status_msg_3(data):
         'watt_hours %f watt_hours_charged %f',
         watt_hours, watt_hours_charged,
     )
-    return dict(watt_hours=watt_hours, watt_hours_charged=watt_hours_charged)
+    state = motor_pb2.MotorControllerState()
+    state.watt_hours.value = watt_hours
+    state.watt_hours_charged.value = watt_hours_charged
+    return state
 
 
 def vesc_parse_status_msg_4(data):
@@ -82,10 +93,12 @@ def vesc_parse_status_msg_4(data):
         'temp_fet %f temp_motor %f current_in %f pid_pos %f',
         temp_fet, temp_motor, current_in, pid_pos,
     )
-    return dict(
-        temp_fet=temp_fet, temp_motor=temp_motor,
-        current_in=current_in, pid_pos=pid_pos,
-    )
+    state = motor_pb2.MotorControllerState()
+    state.temp_fet.value = temp_fet
+    state.temp_motor = temp_motor
+    state.current_in = current_in
+    state.pid_pos = pid_pos
+    return state
 
 
 def vesc_parse_status_msg_5(data):
@@ -96,7 +109,10 @@ def vesc_parse_status_msg_5(data):
     tachometer, input_voltage, _ = msg
     input_voltage /= 1e1
     logger.debug('tachometer %f input_voltage %f', tachometer, input_voltage)
-    return dict(tachometer=tachometer, input_voltage=input_voltage)
+    state = motor_pb2.MotorControllerState()
+    state.tachometer.value = tachometer
+    state.input_voltage.value = input_voltage
+    return state
 
 
 g_vesc_msg_parsers = {
@@ -119,7 +135,7 @@ class HubMotor:
         self.gear_ratio = gear_ratio
         self.poll_pairs = poll_pairs
         self.max_current = 20
-        self._state_dict = dict()
+        self._latest_state = motor_pb2.MotorControllerState()
         self.can_socket.add_reader(
             lambda cob_id, data: self._handle_can_message(cob_id, data),
         )
@@ -136,7 +152,7 @@ class HubMotor:
             )
             return
         logger.debug('can node id %02x', can_node_id)
-        self._state_dict.update(parser(data))
+        self._latest_state.MergeFrom(parser(data))
 
     def _send_can_command(self, command, data):
         cob_id = int(self.can_node_id) | (command << 8)
@@ -166,7 +182,7 @@ class HubMotor:
         self._send_can_command(VESC_SET_CURRENT, data)
 
     def get_state(self):
-        return self._state_dict
+        return self._latest_state
 
 
 def main():

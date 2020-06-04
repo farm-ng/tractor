@@ -1,9 +1,9 @@
 from farm_ng.tractor.sim.models.waypoint import Waypoint
 from farm_ng.tractor.sim.utils.database import database
-from farmng.tractor.v1 import waypoint_pb2
-from gensrv.farmng.tractor.v1.waypoint_service_twirp_srv import Errors
-from gensrv.farmng.tractor.v1.waypoint_service_twirp_srv import TwirpServerException
-from gensrv.farmng.tractor.v1.waypoint_service_twirp_srv import WaypointServiceImpl
+from farm_ng_proto.tractor.v1 import waypoint_pb2
+from gensrv.farm_ng_proto.tractor.v1.waypoint_service_twirp_srv import Errors
+from gensrv.farm_ng_proto.tractor.v1.waypoint_service_twirp_srv import TwirpServerException
+from gensrv.farm_ng_proto.tractor.v1.waypoint_service_twirp_srv import WaypointServiceImpl
 
 
 class WaypointService(WaypointServiceImpl):

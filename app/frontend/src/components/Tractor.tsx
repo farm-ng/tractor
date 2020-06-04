@@ -6,7 +6,7 @@ import { webSocketClient } from "../config";
 import { Quaternion, Vector3 } from "three";
 import { IWebSocketMessage } from "../models/IWebSocketMessage";
 import { red, gray900 } from "./colors";
-import { Status } from "../../genproto/farmng/tractor/v1/status";
+import { Status } from "../../genproto/farm_ng_proto/tractor/v1/status";
 
 export const Tractor: React.FC = () => {
   // TODO: Should this be bundled?

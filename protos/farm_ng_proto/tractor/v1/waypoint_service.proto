@@ -1,8 +1,8 @@
 syntax = "proto3";
 
-import "farmng/tractor/v1/waypoint.proto";
+import "farm_ng_proto/tractor/v1/waypoint.proto";
 
-package farmng.tractor.v1;
+package farm_ng_proto.tractor.v1;
 
 service WaypointService {
   rpc CreateWaypoint(CreateWaypointRequest) returns (Waypoint) {}

@@ -4,7 +4,7 @@ import "google/protobuf/duration.proto";
 import "google/protobuf/wrappers.proto";
 import "validate/validate.proto";
 
-package farmng.tractor.v1;
+package farm_ng_proto.tractor.v1;
 
 message Waypoint {
   // The waypoint's ID. The server will populate this field upon creation.
