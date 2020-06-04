@@ -50,9 +50,11 @@ class TractorController:
         gear_ratio = 6
         poll_pairs = 15
         self.right_motor = HubMotor(
+            'right_motor',
             radius, gear_ratio, poll_pairs, 7, self.can_socket,
         )
         self.left_motor = HubMotor(
+            'left_motor',
             radius, gear_ratio, poll_pairs, 9, self.can_socket,
         )
 

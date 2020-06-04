@@ -34,9 +34,33 @@
 import argparse
 import asyncio
 import errno
+import fcntl
 import socket
 import struct
 import sys
+
+from google.protobuf.timestamp_pb2 import Timestamp
+
+# From socket can documentation
+# An accurate timestamp can be obtained with an ioctl(2) call after reading
+# a message from the socket:
+
+# struct timeval tv;
+# ioctl(s, SIOCGSTAMP, &tv);
+
+# The timestamp has a resolution of one microsecond and is set automatically
+# at the reception of a CAN frame.
+
+
+def get_socketcan_timestamp(sock) -> Timestamp:
+    SIOCGSTAMP = 0x8906
+    buf = struct.pack('@LL', 0, 0)
+    # https://docs.python.org/3/library/fcntl.html#fcntl.ioctl
+    fcntl.ioctl(sock, SIOCGSTAMP, buf, True)
+    seconds, microseconds = struct.unpack('@LL', buf)
+    ts = Timestamp()
+    ts.FromMicroseconds(seconds*1000000 + microseconds)
+    return ts
 
 
 class CANSocket:
@@ -73,6 +97,7 @@ class CANSocket:
 
     def recv(self, flags=0):
         can_pkt = self.sock.recv(72)
+        timestamp = get_socketcan_timestamp(self.sock)
 
         if len(can_pkt) == 16:
             cob_id, length, data = struct.unpack(self.FORMAT, can_pkt)
@@ -82,7 +107,7 @@ class CANSocket:
         cob_id &= socket.CAN_EFF_MASK
         data = data[:length]
         for reader in self.readers:
-            reader(cob_id, data)
+            reader(cob_id, data, timestamp)
         return cob_id, data
 
 

@@ -5,6 +5,7 @@ import socket
 import struct
 import sys
 
+import farm_ng.proio_utils
 import linuxfd
 from farm_ng.canbus import CANSocket
 from farm_ng_proto.tractor.v1 import motor_pb2
@@ -12,6 +13,8 @@ from farm_ng_proto.tractor.v1 import motor_pb2
 logger = logging.getLogger('farm_ng.motor')
 
 logger.setLevel(logging.INFO)
+
+plog = farm_ng.proio_utils.get_proio_logger()
 
 
 VESC_SET_DUTY = 0
@@ -126,9 +129,10 @@ g_vesc_msg_parsers = {
 
 class HubMotor:
     def __init__(
-        self, wheel_radius, gear_ratio, poll_pairs,
-        can_node_id, can_socket,
+            self, name, wheel_radius, gear_ratio, poll_pairs,
+            can_node_id, can_socket,
     ):
+        self.name = name
         self.can_node_id = can_node_id
         self.can_socket = can_socket
         self.wheel_radius = wheel_radius
@@ -136,23 +140,27 @@ class HubMotor:
         self.poll_pairs = poll_pairs
         self.max_current = 20
         self._latest_state = motor_pb2.MotorControllerState()
-        self.can_socket.add_reader(
-            lambda cob_id, data: self._handle_can_message(cob_id, data),
-        )
+        self._latest_stamp = None
+        self.can_socket.add_reader(self._handle_can_message)
 
-    def _handle_can_message(self, cob_id, data):
+    def _handle_can_message(self, cob_id, data, stamp):
         can_node_id = (cob_id & 0xff)
         if can_node_id != self.can_node_id:
             return
         command = (cob_id >> 8) & 0xff
-        parser = g_vesc_msg_parsers.get(command, None)
+        parser = g_vesc_msg_parsers.gent(command, None)
         if parser is None:
             logger.warning(
                 'No parser for command :%x node id: %x', command, can_node_id,
             )
             return
         logger.debug('can node id %02x', can_node_id)
-        self._latest_state.MergeFrom(parser(data))
+        state_msg = parser(data)
+
+        event = plog.make_event({'%s/state' % self.name: state_msg}, timerstamp=stamp)
+        plog.writer().push(event)
+        self._latest_state.MergeFrom(state_msg)
+        self._latest_stamp.CopyFrom(stamp)
 
     def _send_can_command(self, command, data):
         cob_id = int(self.can_node_id) | (command << 8)

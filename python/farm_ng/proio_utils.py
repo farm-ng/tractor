@@ -42,6 +42,16 @@ class ProioLogger:
         return self._writer
 
 
+_proi_logger = None
+
+
+def get_proio_logger():
+    global _proi_logger
+    if _proi_logger is None:
+        _proi_logger = ProioLogger()
+    return _proi_logger
+
+
 def smoke1():
     from farm_ng_proto.tractor.v1.geometry_pb2 import Vec2  # for testing
     import numpy as np
