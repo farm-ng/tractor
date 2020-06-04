@@ -2,7 +2,7 @@ syntax = "proto3";
 
 import "google/protobuf/wrappers.proto";
 
-package farmng.tractor.v1;
+package farm_ng_proto.tractor.v1;
 
 message MotorControllerState {
  google.protobuf.DoubleValue rpm = 1;
