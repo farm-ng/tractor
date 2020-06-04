@@ -80,8 +80,8 @@ class TractorController:
         if (self.n_cycle % (2*self.command_rate_hz)) == 0:
             logger.info('right motor: %s', MessageToString(self.right_motor.get_state(), as_one_line=True))
             logger.info('left motor: %s', MessageToString(self.left_motor.get_state(), as_one_line=True))
-            if len(self.rtk_client.gps_states) >= 1:
-                logger.info('gps solution: %s', MessageToString(self.rtk_client.gps_states[-1], as_one_line=True))
+            if len(self.rtk_client.gps_solution) >= 1:
+                logger.info('gps solution: %s', MessageToString(self.rtk_client.gps_solution[-1], as_one_line=True))
         self.n_cycle += 1
 
         # called once each command period
