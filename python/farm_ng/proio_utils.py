@@ -3,6 +3,7 @@ from typing import Dict
 
 import proio
 from google.protobuf.timestamp_pb2 import Timestamp
+import atexit
 
 
 class ProioLogger:
@@ -51,6 +52,12 @@ def get_proio_logger():
         _proi_logger = ProioLogger()
     return _proi_logger
 
+
+@atexit.register
+def _close_proio_logger():
+    if _proi_logger is not None:
+        _proi_logger._close()
+        print('closing plog')
 
 def smoke1():
     from farm_ng_proto.tractor.v1.geometry_pb2 import Vec2  # for testing

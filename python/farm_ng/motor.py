@@ -9,6 +9,8 @@ import farm_ng.proio_utils
 import linuxfd
 from farm_ng.canbus import CANSocket
 from farm_ng_proto.tractor.v1 import motor_pb2
+from google.protobuf.timestamp_pb2 import Timestamp
+from google.protobuf.text_format import MessageToString
 
 logger = logging.getLogger('farm_ng.motor')
 
@@ -140,7 +142,7 @@ class HubMotor:
         self.poll_pairs = poll_pairs
         self.max_current = 20
         self._latest_state = motor_pb2.MotorControllerState()
-        self._latest_stamp = None
+        self._latest_stamp = Timestamp()
         self.can_socket.add_reader(self._handle_can_message)
 
     def _handle_can_message(self, cob_id, data, stamp):
@@ -148,7 +150,7 @@ class HubMotor:
         if can_node_id != self.can_node_id:
             return
         command = (cob_id >> 8) & 0xff
-        parser = g_vesc_msg_parsers.gent(command, None)
+        parser = g_vesc_msg_parsers.get(command, None)
         if parser is None:
             logger.warning(
                 'No parser for command :%x node id: %x', command, can_node_id,
@@ -157,7 +159,7 @@ class HubMotor:
         logger.debug('can node id %02x', can_node_id)
         state_msg = parser(data)
 
-        event = plog.make_event({'%s/state' % self.name: state_msg}, timerstamp=stamp)
+        event = plog.make_event({'%s/state' % self.name: state_msg}, stamp=stamp)
         plog.writer().push(event)
         self._latest_state.MergeFrom(state_msg)
         self._latest_stamp.CopyFrom(stamp)
@@ -220,16 +222,19 @@ def main():
     gear_ratio = 6
     poll_pairs = 15
     right_motor = HubMotor('right_motor', radius, gear_ratio, poll_pairs, 7, can_socket)
-    left_motor = HubMotor('right_motor', radius, gear_ratio, poll_pairs, 9, can_socket)
+    left_motor = HubMotor('left_motor', radius, gear_ratio, poll_pairs, 9, can_socket)
 
     count = [0]
 
     def command_loop():
         periodic.read()
-        if count[0] % command_rate_hz == 0:
+        if count[0] % (30*command_rate_hz) == 0:
+            plog.writer().flush()
+        if count[0] % (2*command_rate_hz) == 0:
             logger.info(
                 'right: %s\nleft: %s',
-                right_motor.get_state(), left_motor.get_state(),
+                MessageToString(right_motor.get_state(), as_one_line=True),
+                MessageToString(left_motor.get_state(), as_one_line=True),
             )
         # right_motor.send_velocity_command(1.0)
         # left_motor.send_velocity_command(1.0)
