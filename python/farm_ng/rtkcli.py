@@ -42,13 +42,13 @@ def solution_to_proto(sol):
     pb.status = sol['status']
     pb.n_satelites = sol['n_satelites']
 
-    pb.std_enu_m.x = sol['std_e_m']
-    pb.std_enu_m.y = sol['std_n_m']
-    pb.std_enu_m.z = sol['std_u_m']
+    pb.std_enu.x = sol['std_e_m']
+    pb.std_enu.y = sol['std_n_m']
+    pb.std_enu.z = sol['std_u_m']
 
-    pb.std_en_nu_ue_m.x = sol['std_en_m']
-    pb.std_en_nu_ue_m.y = sol['std_nu_m']
-    pb.std_en_nu_ue_m.z = sol['std_ue_m']
+    pb.std_en_nu_ue.x = sol['std_en_m']
+    pb.std_en_nu_ue.y = sol['std_nu_m']
+    pb.std_en_nu_ue.z = sol['std_ue_m']
 
     pb.age = sol['age']
     pb.ar_ratio = sol['ar_ratio']

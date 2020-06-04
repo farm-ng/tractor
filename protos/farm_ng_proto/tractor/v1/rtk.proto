@@ -19,11 +19,11 @@ message RtkSolution {
   }
   Status status = 5;
   int32 n_satelites = 6;
-  Vec3 std_enu_m = 7;
-  Vec3 sde_en_nu_ue_m = 8;
+  Vec3 std_enu = 7;
+  Vec3 std_en_nu_ue = 8;
   float age = 9;
   float ar_ratio = 10;
   Vec3 velocity_enu_ms = 11;
   Vec3 std_velocity_enu = 12;
-  Vec3 sde_velocity_en_nu_ue = 13;
+  Vec3 std_velocity_en_nu_ue = 13;
 }
