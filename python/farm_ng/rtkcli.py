@@ -184,7 +184,7 @@ class RtkClient:
             writer.write(b'admin\r\n')
             message = await reader.readuntil(b'rtkrcv>')
             logger.info('222' + message.decode('ascii'))
-            writer.write(b'status 1\r\n')
+            writer.write(b'status 10\r\n')
             while True:
                 message = await reader.readuntil(b'\x1b[2J')
                 status_msg_ascii = _escape_ansi(
