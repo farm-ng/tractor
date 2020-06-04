@@ -3,13 +3,17 @@ import logging
 import math
 import sys
 
+import farm_ng.proio_utils
 from farm_ng.canbus import CANSocket
 from farm_ng.joystick import MaybeJoystick
 from farm_ng.motor import HubMotor
 from farm_ng.periodic import Periodic
 from farm_ng.rtkcli import RtkClient
+from google.protobuf.text_format import MessageToString
+
 
 logger = logging.getLogger('tractor.driver')
+plog = farm_ng.proio_utils.get_proio_logger()
 
 
 def steering(x, y):
@@ -74,10 +78,10 @@ class TractorController:
 
     def _command_loop(self):
         if (self.n_cycle % (2*self.command_rate_hz)) == 0:
-            logger.info('right VESC: %s', self.right_motor.get_state())
-            logger.info('left VESC: %s', self.left_motor.get_state())
+            logger.info('right motor: %s', MessageToString(self.right_motor.get_state(), as_one_line=True))
+            logger.info('left motor: %s', MessageToString(self.left_motor.get_state(), as_one_line=True))
             if len(self.rtk_client.gps_states) >= 1:
-                logger.info('gps solution: %s', self.rtk_client.gps_states[-1])
+                logger.info('gps solution: %s', MessageToString(self.rtk_client.gps_states[-1], as_one_line=True))
         self.n_cycle += 1
 
         # called once each command period
@@ -103,6 +107,7 @@ def main():
     event_loop = asyncio.get_event_loop()
     controller = TractorController(event_loop, 'localhost')
     logger.info('Created controller %s', controller)
+    _ = Periodic(60, event_loop, lambda: plog.writer().flush())
     event_loop.run_forever()
 
 
