@@ -33,7 +33,7 @@ def _status_mapper(value):
 
 def solution_to_proto(sol):
     pb = RtkSolution()
-    pb.stamp_gps.FromJsonString(sol['date'] + 'T' + sol['time_gps_utc']+'Z')
+    pb.stamp_gps.FromJsonString(sol['date'].replace('/', '-') + 'T' + sol['time_gps_utc']+'Z')
 
     pb.enu_baseline_m.x = sol['e_baseline_m']
     pb.enu_baseline_m.y = sol['n_baseline_m']
@@ -210,7 +210,7 @@ def main():
     loop = asyncio.get_event_loop()
     rtkclient = RtkClient('localhost', 9797, 2023, loop)
     logger.info('rtk client: %s', rtkclient)
-    _ = Periodic(5, loop, lambda: plog.flush())
+    _ = Periodic(5, loop, lambda: plog.writer().flush())
     loop.run_forever()
 
 
