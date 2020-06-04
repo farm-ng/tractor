@@ -95,9 +95,9 @@ def vesc_parse_status_msg_4(data):
     )
     state = motor_pb2.MotorControllerState()
     state.temp_fet.value = temp_fet
-    state.temp_motor = temp_motor
-    state.current_in = current_in
-    state.pid_pos = pid_pos
+    state.temp_motor.value = temp_motor
+    state.current_in.value = current_in
+    state.pid_pos.value = pid_pos
     return state
 
 

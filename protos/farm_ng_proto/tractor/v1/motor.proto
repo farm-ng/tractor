@@ -10,7 +10,8 @@ message MotorControllerState {
  google.protobuf.DoubleValue duty_cycle = 3;
  google.protobuf.DoubleValue amp_hours = 4;
  google.protobuf.DoubleValue amp_hours_charged = 5;
- google.protobuf.DoubleValue watt_hours_charged = 6;
+ google.protobuf.DoubleValue watt_hours = 6;
+ google.protobuf.DoubleValue watt_hours_charged = 7;
  google.protobuf.DoubleValue temp_fet = 8;
  google.protobuf.DoubleValue temp_motor = 9;
  google.protobuf.DoubleValue current_in = 10;
