@@ -219,8 +219,8 @@ def main():
     radius = (15.0*0.0254)/2.0  # in meters, 15" diameter wheels
     gear_ratio = 6
     poll_pairs = 15
-    right_motor = HubMotor(radius, gear_ratio, poll_pairs, 7, can_socket)
-    left_motor = HubMotor(radius, gear_ratio, poll_pairs, 9, can_socket)
+    right_motor = HubMotor('right_motor', radius, gear_ratio, poll_pairs, 7, can_socket)
+    left_motor = HubMotor('right_motor', radius, gear_ratio, poll_pairs, 9, can_socket)
 
     count = [0]
 
