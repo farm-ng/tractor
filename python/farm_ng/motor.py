@@ -9,8 +9,8 @@ import farm_ng.proio_utils
 import linuxfd
 from farm_ng.canbus import CANSocket
 from farm_ng_proto.tractor.v1 import motor_pb2
-from google.protobuf.timestamp_pb2 import Timestamp
 from google.protobuf.text_format import MessageToString
+from google.protobuf.timestamp_pb2 import Timestamp
 
 logger = logging.getLogger('farm_ng.motor')
 

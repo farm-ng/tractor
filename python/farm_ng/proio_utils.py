@@ -1,9 +1,9 @@
+import atexit
 import time
 from typing import Dict
 
 import proio
 from google.protobuf.timestamp_pb2 import Timestamp
-import atexit
 
 
 class ProioLogger:
@@ -58,6 +58,7 @@ def _close_proio_logger():
     if _proi_logger is not None:
         _proi_logger._close()
         print('closing plog')
+
 
 def smoke1():
     from farm_ng_proto.tractor.v1.geometry_pb2 import Vec2  # for testing

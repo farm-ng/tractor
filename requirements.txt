@@ -1,6 +1,6 @@
 -r third_party/protoc-gen-validate/requirements.txt
-git+https://github.com/utiasSTARS/liegroups.git@11e0203048def0345097cb42c664aa91435c3dd0
 cython
+git+https://github.com/utiasSTARS/liegroups.git@11e0203048def0345097cb42c664aa91435c3dd0
 numpy
 protobuf
 tornado

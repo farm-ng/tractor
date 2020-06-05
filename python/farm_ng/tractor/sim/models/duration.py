@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-
 from google.protobuf import duration_pb2
 
 
