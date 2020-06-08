@@ -13,7 +13,14 @@ yarn
 ```
 
 ### Launch the web app
+Start webpack - watches the directory and puts build artifacts into ``dist/``:
 ```
-yarn dev-start
+yarn dev-watch
 ```
-Visit [http://localhost:3000](http://localhost:3000)
+
+Start a tornado backend
+```
+python sample_backend.py
+```
+
+Visit [http://localhost:9010](http://localhost:9010)

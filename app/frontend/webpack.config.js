@@ -1,5 +1,6 @@
 const path = require("path");
 const webpack = require("webpack");
+const CopyPlugin = require("copy-webpack-plugin");
 
 module.exports = {
   entry: "./src/index.tsx",
@@ -31,10 +32,19 @@ module.exports = {
   },
   devtool: "source-map",
   devServer: {
-    contentBase: path.join(__dirname, "public/"),
+    contentBase: path.join(__dirname, "dist/"),
     port: 3000,
     publicPath: "http://localhost:3000/dist/",
     hotOnly: true
   },
-  plugins: [new webpack.HotModuleReplacementPlugin()]
+  plugins: [
+    new CopyPlugin({
+      patterns: [
+        {
+          from: "public/"
+        }
+      ]
+    }),
+    new webpack.HotModuleReplacementPlugin()
+  ]
 };
