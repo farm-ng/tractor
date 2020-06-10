@@ -56,7 +56,7 @@ def get_socketcan_timestamp(sock) -> Timestamp:
     SIOCGSTAMP = 0x8906
     buf = struct.pack('@LL', 0, 0)
     # https://docs.python.org/3/library/fcntl.html#fcntl.ioctl
-    fcntl.ioctl(sock, SIOCGSTAMP, buf, True)
+    buf = fcntl.ioctl(sock, SIOCGSTAMP, buf)
     seconds, microseconds = struct.unpack('@LL', buf)
     ts = Timestamp()
     ts.FromMicroseconds(seconds*1000000 + microseconds)
