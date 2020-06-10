@@ -32,6 +32,7 @@
     "webpack-dev-server": "^3.11.0"
   },
   "dependencies": {
+    "copy-webpack-plugin": "^6.0.2",
     "long": "^4.0.0",
     "protobufjs": "^6.9.0",
     "react": "^16.13.1",
@@ -41,11 +42,14 @@
   },
   "jest": {
     "preset": "ts-jest",
-    "setupFiles": ["./jest.setup.js"]
+    "setupFiles": [
+      "./jest.setup.js"
+    ]
   },
   "scripts": {
     "dev-start": "webpack-dev-server --mode development",
     "build": "webpack --mode production",
+    "dev-watch": "webpack --progress --watch",
     "test": "jest",
     "test:integration": "jest .*\\.int\\.test\\.ts$"
   }
