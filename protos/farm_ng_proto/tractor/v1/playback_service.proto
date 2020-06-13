@@ -1,0 +1,53 @@
+syntax = "proto3";
+
+import "google/protobuf/timestamp.proto";
+
+package farm_ng_proto.tractor.v1;
+
+message ListLogsRequest {
+}
+
+message ListLogsResponse {
+    repeated string log_paths = 1;
+}
+
+
+message OpenLogRequest {
+  string log_path = 1;
+}
+
+message OpenLogResponse {
+  int64 n_events = 1;
+  google.protobuf.Timestamp stamp_begin = 2;
+  google.protobuf.Timestamp stamp_end = 3;
+}
+
+message PlayRequest {
+  int64 start_event = 1;
+  int64 n_events = 2;
+  enum Rate {
+    RATE_UNSPECIFIED=0;
+    RATE_ASAP=1;
+    RATE_REALTIME=2;
+  }
+  Rate playback_rate=3;
+  bool loop=4; // loop when complete?
+}
+
+message PlayResponse {
+
+}
+
+message StopRequest {
+
+}
+message StopResponse {
+
+}
+
+service PlaybackService {
+  rpc ListLogs(ListLogsRequest) returns (ListLogsResponse) {}
+  rpc OpenLog(OpenLogRequest) returns (OpenLogResponse) {}
+  rpc Play(PlayRequest) returns (PlayResponse) {}
+  rpc Stop(StopRequest) returns (StopResponse) {}
+}

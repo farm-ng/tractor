@@ -158,11 +158,13 @@ class HubMotor:
             return
         logger.debug('can node id %02x', can_node_id)
         state_msg = parser(data)
-
-        event = plog.make_event({'%s/state' % self.name: state_msg}, stamp=stamp)
-        plog.writer().push(event)
         self._latest_state.MergeFrom(state_msg)
         self._latest_stamp.CopyFrom(stamp)
+
+        if command == VESC_STATUS_MSG_5:
+            # only log on the 5th vesc message, as we have complete state at that point.
+            event = plog.make_event({'%s/state' % self.name: self._latest_state}, stamp=self._latest_stamp)
+            plog.writer().push(event)
 
     def _send_can_command(self, command, data):
         cob_id = int(self.can_node_id) | (command << 8)
