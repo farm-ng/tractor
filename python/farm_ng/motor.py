@@ -199,7 +199,7 @@ class HubMotor:
 
 def main():
 
-    command_rate_hz = 50
+    command_rate_hz = 100
     command_period_seconds = 1.0 / command_rate_hz
     # rtc=False means a monotonic clock for realtime loop as it won't
     # be adjusted by the system admin
@@ -220,9 +220,9 @@ def main():
     print(f'Listening on can0')
     loop = asyncio.get_event_loop()
 
-    radius = (15.0*0.0254)/2.0  # in meters, 15" diameter wheels
-    gear_ratio = 6
-    poll_pairs = 15
+    radius = (17.0*0.0254)/2.0  # in meters, 17" diameter wheels
+    gear_ratio = 29.9
+    poll_pairs = 8
     right_motor = HubMotor('right_motor', radius, gear_ratio, poll_pairs, 7, can_socket)
     left_motor = HubMotor('left_motor', radius, gear_ratio, poll_pairs, 9, can_socket)
 
@@ -238,8 +238,8 @@ def main():
                 MessageToString(right_motor.get_state(), as_one_line=True),
                 MessageToString(left_motor.get_state(), as_one_line=True),
             )
-        # right_motor.send_velocity_command(1.0)
-        # left_motor.send_velocity_command(1.0)
+        right_motor.send_velocity_command(0.5)
+        left_motor.send_velocity_command(0.5)
         count[0] += 1
 
     loop.add_reader(can_socket, lambda: can_socket.recv())
