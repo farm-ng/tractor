@@ -1,3 +1,4 @@
 #!/bin/bash -ex
 . setup.bash
-python3 -m farm_ng.tractor.driver
+. $FARM_NG_ROOT/env/bin/activate
+python -m farm_ng.tractor.driver
