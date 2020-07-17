@@ -52,7 +52,7 @@ class TractorController:
         self.n_cycle += 1
 
         # called once each command period
-        if not self.joystick.is_connected() or self.joystick.get_axis_state('brake', -1) < 0.999:
+        if not self.joystick.is_connected() or self.joystick.get_axis_state('rx', -1) < 0.999:
             self.right_motor.send_velocity_command(0.0)
             self.left_motor.send_velocity_command(0.0)
             self.speed = 0.0
