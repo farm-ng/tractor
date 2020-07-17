@@ -9,13 +9,13 @@ while [ -h "$SOURCE" ]; do # resolve $SOURCE until the file is no longer a symli
 done
 export FARM_NG_ROOT=$( cd "$( dirname "${SOURCE}" )" >/dev/null 2>&1 && pwd )
 
+# install system deps, punt for now.
+# sudo apt-get update
+# sudo apt-get install -y \
+#      python3-pip
+# sudo pip3 install virtualenv
 
-sudo apt-get update
-sudo apt-get install -y \
-     python3-pip
-sudo pip3 install virtualenv
-
-if [ ! -f $FARM_NG_ROOT/env/bin/activate]; then
+if [ ! -f $FARM_NG_ROOT/env/bin/activate ]; then
     virtualenv $FARM_NG_ROOT/env    
 fi
 
