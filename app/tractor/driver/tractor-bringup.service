@@ -1,0 +1,13 @@
+[Unit]
+Description="Tractor canbus and bluetooth"
+After=network.target
+
+[Service]
+ExecStart=/home/pi/tractor/app/tractor/driver/bringup.sh
+WorkingDirectory=/home/pi/tractor
+StandardOutput=inherit
+StandardError=inherit
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

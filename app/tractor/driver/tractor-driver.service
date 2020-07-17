@@ -1,0 +1,15 @@
+[Unit]
+Description=Tractor low level driver service.
+After=network.target
+Wants=tractor-bringup
+
+[Service]
+ExecStart=/home/pi/tractor/app/tractor/driver/main.sh
+WorkingDirectory=/home/pi/tractor
+StandardOutput=inherit
+StandardError=inherit
+Restart=always
+User=pi
+
+[Install]
+WantedBy=multi-user.target
