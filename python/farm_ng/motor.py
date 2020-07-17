@@ -168,8 +168,11 @@ class HubMotor:
 
     def _send_can_command(self, command, data):
         cob_id = int(self.can_node_id) | (command << 8)
-        # print('send %x'%cob_id)
-        self.can_socket.send(cob_id, data, flags=socket.CAN_EFF_FLAG)
+        # print('send %x'%cob_id, '%x'%socket.CAN_EFF_FLAG)
+        # socket.CAN_EFF_FLAG for some reason on raspberry pi this is
+        # the wrong value (-0x80000000 )
+        eff_flag=0x80000000 
+        self.can_socket.send(cob_id, data, flags=eff_flag)
 
     def send_rpm_command(self, rpm):
         RPM_FORMAT = '>i'  # big endian, int32

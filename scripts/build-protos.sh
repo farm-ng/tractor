@@ -8,8 +8,8 @@ CMD_ARGS="--proto_path=protos
           --ts_proto_out=app/frontend/genproto
           --ts_proto_opt=forceLong=long
           --twirp_tornado_srv_out=python/gensrv
-          protos/farm_ng_proto/tractor/v1/*.proto
-          protos/validate/validate.proto"
+          protos/farm_ng_proto/tractor/v1/*.proto"
+
 TAG="protoc"
 
 docker build -t $TAG -f $DIR/Dockerfile.protoc $DIR

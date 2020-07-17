@@ -5,7 +5,7 @@ from liegroups import SE3
 
 class TractorKinematics:
     def __init__(self):
-        self.wheel_radius = 0.0254*15/2.0
+        self.wheel_radius = 1.0#0.0254*17/2.0
         self.wheel_base_line = 0.0254*46
 
     def wheel_velocity_to_unicycle(self, v_left: float, v_right: float) -> Tuple[float, float]:
