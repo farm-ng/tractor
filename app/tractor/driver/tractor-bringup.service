@@ -3,8 +3,8 @@ Description="Tractor canbus and bluetooth"
 After=network.target
 
 [Service]
-ExecStart=/home/pi/tractor/app/tractor/driver/bringup.sh
-WorkingDirectory=/home/pi/tractor
+ExecStart=/home/farmer/tractor/app/tractor/driver/bringup.sh
+WorkingDirectory=/home/farmer/tractor
 StandardOutput=inherit
 StandardError=inherit
 Restart=always
