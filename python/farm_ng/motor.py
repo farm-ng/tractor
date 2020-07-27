@@ -4,7 +4,7 @@ import math
 import socket
 import struct
 import sys
-
+import numpy as np
 import farm_ng.proio_utils
 import linuxfd
 from farm_ng.canbus import CANSocket
@@ -195,6 +195,14 @@ class HubMotor:
             ),
         )
         self._send_can_command(VESC_SET_CURRENT, data)
+
+    def send_current_brake_command(self, current_amps):
+        CURRENT_BRAKE_FORMAT = '>i'  # big endian, int32
+        data = struct.pack(
+            CURRENT_BRAKE_FORMAT, int(
+                1000*np.clip(current_amps, 0, self.max_current))
+            )
+        self._send_can_command(VESC_SET_CURRENT_BRAKE, data)
 
     def get_state(self):
         return self._latest_state

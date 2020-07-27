@@ -23,4 +23,4 @@ class Periodic:
         n_periods = self.timer.read()
         if n_periods > 1:
             logger.warning('n_periods %d skipped!', n_periods)
-        self.callback()
+        self.callback(n_periods)
