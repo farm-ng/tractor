@@ -10,10 +10,8 @@ done
 export SERVICE_DIR=$( cd "$( dirname "${SOURCE}" )" >/dev/null 2>&1 && pwd )
 
 $SERVICE_DIR/bringup_can.sh
-$SERVICE_DIR/bringup_bluetooth.sh
 while true
 do
     ip -details -statistics link show can0
     sleep 5
 done
-

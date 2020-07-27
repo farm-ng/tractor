@@ -162,6 +162,7 @@ class Joystick:
             return None
 
         time, value, type, number = struct.unpack('IhBB', evbuf)
+        #logger.debug('%s,%s,%s,%s',time, value, type, number)
 
         if type & 0x80:
             logger.debug('(initial)')
@@ -200,7 +201,7 @@ Using this interface, you can't access the axis_states directly, use
         self.timer.settime(value=1.0, interval=1.0)
         self.event_loop.add_reader(self.timer, self._read_timer)
         self.keep_alive = 0
-        
+
     def _read_timer(self):
         self.timer.read()
         self.keep_alive -= 1

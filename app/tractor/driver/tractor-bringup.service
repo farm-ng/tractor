@@ -1,5 +1,5 @@
 [Unit]
-Description="Tractor canbus and bluetooth"
+Description="Tractor canbus service"
 After=network.target
 
 [Service]
