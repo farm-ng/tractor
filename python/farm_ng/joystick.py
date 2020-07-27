@@ -181,7 +181,7 @@ class Joystick:
             if axis:
                 fvalue = value / 32767.0
                 self.axis_states[axis] = fvalue
-                logger.debug('%s: %.3f', axis, fvalue)
+                #logger.debug('%s: %.3f', axis, fvalue)
 
 
 class MaybeJoystick:
@@ -229,6 +229,12 @@ Using this interface, you can't access the axis_states directly, use
         if self.joystick is None:
             return default
         return self.joystick.axis_states[axis]
+
+
+    def get_button_state(self, button, default):
+        if self.joystick is None:
+            return default
+        return self.joystick.button_states[button]
 
     def is_connected(self):
         return self.joystick is not None and self.keep_alive > 0

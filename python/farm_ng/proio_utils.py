@@ -1,4 +1,5 @@
 import atexit
+import os
 import time
 from typing import Dict
 
@@ -9,8 +10,10 @@ from google.protobuf.timestamp_pb2 import Timestamp
 class ProioLogger:
     _writer = None
 
-    def __init__(self, filename='/tmp/farm-ng-%s.proio' % time.strftime('%Y-%m-%d-%H-%M-%S')):
-        self._log_file = filename
+    def __init__(self, log_dir='/tmp/farm-ng-%s'% time.strftime('%Y-%m-%d-%H-%M-%S')):
+        self.log_dir = log_dir
+        os.makedirs(self.log_dir)
+        self._log_file = os.path.join(log_dir, 'log.proio')
         self._writer = None
 
     def _close(self):
