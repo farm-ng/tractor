@@ -55,7 +55,7 @@ class TractorController:
         brake_current=10.0
         
         if ( n_periods*self.command_period_seconds >= 0.25 or
-             not self.joystick.is_connected() or self.joystick.get_axis_state('brake', -1) < 0.999):
+             not self.joystick.is_connected() or self.joystick.get_axis_state('rx', -1) < 0.0):
             self.speed = 0.0
             self.angular = 0.0
             self.right_motor.send_current_brake_command(brake_current)
@@ -72,7 +72,7 @@ class TractorController:
                 self.lock_out = False
             speed = 1.5*speed
             angular = angular*np.pi/3.0
-        alpha = 0.1
+        alpha = 0.02
         delta_speed = np.clip(speed - self.speed, -alpha, alpha)
         delta_angular = np.clip(angular - self.angular, -alpha, alpha)
         self.speed = np.clip(self.speed + delta_speed, -1.5, 1.5)
