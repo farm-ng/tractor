@@ -121,7 +121,7 @@ class PlaybackService(PlaybackServiceImpl):
         print('ListLogs', list_logs_request)
         response = playback_service_pb2.ListLogsResponse()
         paths = []
-        for path in glob.glob('/tmp/farm-ng-logs/*.proio'):
+        for path in sorted(glob.glob('/tmp/farm-ng-*/*.proio')):
             print(path)
             paths.append(path)
         response.log_paths[:] = paths[:]

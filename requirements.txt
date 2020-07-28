@@ -5,3 +5,4 @@ git+https://github.com/utiasSTARS/liegroups.git@11e0203048def0345097cb42c664aa91
 numpy
 protobuf
 tornado
+-r third_party/protoc-gen-validate/requirements.txt

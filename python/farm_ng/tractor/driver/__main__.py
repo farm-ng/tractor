@@ -116,6 +116,8 @@ class TrackingCamera:
             # Print some of the pose data to the terminal
             frame = frame.as_pose_frame()
             ts = frame.get_timestamp()
+            ts_real = time.time()*1000
+            print(ts - ts_real)
             data = frame.get_pose_data()
             '''
             .def_readwrite("translation", &rs2_pose::translation, "X, Y, Z values of translation, in meters (relative to initial position)")
