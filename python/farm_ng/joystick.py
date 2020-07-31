@@ -172,17 +172,17 @@ class Joystick:
             if button:
                 self.button_states[button] = value
                 if value:
-                    logger.debug('%s pressed', button)
+                    logger.info('%s pressed', button)
                 else:
-                    logger.debug('%s released', button)
+                    logger.info('%s released', button)
 
         if type & 0x02:
             axis = self.axis_map[number]
             if axis:
                 fvalue = value / 32767.0
                 self.axis_states[axis] = fvalue
-                #logger.debug('%s: %.3f', axis, fvalue)
-
+                logger.debug('%s: %.3f', axis, fvalue)
+                
 
 class MaybeJoystick:
     """This class wraps joystick, and silently swallows if the joystick is
@@ -200,18 +200,19 @@ Using this interface, you can't access the axis_states directly, use
         self.timer = linuxfd.timerfd(rtc=False, nonBlocking=True)
         self.timer.settime(value=1.0, interval=1.0)
         self.event_loop.add_reader(self.timer, self._read_timer)
-        self.keep_alive = 0
+        #self.keep_alive = 0
 
     def _read_timer(self):
         self.timer.read()
-        self.keep_alive -= 1
+        #self.keep_alive -= 1
+        #logger.info('keep alive %d'%self.keep_alive)
         if self.joystick is None:
             self.open_joystick()
 
     def _read_joystick(self):
         try:
             self.joystick.read_event()
-            self.keep_alive = 2
+            #self.keep_alive = 3
         except OSError as e:
             logger.warning('Error reading joystick: %s', e)
             self.event_loop.remove_reader(self.joystick)
@@ -237,7 +238,7 @@ Using this interface, you can't access the axis_states directly, use
         return self.joystick.button_states[button]
 
     def is_connected(self):
-        return self.joystick is not None and self.keep_alive > 0
+        return self.joystick is not None
 
 
 if __name__ == '__main__':

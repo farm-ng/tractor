@@ -7,9 +7,10 @@ logger.setLevel(logging.INFO)
 
 
 class Periodic:
-    def __init__(self, period_seconds, event_loop, callback):
+    def __init__(self, period_seconds, event_loop, callback, name=''):
         # rtc=False means a monotonic clock for realtime loop as it won't
         # be adjusted by the system admin
+        self.name = name
         self.timer = linuxfd.timerfd(rtc=False, nonBlocking=True)
         # here we start a timer that will fire in one second, and then
         # each command period after that
@@ -22,5 +23,5 @@ class Periodic:
     def _read_timer(self):
         n_periods = self.timer.read()
         if n_periods > 1:
-            logger.warning('n_periods %d skipped!', n_periods)
+            logger.warning('%s period: n_periods %d skipped!', self.name, n_periods - 1)
         self.callback(n_periods)
