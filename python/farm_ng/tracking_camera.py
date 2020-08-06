@@ -46,8 +46,10 @@ _motion_type_map = {
 class VideoEncoder(object):
     def __init__(self, intrinsics, out_path, framerate=30):
         print(intrinsics)
-        udpsink_host='228.0.0.10'
-        cmd0="gst-launch-1.0 fdsrc fd=0 ! videoparse width=%d height=%d framerate=10/1 format=gray8 ! videoconvert ! omxh264enc control-rate=1 bitrate=1000000 ! video/x-h264, stream-format=byte-stream ! rtph264pay pt=96 mtu=1400 config-interval=10 ! udpsink host=%s auto-multicast=true  port=5000"%(intrinsics.width*2, intrinsics.height, udpsink_host)
+        # https://en.wikipedia.org/wiki/Multicast_address
+        # adminstratively scoped: 239.0.0.0 to 239.255.255.255
+        udpsink_host='239.20.20.20'
+        cmd0="gst-launch-1.0 fdsrc fd=0 ! videoparse width=%d height=%d framerate=10/1 format=gray8 ! videoconvert ! omxh264enc control-rate=1 bitrate=1000000 ! video/x-h264, stream-format=byte-stream ! rtph264pay pt=96 mtu=1400 config-interval=10 ! udpsink host=%s auto-multicast=true  port=5000"%(intrinsics.width, intrinsics.height, udpsink_host)
         print('to watch this remotely run:')
         print('gst-launch-1.0 udpsrc multicast-group=%s port=5000 ! application/x-rtp,encoding-name=H264,payload=96 ! rtph264depay ! h264parse ! queue ! avdec_h264 ! xvimagesink sync=false async=false -e'%(udpsink_host,))
 
@@ -125,11 +127,11 @@ class TrackingCamera:
     def on_image_data(self, image_data):
         self.image_data = image_data
         if self.encoder is not None:
-            self.encoder.write(np.hstack((image_data['left'], image_data['right'])))
+            #self.encoder.write(np.hstack((image_data['left'], image_data['right'])))
             
             #stack = np.stack((image_data['left'], image_data['right'],image_data['right']),
             #axis=-1)
-            #self.encoder.write(stack) #image_data['left'])
+            self.encoder.write(image_data['left'])
         # TODO(rublee) log with H264 encoding
         #event = plog.make_event('%s/image_data' % self.name, image_data)
         #plog.writer().push(event)

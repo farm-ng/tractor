@@ -17,7 +17,9 @@ logger = logging.getLogger('ipc')
 logger.setLevel(logging.INFO)
 
 
-_g_multicast_group = ('224.3.29.71', 10000)
+# https://en.wikipedia.org/wiki/Multicast_address
+# adminstratively scoped: 239.0.0.0 to 239.255.255.255	
+_g_multicast_group = ('239.20.20.20', 10000)
 
 
 def host_is_local(hostname, port):
