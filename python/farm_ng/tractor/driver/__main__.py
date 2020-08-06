@@ -4,7 +4,6 @@ import math
 import sys
 import threading
 import os
-import farm_ng.proio_utils
 from farm_ng.canbus import CANSocket
 from farm_ng.joystick import MaybeJoystick
 from farm_ng.motor import HubMotor
@@ -14,7 +13,7 @@ from farm_ng.tractor.kinematics import TractorKinematics
 import numpy as np
 
 logger = logging.getLogger('tractor.driver')
-plog = farm_ng.proio_utils.get_proio_logger()
+logger.setLevel(logging.INFO)
 
 kinematics = TractorKinematics()
 
@@ -99,7 +98,6 @@ def main():
     event_loop = asyncio.get_event_loop()
     controller = TractorController(event_loop)
     logger.info('Created controller %s', controller)
-    _ = Periodic(5, event_loop, lambda n_periods: plog.writer().flush(), name='plog.flush')
     event_loop.run_forever()
 
 

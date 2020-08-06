@@ -144,7 +144,7 @@ class RtkClient:
 
         gps_solution = solution_to_proto(gps_solution_dict)
         plog.writer().push(
-            plog.make_event({'rtk/solution': gps_solution}),
+            plog.make_event('rtk/solution',gps_solution),
         )
 
         if self.solution_callback is not None:
@@ -198,7 +198,7 @@ class RtkClient:
                 status_pb = RtkServiceStatus()
                 status_pb.message = status_msg_ascii
                 plog.writer().push(
-                    plog.make_event({'rtk/service_status': status_pb}),
+                    plog.make_event('rtk/service_status',status_pb),
                 )
 
                 if len(self.status_messages) > self.n_status_messages:

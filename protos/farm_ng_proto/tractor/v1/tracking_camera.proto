@@ -31,3 +31,17 @@ message TrackingCameraPoseFrame {
    Confidence tracker_confidence = 8;
    Confidence mapper_confidence = 9;
 }
+
+
+message TrackingCameraMotionFrame {
+  int32 frame_number = 1;
+  google.protobuf.Timestamp stamp_motion = 2;
+  enum MotionType {
+  MOTION_TYPE_UNSPECIFIED=0;
+  MOTION_TYPE_GYRO=1;
+  MOTION_TYPE_ACCEL=2;
+  };
+  MotionType motion_type=3;
+  // X, Y, Z values of velocity, in meters/sec
+  Vec3 motion_data = 4;
+}

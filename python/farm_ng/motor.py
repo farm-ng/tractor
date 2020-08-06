@@ -5,18 +5,19 @@ import socket
 import struct
 import sys
 import numpy as np
-import farm_ng.proio_utils
+from farm_ng.ipc import get_event_bus, make_event
 import linuxfd
 from farm_ng.canbus import CANSocket
 from farm_ng_proto.tractor.v1 import motor_pb2
 from google.protobuf.text_format import MessageToString
 from google.protobuf.timestamp_pb2 import Timestamp
 
+event_bus = get_event_bus()
+
 logger = logging.getLogger('farm_ng.motor')
 
 logger.setLevel(logging.INFO)
 
-plog = farm_ng.proio_utils.get_proio_logger()
 
 
 VESC_SET_DUTY = 0
@@ -163,8 +164,8 @@ class HubMotor:
 
         if command == VESC_STATUS_MSG_5:
             # only log on the 5th vesc message, as we have complete state at that point.
-            event = plog.make_event({'%s/state' % self.name: self._latest_state}, stamp=self._latest_stamp)
-            plog.writer().push(event)
+            event = make_event('%s/state' % self.name, self._latest_state, stamp=self._latest_stamp)
+            event_bus.send(event)
 
     def _send_can_command(self, command, data):
         cob_id = int(self.can_node_id) | (command << 8)
@@ -249,8 +250,8 @@ def main():
                 MessageToString(right_motor.get_state(), as_one_line=True),
                 MessageToString(left_motor.get_state(), as_one_line=True),
             )
-        right_motor.send_velocity_command(0.5)
-        left_motor.send_velocity_command(0.5)
+        right_motor.send_velocity_command(0.0)
+        left_motor.send_velocity_command(0.0)
         count[0] += 1
 
     loop.add_reader(can_socket, lambda: can_socket.recv())

@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/any.proto";
+
+package farm_ng_proto.tractor.v1;
+
+message Event {
+   google.protobuf.Timestamp stamp = 1;
+   string name = 2;
+   google.protobuf.Any data = 3;
+}
+
+message Announce {
+   string host=1;
+   int32 port=2;
+}
