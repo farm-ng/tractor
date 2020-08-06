@@ -1,6 +1,5 @@
 import asyncio
 import logging
-import farm_ng.proio_utils
 from farm_ng.periodic import Periodic
 import numpy as np
 import pyrealsense2 as rs

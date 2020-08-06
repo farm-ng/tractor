@@ -107,6 +107,9 @@ class EventBus:
 
         return sock
 
+    def get_last_event(self, name):
+        return self._state.get(name, None)
+
     def log_state(self):
         logger.info('\n'.join([MessageToString(value, as_one_line=True) for value in self._state.values()]))
 

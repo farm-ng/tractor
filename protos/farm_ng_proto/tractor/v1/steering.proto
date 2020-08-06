@@ -1,0 +1,10 @@
+syntax = "proto3";
+
+package farm_ng_proto.tractor.v1;
+
+message SteeringCommand {
+  double deadman = 1;
+  double brake = 2;
+  double velocity = 3;
+  double angular_velocity = 4;
+}
