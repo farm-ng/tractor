@@ -68,6 +68,7 @@ class EventBus:
         # socket.getaddrinfo(*address)
         event = Event()
         event.ParseFromString(data)
+        event.recv_stamp.GetCurrentTime()
         self._state[event.name] = event
 
         # print('my send addr {} received {} bytes from {} event {}'.format(

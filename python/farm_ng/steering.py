@@ -37,7 +37,9 @@ class SteeringClient:
             self.lockout = True
             return self._stop_command
 
-        if (time.time()*1000.0 - event.stamp.ToMilliseconds() > 200):
+        delta_t_millisecond = time.time()*1000.0 - event.recv_stamp.ToMilliseconds()
+        if (delta_t_millisecond > 200):
+            logger.warning('steering lock out due to long time since last event: %d'%delta_t_millisecond)
             self.lockout = True
             return self._stop_command
 
