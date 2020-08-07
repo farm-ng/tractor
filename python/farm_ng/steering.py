@@ -1,3 +1,4 @@
+import time
 import asyncio
 import logging
 import sys
@@ -27,27 +28,27 @@ class SteeringClient:
         self._stop_command.brake = 1.0
         self._stop_command.velocity = 0.0
         self._stop_command.angular_velocity = 0.0
-        self.lock_out = True
-
-    def get_steering_command():
+        self.lockout = True
+        
+        
+    def get_steering_command(self):
         event = event_bus.get_last_event(_g_message_name)
         if event is None:
             self.lockout = True
             return self._stop_command
 
-        if (time.now()*1000.0 - event.stamp.ToMilliseconds() > 200):
+        if (time.time()*1000.0 - event.stamp.ToMilliseconds() > 200):
             self.lockout = True
             return self._stop_command
 
-        event.Unpack(self._latest_command)
+        event.data.Unpack(self._latest_command)
 
         if self.lockout is True:
             if abs(self._latest_command.velocity) > 0.01 or abs(self._latest_command.angular_velocity) > 0.01:
                 return self._stop_command
             self.lockout = False
-
-        return self._latest_state
-
+            
+        return self._latest_command        
 
 class SteeringSenderJoystick:
     def __init__(self):
@@ -74,7 +75,6 @@ class SteeringSenderJoystick:
             if abs(velocity) >= 0.5:
                 velocity = np.sign(velocity) * (0.5/4 + (abs(velocity) - 0.5)*2)
             self._command.velocity = velocity
-
             angular_velocity = np.clip(-self.joystick.get_axis_state('rx', 0), -1.0, 1.0)*np.pi/3.0
             self._command.angular_velocity = angular_velocity
         event_bus.send(make_event(_g_message_name, self._command))

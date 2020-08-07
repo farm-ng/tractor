@@ -5,15 +5,18 @@ import socket
 import struct
 import sys
 
+from google.protobuf.text_format import MessageToString
+from google.protobuf.timestamp_pb2 import Timestamp
+import logging
+from farm_ng.periodic import Periodic
+
+
 import farm_ng_proto.tractor.v1.io_pb2
 import farm_ng_proto.tractor.v1.motor_pb2
 import farm_ng_proto.tractor.v1.steering_pb2
 import farm_ng_proto.tractor.v1.tracking_camera_pb2
-from farm_ng.periodic import Periodic
-from farm_ng_proto.tractor.v1.io_pb2 import Announce
-from farm_ng_proto.tractor.v1.io_pb2 import Event
-from google.protobuf.text_format import MessageToString
-from google.protobuf.timestamp_pb2 import Timestamp
+import farm_ng_proto.tractor.v1.steering_pb2
+
 
 logger = logging.getLogger('ipc')
 logger.setLevel(logging.INFO)
