@@ -5,12 +5,14 @@ import sys
 import threading
 import os
 from farm_ng.canbus import CANSocket
-from farm_ng.joystick import MaybeJoystick
+from farm_ng.steering import SteeringClient
 from farm_ng.motor import HubMotor
 from farm_ng.periodic import Periodic
 from google.protobuf.text_format import MessageToString
 from farm_ng.tractor.kinematics import TractorKinematics
 import numpy as np
+from liegroups import SE3
+from google.protobuf.timestamp_pb2 import Timestamp
 
 logger = logging.getLogger('tractor.driver')
 logger.setLevel(logging.INFO)
@@ -29,7 +31,9 @@ class TractorController:
         # self.recording = False
         self.lock_out = False
         self.can_socket = CANSocket('can0', self.event_loop)
-        self.joystick = MaybeJoystick('/dev/input/js0', self.event_loop)
+        self.steering = SteeringClient()
+
+        self.odom_pose_tractor = SE3.identity()
 
         radius = (17*0.0254)/2.0  # in meters, 15" diameter wheels
         gear_ratio = 29.9
@@ -48,49 +52,56 @@ class TractorController:
             self._command_loop, name='control_loop'
         )
 
-    def _command_loop(self, n_periods):
-        if (self.n_cycle % (5*self.command_rate_hz)) == 0:
-            logger.info('\nright motor:\n  %s\nleft motor:\n  %s\n',
-                        MessageToString(self.right_motor.get_state(), as_one_line=True),
-                        MessageToString(self.left_motor.get_state(), as_one_line=True))
-
-        self.n_cycle += 1
-
-        brake_current=10.0
+        self._last_odom_stamp = None
+        self._left_vel = 0.0
+        self._right_vel = 0.0
         
-        if not self.joystick.get_button_state('tl', False) or not self.joystick.is_connected() or n_periods > self.command_rate_hz/4:
+        
+
+    def _command_loop(self, n_periods):
+        now = Timestamp()
+        now.GetCurrentTime()
+
+        if (self.n_cycle % (5*self.command_rate_hz)) == 0:
+            logger.info('\nright motor:\n  %s\nleft motor:\n  %s\n odom_pose_tractor %s left_vel %f right_vel %f',
+                        MessageToString(self.right_motor.get_state(), as_one_line=True),
+                        MessageToString(self.left_motor.get_state(), as_one_line=True),
+                        self.odom_pose_tractor, self._left_vel, self._right_vel)
+
+        self._left_vel = self.left_motor.average_velocity()
+        self._right_vel = self.right_motor.average_velocity()
+        if self._last_odom_stamp is not None:
+            dt = (now.ToMicroseconds() - self._last_odom_stamp.ToMicroseconds())*1e-6
+            assert dt > 0.0
+            self.odom_pose_tractor = kinematics.evolve_world_pose_tractor(self.odom_pose_tractor,
+                                                                          self._left_vel,
+                                                                          self._right_vel,
+                                                                          dt)
+
+        self._last_odom_stamp = now
+        
+
+            
+        self.n_cycle += 1
+        brake_current=10.0
+        steering_command = self.steering.get_steering_command()
+        if steering_command.brake > 0.0:
+            self.right_motor.send_current_brake_command(brake_current)
+            self.left_motor.send_current_brake_command(brake_current)
             self.speed = 0.0
             self.angular = 0.0
-            self.right_motor.send_current_brake_command(brake_current)
-            self.left_motor.send_current_brake_command(brake_current)                
-            self.lock_out = True
             return
-        else:
-            speed = np.clip(-self.joystick.get_axis_state('y', 0), -1.0, 1.0)
-            if speed < 0.5:
-                speed = speed/4.0
-            if speed >= 0.5:
-                speed = 0.5/4 + (speed - 0.5)*2
-            
-            angular = np.clip(-self.joystick.get_axis_state('z', 0), -1.0, 1.0)
-            if self.lock_out and (np.abs(speed) > 0.1 or np.abs(angular) > 0.1):
-                speed = 0.0
-                angular = 0.0
-            else:
-                self.lock_out = False
-            speed = speed
-            angular = angular*np.pi/3.0
-            
-        alpha = 0.05
-        self.speed = self.speed * (1-alpha) + speed*alpha
-        self.angular = self.angular * (1-alpha) + angular*alpha
         
-        self.speed = np.clip(speed, -1, 1)
-        self.angular = np.clip(angular, -np.pi/3.0, np.pi/3.0)
+        alpha = 0.1
+        self.speed = self.speed * (1-alpha) + steering_command.velocity*alpha
+        self.angular = self.angular * (1-alpha) + steering_command.angular_velocity*alpha
         
         left, right = kinematics.unicycle_to_wheel_velocity(self.speed, self.angular)
+        #print(left,right)
         self.right_motor.send_velocity_command(right)
         self.left_motor.send_velocity_command(left)
+
+
 
 
 def main():

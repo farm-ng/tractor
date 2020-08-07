@@ -32,7 +32,7 @@ VESC_STATUS_MSG_4 = 16
 VESC_STATUS_MSG_5 = 27
 
 
-def vesc_parse_status_msg_1(data):
+def vesc_parse_status_msg_1(state,data):
     msg = struct.unpack(
         '>ihh',  # big endian, int32, int16, int16
         data,
@@ -41,14 +41,13 @@ def vesc_parse_status_msg_1(data):
     current /= 1e1
     duty_cycle /= 1e3
     logger.debug('rpm %d current %f duty_cycle %f', rpm, current, duty_cycle)
-    state = motor_pb2.MotorControllerState()
     state.rpm.value = rpm
     state.current.value = current
     state.duty_cycle.value = duty_cycle
     return state
 
 
-def vesc_parse_status_msg_2(data):
+def vesc_parse_status_msg_2(state,data):
     msg = struct.unpack(
         '>ii',  # big endian, int32, int32
         data,
@@ -60,13 +59,12 @@ def vesc_parse_status_msg_2(data):
         'amp_hours %f amp_hours_charged %f',
         amp_hours, amp_hours_charged,
     )
-    state = motor_pb2.MotorControllerState()
     state.amp_hours.value = amp_hours
     state.amp_hours_charged.value = amp_hours_charged
     return state
 
 
-def vesc_parse_status_msg_3(data):
+def vesc_parse_status_msg_3(state,data):
     msg = struct.unpack(
         '>ii',  # big endian, int32, int32
         data,
@@ -78,13 +76,12 @@ def vesc_parse_status_msg_3(data):
         'watt_hours %f watt_hours_charged %f',
         watt_hours, watt_hours_charged,
     )
-    state = motor_pb2.MotorControllerState()
     state.watt_hours.value = watt_hours
     state.watt_hours_charged.value = watt_hours_charged
     return state
 
 
-def vesc_parse_status_msg_4(data):
+def vesc_parse_status_msg_4(state,data):
     msg = struct.unpack(
         '>hhhh',  # big endian, int16, int16, int 16
         data,
@@ -99,7 +96,6 @@ def vesc_parse_status_msg_4(data):
         'temp_fet %f temp_motor %f current_in %f pid_pos %f',
         temp_fet, temp_motor, current_in, pid_pos,
     )
-    state = motor_pb2.MotorControllerState()
     state.temp_fet.value = temp_fet
     state.temp_motor.value = temp_motor
     state.current_in.value = current_in
@@ -107,7 +103,7 @@ def vesc_parse_status_msg_4(data):
     return state
 
 
-def vesc_parse_status_msg_5(data):
+def vesc_parse_status_msg_5(state,data):
     msg = struct.unpack(
         '>ihh',  # big endian, int32, int16, int16
         data,
@@ -115,8 +111,11 @@ def vesc_parse_status_msg_5(data):
     tachometer, input_voltage, _ = msg
     input_voltage /= 1e1
     logger.debug('tachometer %f input_voltage %f', tachometer, input_voltage)
-    state = motor_pb2.MotorControllerState()
-    state.tachometer.value = tachometer
+    # divide by 6 here to get in the same units as the RPM.
+    # according to docs https://github.com/vedderb/bldc/blob/master/mcpwm_foc.c
+    # RPM must be divided by 0.5*number of poles
+    # and tachometer must be divided by 3*number of poles
+    state.tachometer.value = tachometer / (6.0) # get it in eRPM units
     state.input_voltage.value = input_voltage
     return state
 
@@ -145,6 +144,11 @@ class HubMotor:
         self._latest_state = motor_pb2.MotorControllerState()
         self._latest_stamp = Timestamp()
         self.can_socket.add_reader(self._handle_can_message)
+        self._last_tachometer = 0
+        self._last_tachometer_stamp = None
+        self._delta_meters = 0.0
+        self._delta_time_seconds = 0.0
+        self._avg_velocity = 0.0
 
     def _handle_can_message(self, cob_id, data, stamp):
         can_node_id = (cob_id & 0xff)
@@ -158,15 +162,35 @@ class HubMotor:
             )
             return
         logger.debug('can node id %02x', can_node_id)
-        state_msg = parser(data)
-        self._latest_state.MergeFrom(state_msg)
+        parser(self._latest_state,data)
         self._latest_stamp.CopyFrom(stamp)
 
         if command == VESC_STATUS_MSG_5:
+            if self._last_tachometer_stamp is not None:
+                # likely don't need to deal with roll over from
+                # tachometer given its a signed 32 bit integer, this
+                # will allow us to drive approximately 1200 miles
+                # before it resets computer/vesc will reboot before
+                # this happens
+                # max revolutions
+                # revs=(2**31)/(6*8*29.9)
+                # meters=revs * 2*math.pi*radius
+                # miles=meters/1609
+                # with radius of 0.215 meters, we get 1261 miles
+                self._delta_meters = self._er_to_meters(self._latest_state.tachometer.value - self._last_tachometer)
+                self._delta_time_seconds = (self._latest_stamp.ToMicroseconds() - self._last_tachometer_stamp.ToMicroseconds())*1e-6
+                self._avg_velocity = self._delta_meters / self._delta_time_seconds
+
+            else:
+                self._last_tachometer_stamp = Timestamp()
+                
+            self._last_tachometer_stamp.CopyFrom(self._latest_stamp)
+            self._last_tachometer = self._latest_state.tachometer.value
+            
             # only log on the 5th vesc message, as we have complete state at that point.
             event = make_event('%s/state' % self.name, self._latest_state, stamp=self._latest_stamp)
             event_bus.send(event)
-
+            
     def _send_can_command(self, command, data):
         cob_id = int(self.can_node_id) | (command << 8)
         # print('send %x'%cob_id, '%x'%socket.CAN_EFF_FLAG)
@@ -175,6 +199,18 @@ class HubMotor:
         eff_flag=0x80000000 
         self.can_socket.send(cob_id, data, flags=eff_flag)
 
+    def _er_to_meters(self, er):
+        '''compute meters from electric revs'''
+        rotations = er/(self.poll_pairs*self.gear_ratio)
+        distance = rotations*self.wheel_radius*2*math.pi
+        return distance
+
+    def odometry_meters(self):
+        return self._er_to_meters(self._latest_state.tachometer.value)
+    
+    def average_velocity(self):
+        return self._avg_velocity
+                         
     def send_rpm_command(self, rpm):
         RPM_FORMAT = '>i'  # big endian, int32
         erpm = rpm * self.poll_pairs*self.gear_ratio

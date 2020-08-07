@@ -1,3 +1,4 @@
+import time
 import asyncio
 import logging
 from farm_ng.periodic import Periodic
@@ -21,28 +22,27 @@ class SteeringClient(object):
         self._stop_command.brake = 1.0
         self._stop_command.velocity = 0.0
         self._stop_command.angular_velocity = 0.0
-        self.lock_out = True
+        self.lockout = True
         
         
-    def get_steering_command():
+    def get_steering_command(self):
         event = event_bus.get_last_event(_g_message_name)
         if event is None:
             self.lockout = True
             return self._stop_command
 
-        if (time.now()*1000.0 - event.stamp.ToMilliseconds() > 200):
+        if (time.time()*1000.0 - event.stamp.ToMilliseconds() > 200):
             self.lockout = True
             return self._stop_command
 
-        event.Unpack(self._latest_command)
+        event.data.Unpack(self._latest_command)
 
         if self.lockout is True:
             if abs(self._latest_command.velocity) > 0.01 or abs(self._latest_command.angular_velocity) > 0.01:
                 return self._stop_command
             self.lockout = False
             
-        return self._latest_state
-        
+        return self._latest_command        
 
 class SteeringSenderJoystick(object):
     def __init__(self):
@@ -54,13 +54,13 @@ class SteeringSenderJoystick(object):
         self._command = SteeringCommand()
 
     def send(self, n_periods):
-        if not self.joystick.get_button_state('tl', False) or not self.joystick.is_connected() or n_periods > self.rate_hz/4:
+        if not self.joystick.get_button_state('tl2', False) or not self.joystick.is_connected() or n_periods > self.rate_hz/4:
             self._command.velocity = 0.0
             self._command.angular_velocity = 0.0
             self._command.brake = 1.0
             self._command.deadman = 0.0
         else:
-            self._command.deadman = self.joystick.get_button_state('tl', False) ? 1.0 : 0.0
+            self._command.deadman = 1.0 if self.joystick.get_button_state('tl2', False) else 0.0
             self._command.brake = 0.0
             
             velocity = np.clip(-self.joystick.get_axis_state('y', 0), -1.0, 1.0)
@@ -70,7 +70,7 @@ class SteeringSenderJoystick(object):
                 velocity = np.sign(velocity) *(0.5/4 + (abs(velocity) - 0.5)*2)
             self._command.velocity = velocity
             
-            angular_velocity = np.clip(-self.joystick.get_axis_state('z', 0), -1.0, 1.0)*np.pi/3.0
+            angular_velocity = np.clip(-self.joystick.get_axis_state('rx', 0), -1.0, 1.0)*np.pi/3.0
             self._command.angular_velocity = angular_velocity
         event_loop.send(make_event(_g_message_name, self._command))
 
