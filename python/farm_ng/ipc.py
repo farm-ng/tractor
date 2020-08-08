@@ -22,7 +22,7 @@ logger.setLevel(logging.INFO)
 
 # https://en.wikipedia.org/wiki/Multicast_address
 # adminstratively scoped: 239.0.0.0 to 239.255.255.255
-_g_multicast_group = ('239.20.20.20', 10000)
+_g_multicast_group = ('239.20.20.21', 10000)
 
 
 def host_is_local(hostname, port):
@@ -44,12 +44,21 @@ def host_is_local(hostname, port):
 class EventBus:
     def __init__(self):
         self._multicast_group = _g_multicast_group
-        self._mc_recv_sock = self._make_mc_recv_socket()
+        self._mc_recv_sock = None
+        self._connect_recv_sock()
         self._mc_send_sock = self._make_mc_send_socket()
+
         loop = asyncio.get_event_loop()
         loop.add_reader(self._mc_recv_sock.fileno(), self._bus_recv)
         loop.add_reader(self._mc_send_sock.fileno(), self._send_recv)
         self._state = dict()
+        self._latest_recv
+
+    def _connect_recv_sock(self):
+        if self._mc_recv_sock is not None:
+            asyncio.get_event_loop().remove_reader(self._mc_recv_sock.fileno())
+            self._mc_recv_sock.close()
+        self._mc_recv_sock = self._make_mc_recv_socket()
 
     def send(self, event: Event):
         self._state[event.name] = event
@@ -76,6 +85,9 @@ class EventBus:
         #self._mc_send_sock.sendto(b'ack %d'%len(data), address)
 
     def _make_mc_recv_socket(self):
+        # Look up multicast group address in name server and find out IP version
+        addrinfo = socket.getaddrinfo(self._multicast_group[0], None)[0]
+
         # Create the socket
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -83,15 +95,15 @@ class EventBus:
         # Bind to the server address
         sock.bind(('', self._multicast_group[1]))
 
-        # Tell the operating system to add the socket to
-        # the multicast group on all interfaces.
-        group = socket.inet_aton(self._multicast_group[0])
-        mreq = struct.pack('4sL', group, socket.INADDR_ANY)
-        sock.setsockopt(
-            socket.IPPROTO_IP,
-            socket.IP_ADD_MEMBERSHIP,
-            mreq,
-        )
+        group_bin = socket.inet_pton(addrinfo[0], addrinfo[4][0])
+
+        # Join group
+        if addrinfo[0] == socket.AF_INET:  # IPv4
+            mreq = group_bin + struct.pack('=I', socket.INADDR_ANY)
+            sock.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
+        else:
+            mreq = group_bin + struct.pack('@I', 0)
+            sock.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_JOIN_GROUP, mreq)
         return sock
 
     def _send_announce(self):
