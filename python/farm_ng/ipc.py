@@ -52,7 +52,6 @@ class EventBus:
         loop.add_reader(self._mc_recv_sock.fileno(), self._bus_recv)
         loop.add_reader(self._mc_send_sock.fileno(), self._send_recv)
         self._state = dict()
-        self._latest_recv
 
     def _connect_recv_sock(self):
         if self._mc_recv_sock is not None:
