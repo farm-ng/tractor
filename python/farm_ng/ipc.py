@@ -132,7 +132,7 @@ class EventBus:
 
         announce = Announce()
         announce.ParseFromString(data)
-        logger.info('Recv announce for service: %s', MessageToString(announce, as_one_line=True))
+        #logger.debug('Recv announce for service: %s', MessageToString(announce, as_one_line=True))
         if address[1] != announce.port:
             logger.warning('announce port does not match sender... rejecting %s', MessageToString(announce, as_one_line=True))
         announce.host = address[0]
