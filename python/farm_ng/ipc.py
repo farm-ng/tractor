@@ -62,6 +62,7 @@ class EventBus:
     def _announce_service(self, n_periods):
         host, port = self._mc_send_sock.getsockname()
         announce = Announce()
+        announce.stamp.GetCurrentTime()
         announce.host = socket.getfqdn(host)
         announce.port = port
         announce.service = self._name
