@@ -41,3 +41,5 @@ third_party/build-*/
 *.exe
 *.out
 *.app
+
+build/

@@ -54,7 +54,6 @@ class EventBus:
         self._connect_recv_sock()
         self._connect_send_sock()
         loop = asyncio.get_event_loop()
-        self._periodic_listen = Periodic(2, loop, self._listen_for_services)
         self._periodic_announce = Periodic(1, loop, self._announce_service)
         self._services = dict()
         self._state = dict()
@@ -67,28 +66,26 @@ class EventBus:
         announce.port = port
         announce.service = self._name
         #logger.info('Sending announce for services. %s', MessageToString(announce, as_one_line=True))
-        self._mc_send_sock.sendto(announce.SerializeToString(), self._multicast_group)
+        msg = announce.SerializeToString()
+        self._mc_send_sock.sendto(msg, self._multicast_group)
 
-    def _listen_for_services(self, n_periods):
-        if self._mc_recv_sock is None:
-            self._quiet_count += 1
-            if self._quiet_count == 3:
-                self._connect_recv_sock()
-                logger.info('Listening for services.')
-                self._quiet_count = 0
-        else:
-            self._close_recv_sock()
-            logger.info('Resting for services.')
-            delete = []
-            for key, service in self._services.items():
-                if (time.time() - service.recv_stamp.ToSeconds()) > 10:
-                    logger.info('Dropping service: %s', MessageToString(service, as_one_line=True))
-                    delete.append(key)
-                else:
-                    logger.info('Active service  : %s', MessageToString(service, as_one_line=True))
+        # send to any services we already know of directly
+        for key, service in self._services.items():
+            self._mc_send_sock.sendto(msg, (service.host, self._multicast_group[1]))
 
-            for key in delete:
-                del self._services[key]
+        self._clear_stale_announcements()
+
+    def _clear_stale_announcements(self):
+        delete = []
+        for key, service in self._services.items():
+            if (time.time() - service.recv_stamp.ToSeconds()) > 10:
+                logger.info('Dropping service: %s', MessageToString(service, as_one_line=True))
+                delete.append(key)
+            else:
+                logger.info('Active service  : %s', MessageToString(service, as_one_line=True))
+
+        for key in delete:
+            del self._services[key]
 
     def _close_recv_sock(self):
         asyncio.get_event_loop().remove_reader(self._mc_recv_sock.fileno())
