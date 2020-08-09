@@ -1,23 +1,21 @@
 import asyncio
 import logging
 import math
-import socket
 import struct
 import sys
-import numpy as np
-from farm_ng.ipc import get_event_bus, make_event
+
 import linuxfd
+import numpy as np
 from farm_ng.canbus import CANSocket
+from farm_ng.ipc import get_event_bus
+from farm_ng.ipc import make_event
 from farm_ng_proto.tractor.v1 import motor_pb2
 from google.protobuf.text_format import MessageToString
 from google.protobuf.timestamp_pb2 import Timestamp
 
-event_bus = get_event_bus()
-
 logger = logging.getLogger('farm_ng.motor')
 
 logger.setLevel(logging.INFO)
-
 
 
 VESC_SET_DUTY = 0
@@ -32,7 +30,7 @@ VESC_STATUS_MSG_4 = 16
 VESC_STATUS_MSG_5 = 27
 
 
-def vesc_parse_status_msg_1(state,data):
+def vesc_parse_status_msg_1(state, data):
     msg = struct.unpack(
         '>ihh',  # big endian, int32, int16, int16
         data,
@@ -47,7 +45,7 @@ def vesc_parse_status_msg_1(state,data):
     return state
 
 
-def vesc_parse_status_msg_2(state,data):
+def vesc_parse_status_msg_2(state, data):
     msg = struct.unpack(
         '>ii',  # big endian, int32, int32
         data,
@@ -64,7 +62,7 @@ def vesc_parse_status_msg_2(state,data):
     return state
 
 
-def vesc_parse_status_msg_3(state,data):
+def vesc_parse_status_msg_3(state, data):
     msg = struct.unpack(
         '>ii',  # big endian, int32, int32
         data,
@@ -81,7 +79,7 @@ def vesc_parse_status_msg_3(state,data):
     return state
 
 
-def vesc_parse_status_msg_4(state,data):
+def vesc_parse_status_msg_4(state, data):
     msg = struct.unpack(
         '>hhhh',  # big endian, int16, int16, int 16
         data,
@@ -103,7 +101,7 @@ def vesc_parse_status_msg_4(state,data):
     return state
 
 
-def vesc_parse_status_msg_5(state,data):
+def vesc_parse_status_msg_5(state, data):
     msg = struct.unpack(
         '>ihh',  # big endian, int32, int16, int16
         data,
@@ -115,7 +113,7 @@ def vesc_parse_status_msg_5(state,data):
     # according to docs https://github.com/vedderb/bldc/blob/master/mcpwm_foc.c
     # RPM must be divided by 0.5*number of poles
     # and tachometer must be divided by 3*number of poles
-    state.tachometer.value = tachometer / (6.0) # get it in eRPM units
+    state.tachometer.value = tachometer / (6.0)  # get it in eRPM units
     state.input_voltage.value = input_voltage
     return state
 
@@ -162,7 +160,7 @@ class HubMotor:
             )
             return
         logger.debug('can node id %02x', can_node_id)
-        parser(self._latest_state,data)
+        parser(self._latest_state, data)
         self._latest_stamp.CopyFrom(stamp)
 
         if command == VESC_STATUS_MSG_5:
@@ -183,20 +181,20 @@ class HubMotor:
 
             else:
                 self._last_tachometer_stamp = Timestamp()
-                
+
             self._last_tachometer_stamp.CopyFrom(self._latest_stamp)
             self._last_tachometer = self._latest_state.tachometer.value
-            
+
             # only log on the 5th vesc message, as we have complete state at that point.
             event = make_event('%s/state' % self.name, self._latest_state, stamp=self._latest_stamp)
-            event_bus.send(event)
-            
+            get_event_bus('motor').send(event)
+
     def _send_can_command(self, command, data):
         cob_id = int(self.can_node_id) | (command << 8)
         # print('send %x'%cob_id, '%x'%socket.CAN_EFF_FLAG)
         # socket.CAN_EFF_FLAG for some reason on raspberry pi this is
         # the wrong value (-0x80000000 )
-        eff_flag=0x80000000 
+        eff_flag = 0x80000000
         self.can_socket.send(cob_id, data, flags=eff_flag)
 
     def _er_to_meters(self, er):
@@ -207,10 +205,10 @@ class HubMotor:
 
     def odometry_meters(self):
         return self._er_to_meters(self._latest_state.tachometer.value)
-    
+
     def average_velocity(self):
         return self._avg_velocity
-                         
+
     def send_rpm_command(self, rpm):
         RPM_FORMAT = '>i'  # big endian, int32
         erpm = rpm * self.poll_pairs*self.gear_ratio
@@ -237,8 +235,9 @@ class HubMotor:
         CURRENT_BRAKE_FORMAT = '>i'  # big endian, int32
         data = struct.pack(
             CURRENT_BRAKE_FORMAT, int(
-                1000*np.clip(current_amps, 0, self.max_current))
-            )
+                1000*np.clip(current_amps, 0, self.max_current),
+            ),
+        )
         self._send_can_command(VESC_SET_CURRENT_BRAKE, data)
 
     def get_state(self):
@@ -278,8 +277,6 @@ def main():
 
     def command_loop():
         periodic.read()
-        if count[0] % (30*command_rate_hz) == 0:
-            plog.writer().flush()
         if count[0] % (2*command_rate_hz) == 0:
             logger.info(
                 'right: %s\nleft: %s',

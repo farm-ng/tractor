@@ -1,7 +1,7 @@
-import time
 import asyncio
 import logging
 import sys
+import time
 
 import numpy as np
 from farm_ng.ipc import get_event_bus
@@ -9,12 +9,9 @@ from farm_ng.ipc import make_event
 from farm_ng.joystick import MaybeJoystick
 from farm_ng.periodic import Periodic
 from farm_ng_proto.tractor.v1.steering_pb2 import SteeringCommand
-from google.protobuf.text_format import MessageToString
 
 logger = logging.getLogger('steering')
 logger.setLevel(logging.INFO)
-
-event_bus = get_event_bus()
 
 
 _g_message_name = 'steering'
@@ -29,17 +26,16 @@ class SteeringClient:
         self._stop_command.velocity = 0.0
         self._stop_command.angular_velocity = 0.0
         self.lockout = True
-        
-        
+
     def get_steering_command(self):
-        event = event_bus.get_last_event(_g_message_name)
+        event = get_event_bus('steering').get_last_event(_g_message_name)
         if event is None:
             self.lockout = True
             return self._stop_command
 
         delta_t_millisecond = time.time()*1000.0 - event.recv_stamp.ToMilliseconds()
         if (delta_t_millisecond > 1000):
-            logger.warning('steering lock out due to long time since last event: %d'%delta_t_millisecond)
+            logger.warning('steering lock out due to long time since last event: %d' % delta_t_millisecond)
             self.lockout = True
             return self._stop_command
 
@@ -49,8 +45,9 @@ class SteeringClient:
             if abs(self._latest_command.velocity) > 0.01 or abs(self._latest_command.angular_velocity) > 0.01:
                 return self._stop_command
             self.lockout = False
-            
-        return self._latest_command        
+
+        return self._latest_command
+
 
 class SteeringSenderJoystick:
     def __init__(self):
@@ -79,13 +76,13 @@ class SteeringSenderJoystick:
             self._command.velocity = velocity
             angular_velocity = np.clip(-self.joystick.get_axis_state('rx', 0), -1.0, 1.0)*np.pi/3.0
             self._command.angular_velocity = angular_velocity
-        event_bus.send(make_event(_g_message_name, self._command))
+        get_event_bus('steering').send(make_event(_g_message_name, self._command))
 
 
 def main():
     logging.basicConfig(stream=sys.stdout, level=logging.INFO)
     event_loop = asyncio.get_event_loop()
-    steering_sender = SteeringSenderJoystick()
+    _ = SteeringSenderJoystick()
     event_loop.run_forever()
 
 
