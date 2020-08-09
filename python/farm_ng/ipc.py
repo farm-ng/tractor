@@ -79,10 +79,10 @@ class EventBus:
             delete = []
             for key, service in self._services.items():
                 if (time.time() - service.recv_stamp.ToSeconds()) > 10:
-                    print('Dropping service: ', MessageToString(service, as_one_line=True))
+                    logging.info('Dropping service: %s', MessageToString(service, as_one_line=True))
                     delete.append(key)
                 else:
-                    print('Active service  : ', MessageToString(service, as_one_line=True))
+                    logging.info('Active service  : %s', MessageToString(service, as_one_line=True))
 
             for key in delete:
                 del self._services[key]
