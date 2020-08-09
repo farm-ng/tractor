@@ -15,4 +15,7 @@ message Event {
 message Announce {
    string host=1;
    int32 port=2;
+   string service=3;
+   google.protobuf.Timestamp stamp = 4;
+   google.protobuf.Timestamp recv_stamp = 5;
 }

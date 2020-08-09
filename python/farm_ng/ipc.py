@@ -42,47 +42,81 @@ def host_is_local(hostname, port):
 
 
 class EventBus:
-    def __init__(self):
+    def __init__(self, name):
+        if name is None:
+            name = 'service'
         self._multicast_group = _g_multicast_group
+        self._name = name
         self._mc_recv_sock = None
+        self._mc_send_sock = None
         self._connect_recv_sock()
-        self._mc_send_sock = self._make_mc_send_socket()
-
+        self._connect_send_sock()
         loop = asyncio.get_event_loop()
-        loop.add_reader(self._mc_recv_sock.fileno(), self._bus_recv)
-        loop.add_reader(self._mc_send_sock.fileno(), self._send_recv)
+        self._periodic_listen = Periodic(2, loop, self._listen_for_services)
+        self._periodic_announce = Periodic(1, loop, self._announce_service)
+        self._services = dict()
         self._state = dict()
+
+    def _announce_service(self, n_periods):
+        host, port = self._mc_send_sock.getsockname()
+        announce = Announce()
+        announce.host = socket.getfqdn(host)
+        announce.port = port
+        announce.service = self._name
+        self._mc_send_sock.sendto(announce.SerializeToString(), self._multicast_group)
+
+    def _listen_for_services(self, n_periods):
+        if self._mc_recv_sock is None:
+            self._connect_recv_sock()
+        else:
+            self._close_recv_sock()
+
+    def _close_recv_sock(self):
+        asyncio.get_event_loop().remove_reader(self._mc_recv_sock.fileno())
+        self._mc_recv_sock.close()
+        self._mc_recv_sock = None
 
     def _connect_recv_sock(self):
         if self._mc_recv_sock is not None:
             asyncio.get_event_loop().remove_reader(self._mc_recv_sock.fileno())
             self._mc_recv_sock.close()
         self._mc_recv_sock = self._make_mc_recv_socket()
+        asyncio.get_event_loop().add_reader(self._mc_recv_sock.fileno(), self._announce_recv)
+
+    def _connect_send_sock(self):
+        if self._mc_send_sock is not None:
+            asyncio.get_event_loop().remove_reader(self._mc_send_sock.fileno())
+            self._mc_send_sock.close()
+        self._mc_send_sock = self._make_mc_send_socket()
+        loop = asyncio.get_event_loop()
+        loop.add_reader(self._mc_send_sock.fileno(), self._send_recv)
 
     def send(self, event: Event):
         self._state[event.name] = event
-        self._mc_send_sock.sendto(event.SerializeToString(), self._multicast_group)
+        buff = event.SerializeToString()
+        for service in self._services.values():
+            self._mc_send_sock.sendto(buff, (service.host, service.port))
 
     def _send_recv(self):
         data, server = self._mc_send_sock.recvfrom(1024)
-        # print('received {!r} from {}'.format(
-        # data, server))
 
-    def _bus_recv(self):
-        data, address = self._mc_recv_sock.recvfrom(1024)
-        if address[1] == self._mc_send_sock.getsockname()[1] and host_is_local(address[0], address[1]):
-            return
-
-        # socket.getaddrinfo(*address)
         event = Event()
         event.ParseFromString(data)
         event.recv_stamp.GetCurrentTime()
         self._state[event.name] = event
 
-        # print('my send addr {} received {} bytes from {} event {}'.format(
-        # self._mc_send_sock.getsockname(),
-        # len(data), address, MessageToString(event, as_one_line=True)))
-        #self._mc_send_sock.sendto(b'ack %d'%len(data), address)
+        # print('received {!r} from {}'.format(
+        # data, server))
+
+    def _announce_recv(self):
+        data, address = self._mc_recv_sock.recvfrom(1024)
+        if address[1] == self._mc_send_sock.getsockname()[1] and host_is_local(address[0], address[1]):
+            return
+
+        announce = Announce()
+        announce.ParseFromString(data)
+        announce.recv_stamp.GetCurrentTime()
+        self._services['%s:%d' % (announce.host, announce.port)] = announce
 
     def _make_mc_recv_socket(self):
         # Look up multicast group address in name server and find out IP version
@@ -106,10 +140,6 @@ class EventBus:
             sock.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_JOIN_GROUP, mreq)
         return sock
 
-    def _send_announce(self):
-        announce = Announce()
-        self._send(announce)
-
     def _make_mc_send_socket(self):
         # Create the socket
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -118,7 +148,7 @@ class EventBus:
         # go past the local network segment.
         ttl = struct.pack('b', 1)
         sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, ttl)
-
+        sock.bind(('', 0))
         return sock
 
     def get_last_event(self, name):
@@ -131,10 +161,10 @@ class EventBus:
 _g_event_bus = None
 
 
-def get_event_bus():
+def get_event_bus(name=None):
     global _g_event_bus
     if _g_event_bus is None:
-        _g_event_bus = EventBus()
+        _g_event_bus = EventBus(name)
     return _g_event_bus
 
 
@@ -152,7 +182,7 @@ def make_event(name: str, message, stamp: Timestamp = None) -> Event:
 def main():
     logging.basicConfig(stream=sys.stdout, level=logging.INFO)
     event_loop = asyncio.get_event_loop()
-    event_bus = get_event_bus()
+    event_bus = get_event_bus('ipc')
     _ = Periodic(1, event_loop, lambda n_periods: event_bus.log_state())
 
     event_loop.run_forever()
