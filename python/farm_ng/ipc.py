@@ -66,6 +66,7 @@ class EventBus:
         announce.host = socket.getfqdn(host)
         announce.port = port
         announce.service = self._name
+        logging.info('Sending announce for services. %s', MessageToString(announce, as_one_line=True))
         self._mc_send_sock.sendto(announce.SerializeToString(), self._multicast_group)
 
     def _listen_for_services(self, n_periods):
@@ -73,9 +74,11 @@ class EventBus:
             self._quiet_count += 1
             if self._quiet_count == 3:
                 self._connect_recv_sock()
+                logging.info('Listening for services.')
                 self._quiet_count = 0
         else:
             self._close_recv_sock()
+            logging.info('Resting for services.')
             delete = []
             for key, service in self._services.items():
                 if (time.time() - service.recv_stamp.ToSeconds()) > 10:
@@ -125,13 +128,14 @@ class EventBus:
         # data, server))
 
     def _announce_recv(self):
+
         data, address = self._mc_recv_sock.recvfrom(1024)
         if address[1] == self._mc_send_sock.getsockname()[1] and host_is_local(address[0], address[1]):
             return
 
         announce = Announce()
         announce.ParseFromString(data)
-
+        logging.info('Recv announce for service: %s', MessageToString(announce, as_one_line=True))
         if address[1] != announce.port:
             logging.warning('announce port does not match sender... rejecting %s', MessageToString(announce, as_one_line=True))
         announce.host = address[0]
