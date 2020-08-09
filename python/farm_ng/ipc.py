@@ -4,6 +4,7 @@ import logging
 import socket
 import struct
 import sys
+import time
 
 import farm_ng_proto.tractor.v1.io_pb2
 import farm_ng_proto.tractor.v1.motor_pb2
@@ -47,13 +48,14 @@ class EventBus:
             name = 'service'
         self._multicast_group = _g_multicast_group
         self._name = name
+        self._quiet_count = 0
         self._mc_recv_sock = None
         self._mc_send_sock = None
         self._connect_recv_sock()
         self._connect_send_sock()
         loop = asyncio.get_event_loop()
-        self._periodic_listen = Periodic(2, loop, self._listen_for_services)
-        self._periodic_announce = Periodic(1, loop, self._announce_service)
+        self._periodic_listen = Periodic(1, loop, self._listen_for_services)
+        self._periodic_announce = Periodic(0.5, loop, self._announce_service)
         self._services = dict()
         self._state = dict()
 
@@ -67,9 +69,22 @@ class EventBus:
 
     def _listen_for_services(self, n_periods):
         if self._mc_recv_sock is None:
-            self._connect_recv_sock()
+            self._quiet_count += 1
+            if self._quiet_count == 3:
+                self._connect_recv_sock()
+                self._quiet_count = 0
         else:
             self._close_recv_sock()
+            delete = []
+            for key, service in self._services.items():
+                if (time.time() - service.recv_stamp.ToSeconds()) > 10:
+                    print('Dropping service: ', MessageToString(service, as_one_line=True))
+                    delete.append(key)
+                else:
+                    print('Active service  : ', MessageToString(service, as_one_line=True))
+
+            for key in delete:
+                del self._services[key]
 
     def _close_recv_sock(self):
         asyncio.get_event_loop().remove_reader(self._mc_recv_sock.fileno())
@@ -115,6 +130,11 @@ class EventBus:
 
         announce = Announce()
         announce.ParseFromString(data)
+
+        if address[1] != announce.port:
+            logging.warning('announce port does not match sender... rejecting %s', MessageToString(announce, as_one_line=True))
+        announce.host = address[0]
+        announce.port = address[1]
         announce.recv_stamp.GetCurrentTime()
         self._services['%s:%d' % (announce.host, announce.port)] = announce
 
