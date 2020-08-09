@@ -55,7 +55,7 @@ class EventBus:
         self._connect_send_sock()
         loop = asyncio.get_event_loop()
         self._periodic_listen = Periodic(2, loop, self._listen_for_services)
-        self._periodic_announce = Periodic(0.5, loop, self._announce_service)
+        self._periodic_announce = Periodic(1, loop, self._announce_service)
         self._services = dict()
         self._state = dict()
 
