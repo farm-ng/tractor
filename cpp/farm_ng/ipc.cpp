@@ -1,12 +1,6 @@
-//
-// receiver.cpp
-// ~~~~~~~~~~~~
-//
-// Copyright (c) 2003-2017 Christopher M. Kohlhoff (chris at kohlhoff dot com)
-//
-// Distributed under the Boost Software License, Version 1.0. (See accompanying
-// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
-//
+#include "farm_ng/ipc.h"
+
+
 
 #include <iostream>
 #include <string>
@@ -20,7 +14,8 @@
 
 #include "farm_ng_proto/tractor/v1/io.pb.h"
 
-
+namespace farm_ng {
+  namespace {
 const short multicast_port = 10000;
 std::string g_multicast_address = "239.20.20.21";
 
@@ -75,7 +70,7 @@ public:
       farm_ng_proto::tractor::v1::Announce announce;
       announce.ParseFromArray(static_cast<const void*>(data_), bytes_recvd);
       *announce.mutable_recv_stamp() = recv_stamp;
-      std::cout << sender_endpoint_ << " : " <<  announce.ShortDebugString() << std::endl;
+      //std::cout << sender_endpoint_ << " : " <<  announce.ShortDebugString() << std::endl;
       announce.set_host( sender_endpoint_.address().to_string());
       announcements_[sender_endpoint_] = announce;
       socket_.async_receive_from(
@@ -100,7 +95,7 @@ public:
       }
     }
     for (const auto& k: keys_to_remove) {
-      std::cout << "Removing stale service." << k << std::endl;
+      //std::cout << "Removing stale service." << k << std::endl;
       announcements_.erase(k);
     }
   }
@@ -114,17 +109,23 @@ private:
 };
 
 
-class sender
+
+} // namespace
+typedef boost::signals2::signal<void(const farm_ng_proto::tractor::v1::Event&)> EventSignal;
+typedef std::shared_ptr<EventSignal> EventSignalPtr;
+
+
+class EventBusImpl
 {
 public:
-  sender(boost::asio::io_service& io_service,
+  EventBusImpl(boost::asio::io_service& io_service,
       const boost::asio::ip::address& listen_address,
       const boost::asio::ip::address& multicast_address)
     : recv_(io_service, listen_address, multicast_address),
       announce_timer_(io_service),
-      log_timer_(io_service),
       socket_(io_service),
-      announce_endpoint_(multicast_address, multicast_port)
+      announce_endpoint_(multicast_address, multicast_port),
+      signal_(new EventSignal)
   {
     // Create the socket so that multiple may be bound to the same address.
     boost::asio::ip::udp::endpoint listen_endpoint(
@@ -137,12 +138,11 @@ public:
 
     socket_.async_receive_from(
         boost::asio::buffer(data_, max_length), sender_endpoint_,
-        std::bind(&sender::handle_receive_from, this,
+        std::bind(&EventBusImpl::handle_receive_from, this,
 		  std::placeholders::_1,
 		  std::placeholders::_2));
 
     send_announce(boost::system::error_code());
-    log_state(boost::system::error_code());
   }
 
   void send_announce(const boost::system::error_code& error) {
@@ -151,7 +151,7 @@ public:
       return;
     }
     announce_timer_.expires_from_now(boost::posix_time::seconds(1));
-    announce_timer_.async_wait(std::bind(&sender::send_announce, this, std::placeholders::_1));
+    announce_timer_.async_wait(std::bind(&EventBusImpl::send_announce, this, std::placeholders::_1));
 
     auto endpoint = socket_.local_endpoint();
     farm_ng_proto::tractor::v1::Announce announce;
@@ -173,20 +173,6 @@ public:
     }
   }
 
-  void log_state(const boost::system::error_code& error) {
-    if(error) {
-      std::cerr << "log timer error: " << error << std::endl;
-      return;
-    }
-    log_timer_.expires_from_now(boost::posix_time::seconds(1));
-    log_timer_.async_wait(std::bind(&sender::log_state, this, std::placeholders::_1));
-
-    for(const auto& it : state_) {
-      std::cout << it.first << " : " <<  it.second.ShortDebugString() << std::endl;
-    }
-  }
-
-
   void handle_receive_from(const boost::system::error_code& error,
       size_t bytes_recvd)
   {
@@ -196,45 +182,59 @@ public:
       event.ParseFromArray(static_cast<const void*>(data_), bytes_recvd);
 
       state_[event.name()] = event;
-
+      (*signal_)(event);
 
       socket_.async_receive_from(
           boost::asio::buffer(data_, max_length), sender_endpoint_,
-          std::bind(&sender::handle_receive_from, this,
+          std::bind(&EventBusImpl::handle_receive_from, this,
 		      std::placeholders::_1, std::placeholders::_2));
     }
   }
-
+  receiver recv_;
 private:
 
-  receiver recv_;
+
   boost::asio::deadline_timer announce_timer_;
-  boost::asio::deadline_timer log_timer_;
   boost::asio::ip::udp::socket socket_;
   boost::asio::ip::udp::endpoint announce_endpoint_;
   boost::asio::ip::udp::endpoint sender_endpoint_;
   enum { max_length = 1024 };
   char data_[max_length];
   std::string announce_message_;
+
+public:
   std::map<std::string, farm_ng_proto::tractor::v1::Event> state_;
+  EventSignalPtr signal_;
 };
 
 
-int main(int argc, char* argv[])
-{
-  try
-  {
-    boost::asio::io_service io_service;
-    sender sender(io_service,
-	     boost::asio::ip::address::from_string("0.0.0.0"),
-	     boost::asio::ip::address::from_string(g_multicast_address));
+boost::asio::io_service::id EventBus::id;
 
-    io_service.run();
-  }
-  catch (std::exception& e)
-  {
-    std::cerr << "Exception: " << e.what() << "\n";
-  }
-
-  return 0;
+void EventBus::shutdown_service() {
 }
+
+  EventBus::EventBus(boost::asio::io_service& io_service):
+    boost::asio::io_service::service(io_service),
+    impl_(new EventBusImpl(io_service,
+			   boost::asio::ip::address::from_string("0.0.0.0"),
+			   boost::asio::ip::address::from_string(g_multicast_address))) {
+  }
+
+  EventBus::~EventBus() {
+    impl_.reset(nullptr);
+  }
+
+  EventSignalPtr EventBus::GetEventSignal() const {
+    return impl_->signal_;
+  }
+
+const std::map<std::string, farm_ng_proto::tractor::v1::Event>& EventBus::GetState() const {
+    return impl_->state_;
+  }
+  const std::map<boost::asio::ip::udp::endpoint, farm_ng_proto::tractor::v1::Announce>&
+  EventBus::GetAnnouncements() const {
+    return impl_->recv_.announcements();
+  }
+
+
+} // namespace farm_ng

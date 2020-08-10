@@ -21,3 +21,10 @@ target_link_libraries(imgui
   ${OPENGL_gl_LIBRARY}
   glfw
   )
+
+add_executable(imgui_demo
+  imgui/examples/example_glfw_opengl3/main.cpp
+  )
+
+target_link_libraries(imgui_demo
+  imgui)

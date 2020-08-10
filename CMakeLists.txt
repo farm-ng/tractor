@@ -25,13 +25,5 @@ include_directories(${Protobuf_INCLUDE_DIRS})
 include_directories(${CMAKE_CURRENT_BINARY_DIR}/protos)
 add_subdirectory(third_party)
 add_subdirectory(protos)
-
-
-
-
-add_executable(farm-ng-hud main.cpp)
-target_link_libraries(farm-ng-hud imgui)
-
-
-add_executable(farm-ng-ipc multicast-receiver.cpp)
-target_link_libraries(farm-ng-ipc farm-ng-protobuf ${Boost_SYSTEM_LIBRARY})
+include_directories(cpp)
+add_subdirectory(cpp/farm_ng)
