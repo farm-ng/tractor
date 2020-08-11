@@ -15,5 +15,5 @@ add_executable(farm-ng-log-playback log_playback.cpp)
 target_link_libraries(farm-ng-log-playback farm-ng-ipc farm-ng-protobuf ${Boost_SYSTEM_LIBRARY})
 
 
-add_executable(farm-ng-hud main.cpp)
+add_executable(farm-ng-hud hud.cpp)
 target_link_libraries(farm-ng-hud imgui)

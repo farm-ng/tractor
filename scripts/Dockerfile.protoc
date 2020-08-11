@@ -1,5 +1,5 @@
 FROM golang:alpine
-
+# redo
 # Install protoc
 RUN apk add --update-cache \
   git \
@@ -9,4 +9,4 @@ RUN apk add --update-cache \
 
 # Install protoc plugins
 RUN go get -u github.com/isherman/protoc-gen-twirp_tornado_srv
-RUN npm install -g ts-proto
+RUN npm install -g long ts-proto

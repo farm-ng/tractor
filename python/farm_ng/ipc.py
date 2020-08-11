@@ -16,7 +16,6 @@ from farm_ng_proto.tractor.v1.io_pb2 import Event
 from google.protobuf.text_format import MessageToString
 from google.protobuf.timestamp_pb2 import Timestamp
 
-
 logger = logging.getLogger('ipc')
 logger.setLevel(logging.INFO)
 
@@ -42,10 +41,26 @@ def host_is_local(hostname, port):
     return False
 
 
+class EventBusQueue:
+    def __init__(self, event_bus):
+        self._event_bus = event_bus
+
+    def __enter__(self):
+        logger.info('adding event queue')
+        self._queue = self._event_bus._queue()
+        return self._queue
+
+    def __exit__(self, type, vlaue, traceback):
+        logger.info('removing event queue')
+        self._event_bus._remove_queue(self._queue)
+
+
 class EventBus:
-    def __init__(self, name):
+    def __init__(self, name, recv_raw=False):
         if name is None:
             name = 'service'
+        # forward raw packets, don't track state
+        self._recv_raw = recv_raw
         self._multicast_group = _g_multicast_group
         self._name = name
         self._quiet_count = 0
@@ -58,6 +73,7 @@ class EventBus:
         self._periodic_announce = Periodic(1, loop, self._announce_service)
         self._services = dict()
         self._state = dict()
+        self._subscribers = set()
 
     def _announce_service(self, n_periods):
         host, port = self._mc_send_sock.getsockname()
@@ -72,6 +88,14 @@ class EventBus:
         # send to any services we already know of directly
         for key, service in self._services.items():
             self._mc_send_sock.sendto(msg, (service.host, self._multicast_group[1]))
+
+    def _queue(self):
+        queue = asyncio.Queue()
+        self._subscribers.add(queue)
+        return queue
+
+    def _remove_queue(self, queue):
+        self._subscribers.remove(queue)
 
     def _listen_for_services(self, n_periods):
         if self._mc_recv_sock is None:
@@ -111,6 +135,7 @@ class EventBus:
             asyncio.get_event_loop().remove_reader(self._mc_send_sock.fileno())
             self._mc_send_sock.close()
         self._mc_send_sock = self._make_mc_send_socket()
+
         loop = asyncio.get_event_loop()
         loop.add_reader(self._mc_send_sock.fileno(), self._send_recv)
 
@@ -122,14 +147,19 @@ class EventBus:
 
     def _send_recv(self):
         data, server = self._mc_send_sock.recvfrom(1024)
+        if self._recv_raw:
+            for q in self._subscribers:
+                q.put_nowait(data)
+            return
 
         event = Event()
         event.ParseFromString(data)
         event.recv_stamp.GetCurrentTime()
+
         self._state[event.name] = event
 
-        # print('received {!r} from {}'.format(
-        # data, server))
+        for q in self._subscribers:
+            q.put_nowait(event)
 
     def _announce_recv(self):
 
@@ -181,9 +211,11 @@ class EventBus:
         return sock
 
     def get_last_event(self, name):
+        assert not self._recv_raw, 'EventBus initialized with recv_raw, no state.'
         return self._state.get(name, None)
 
     def log_state(self):
+        assert not self._recv_raw, 'EventBus initialized with recv_raw, no state.'
         logger.info('\n'.join([MessageToString(value, as_one_line=True) for value in self._state.values()]))
 
 

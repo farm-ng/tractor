@@ -38,7 +38,8 @@
     "react": "^16.13.1",
     "react-dom": "^16.13.1",
     "react-three-fiber": "^4.2.4",
-    "three": "^0.116.1"
+    "three": "^0.116.1",
+    "ts-proto": "^1.27.1"
   },
   "jest": {
     "preset": "ts-jest",
@@ -47,7 +48,7 @@
     ]
   },
   "scripts": {
-    "dev-start": "webpack-dev-server --mode development",
+    "dev-start": "webpack-dev-server --mode development --progress",
     "build": "webpack --mode production",
     "dev-watch": "webpack --progress --watch",
     "test": "jest",
