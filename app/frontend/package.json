@@ -37,8 +37,8 @@
     "protobufjs": "^6.9.0",
     "react": "^16.13.1",
     "react-dom": "^16.13.1",
-    "react-three-fiber": "^4.2.4",
-    "three": "^0.116.1",
+    "react-three-fiber": "^4.2.20",
+    "three": "^0.119.1",
     "ts-proto": "^1.27.1"
   },
   "jest": {

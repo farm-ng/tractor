@@ -7,7 +7,7 @@ protobuf.configure();
 
 import * as React from "react";
 import * as ReactDOM from "react-dom";
-
+import { Scene } from "./components/Scene";
 import { Event } from "../genproto/farm_ng_proto/tractor/v1/io";
 import { SteeringCommand } from "../genproto/farm_ng_proto/tractor/v1/steering";
 import {
@@ -69,19 +69,23 @@ class App extends React.Component<{}, State> {
   public render() {
     return (
       <div>
-        {Object.keys(this.state.data).map((key, i) => (
-          <p key={i}>
-            <span>Key Name: {key} </span>
-            <p>
-              {Object.keys(this.state.data[key]).map((key_j, _j) => (
-                <p>
-                  <span> {key_j} </span>
-                  <span> {JSON.stringify(this.state.data[key][key_j])} </span>
-                </p>
-              ))}
+        <Scene />
+
+        <div>
+          {Object.keys(this.state.data).map((key, i) => (
+            <p key={i}>
+              <span>Key Name: {key} </span>
+              <p>
+                {Object.keys(this.state.data[key]).map((key_j, _j) => (
+                  <p>
+                    <span> {key_j} </span>
+                    <span> {JSON.stringify(this.state.data[key][key_j])} </span>
+                  </p>
+                ))}
+              </p>
             </p>
-          </p>
-        ))}
+          ))}
+        </div>
       </div>
     );
   }
