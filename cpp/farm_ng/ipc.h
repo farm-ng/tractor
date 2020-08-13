@@ -27,14 +27,27 @@ class EventBusImpl;
     void shutdown_service() override;
 
     EventSignalPtr GetEventSignal() const;
+    
     const std::map<std::string, farm_ng_proto::tractor::v1::Event>& GetState() const;
 
     const std::map<boost::asio::ip::udp::endpoint, farm_ng_proto::tractor::v1::Announce>&
       GetAnnouncements() const;
 
+    void Send(const farm_ng_proto::tractor::v1::Event& event);
   private:
     std::unique_ptr<EventBusImpl> impl_;
 };
+
+google::protobuf::Timestamp MakeTimestampNow();
+
+template<typename T>
+farm_ng_proto::tractor::v1::Event MakeEvent(std::string name, const T& message) {
+  farm_ng_proto::tractor::v1::Event event;
+  *event.mutable_stamp() = MakeTimestampNow();
+  *event.mutable_name() = name;
+  event.mutable_data()->PackFrom(message);
+  return event;
+}
 
 inline EventBus& GetEventBus(boost::asio::io_service& io_service) {
    return boost::asio::use_service<EventBus>(io_service);

@@ -31,9 +31,6 @@ google::protobuf::Timestamp MakeTimestamp(sys_time<Duration> const& tp) {
   return stamp;
 }
 
-google::protobuf::Timestamp MakeTimestampNow() {
-  return MakeTimestamp(std::chrono::system_clock::now());
-}
 
 class receiver
 {
@@ -121,9 +118,10 @@ public:
   EventBusImpl(boost::asio::io_service& io_service,
       const boost::asio::ip::address& listen_address,
       const boost::asio::ip::address& multicast_address)
-    : recv_(io_service, listen_address, multicast_address),
-      announce_timer_(io_service),
+    : io_service_(io_service),
+      recv_(io_service, listen_address, multicast_address),
       socket_(io_service),
+      announce_timer_(io_service),
       announce_endpoint_(multicast_address, multicast_port),
       signal_(new EventSignal)
   {
@@ -190,17 +188,31 @@ public:
 		      std::placeholders::_1, std::placeholders::_2));
     }
   }
+
+  void send_event(const farm_ng_proto::tractor::v1::Event& event) {
+    event.SerializeToString(&event_message_);
+    for(const auto& it: recv_.announcements()) {
+      boost::asio::ip::udp::endpoint ep(
+					boost::asio::ip::address::from_string(it.second.host()),
+					it.second.port());
+      socket_.send_to(boost::asio::buffer(event_message_), ep);
+    }
+  }
+  boost::asio::io_service& io_service_;
+
   receiver recv_;
 private:
 
-
-  boost::asio::deadline_timer announce_timer_;
   boost::asio::ip::udp::socket socket_;
+  boost::asio::deadline_timer announce_timer_;
+
+
   boost::asio::ip::udp::endpoint announce_endpoint_;
   boost::asio::ip::udp::endpoint sender_endpoint_;
   enum { max_length = 1024 };
   char data_[max_length];
   std::string announce_message_;
+  std::string event_message_;
 
 public:
   std::map<std::string, farm_ng_proto::tractor::v1::Event> state_;
@@ -235,6 +247,13 @@ const std::map<std::string, farm_ng_proto::tractor::v1::Event>& EventBus::GetSta
   EventBus::GetAnnouncements() const {
     return impl_->recv_.announcements();
   }
-
+  void EventBus::Send(const farm_ng_proto::tractor::v1::Event& event) {
+    impl_->io_service_.post([this, event](){
+	impl_->send_event(event);
+      });
+  }
+google::protobuf::Timestamp MakeTimestampNow() {
+  return MakeTimestamp(std::chrono::system_clock::now());
+}
 
 } // namespace farm_ng
