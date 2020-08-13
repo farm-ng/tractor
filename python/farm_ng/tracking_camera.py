@@ -127,11 +127,11 @@ class TrackingCamera:
         self.pose_frame = pose_frame
         event = make_event('%s/pose' % self.name, pose_frame)
         get_event_bus('tracking_camera').send(event)
-        if False and pose_frame.frame_number % 200 == 0:
+        if True and pose_frame.frame_number % 200 == 0:
             logger.info(MessageToString(pose_frame, as_one_line=True))
 
     def on_motion_frame(self, motion_frame):
-        event = make_event('%s/motion' % self.name, motion_frame)
+        event = make_event('%s/motion/%s' % (self.name, TrackingCameraMotionFrame.MotionType.Name(motion_frame.motion_type)), motion_frame)
         get_event_bus('tracking_camera').send(event)
         if False:
             logger.info(MessageToString(motion_frame, as_one_line=True))
