@@ -1,11 +1,11 @@
-#include "farm_ng/event_log_reader.h"
 #include <iostream>
 #include <stdexcept>
+#include "farm_ng/event_log_reader.h"
 
 int main() {
   farm_ng::EventLogReader reader("/tmp/farm-ng-event.log");
   int count = 0;
-  while(true) {
+  while (true) {
     try {
       std::cout << reader.ReadNext().ShortDebugString() << std::endl;
       count++;

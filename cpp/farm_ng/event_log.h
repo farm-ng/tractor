@@ -5,16 +5,17 @@
 
 #include "farm_ng_proto/tractor/v1/io.pb.h"
 namespace farm_ng {
-  class EventLogWriterImpl;
-  class EventLogWriter {
-  public:
-    EventLogWriter(std::string log_path);
-    ~EventLogWriter();
-    void Write(const farm_ng_proto::tractor::v1::Event& event);
-  private:
-    std::unique_ptr<EventLogWriterImpl> impl_;
-  };
+class EventLogWriterImpl;
+class EventLogWriter {
+ public:
+  EventLogWriter(std::string log_path);
+  ~EventLogWriter();
+  void Write(const farm_ng_proto::tractor::v1::Event& event);
 
-} // namespace farm_ng
+ private:
+  std::unique_ptr<EventLogWriterImpl> impl_;
+};
+
+}  // namespace farm_ng
 
 #endif

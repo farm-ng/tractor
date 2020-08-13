@@ -6,19 +6,18 @@
 #include "farm_ng_proto/tractor/v1/io.pb.h"
 namespace farm_ng {
 
+class EventLogReaderImpl;
+class EventLogReader {
+ public:
+  EventLogReader(std::string log_path);
+  ~EventLogReader();
 
-  class EventLogReaderImpl;
-  class EventLogReader {
-  public:
-    EventLogReader(std::string log_path);
-    ~EventLogReader();
+  farm_ng_proto::tractor::v1::Event ReadNext();
 
-    farm_ng_proto::tractor::v1::Event ReadNext();
+ private:
+  std::unique_ptr<EventLogReaderImpl> impl_;
+};
 
-  private:
-    std::unique_ptr<EventLogReaderImpl> impl_;
-  };
-
-} // namespace farm_ng
+}  // namespace farm_ng
 
 #endif
