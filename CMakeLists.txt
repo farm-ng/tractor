@@ -14,7 +14,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 find_package(Protobuf REQUIRED)
 find_package(Boost REQUIRED system filesystem regex)
 find_package(realsense2 REQUIRED)
-
+find_package(OpenCV REQUIRED)
 include_directories(${Protobuf_INCLUDE_DIRS})
 include_directories(${CMAKE_CURRENT_BINARY_DIR}/protos)
 
