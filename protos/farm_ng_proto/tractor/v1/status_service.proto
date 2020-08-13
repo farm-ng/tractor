@@ -1,9 +1,0 @@
-syntax = "proto3";
-
-import "farm_ng_proto/tractor/v1/status.proto";
-
-package farm_ng_proto.tractor.v1;
-
-service StatusService {
-  rpc StreamStatus(StreamStatusRequest) returns (stream Status) {}
-}
