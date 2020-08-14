@@ -83,7 +83,7 @@ class TractorController:
                 dt,
             )
             pose_msg = NamedSE3Pose()
-            pose_msg.a_pose_b = se3_to_proto(self.odom_pose_tractor)
+            pose_msg.a_pose_b.CopyFrom(se3_to_proto(self.odom_pose_tractor))
             pose_msg.frame_a = 'odometry/wheel'
             pose_msg.frame_b = 'tractor/base'
             self.event_bus.send(make_event('pose/tractor/base', pose_msg, stamp=now))
