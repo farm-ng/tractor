@@ -14,6 +14,8 @@ import {
   TrackingCameraMotionFrame,
   TrackingCameraPoseFrame
 } from "../genproto/farm_ng_proto/tractor/v1/tracking_camera";
+import { NamedSE3Pose } from "../genproto/farm_ng_proto/tractor/v1/geometry";
+import { MotorControllerState } from "../genproto/farm_ng_proto/tractor/v1/motor";
 
 type ProtobufAnyMap = {
   [key: string]: (data: Uint8Array) => any;
@@ -30,6 +32,12 @@ pbmap["type.googleapis.com/farm_ng_proto.tractor.v1.TrackingCameraPoseFrame"] =
 pbmap[
   "type.googleapis.com/farm_ng_proto.tractor.v1.TrackingCameraMotionFrame"
 ] = TrackingCameraMotionFrame.decode;
+
+pbmap["type.googleapis.com/farm_ng_proto.tractor.v1.NamedSE3Pose"] =
+  NamedSE3Pose.decode;
+
+pbmap["type.googleapis.com/farm_ng_proto.tractor.v1.MotorControllerState"] =
+  MotorControllerState.decode;
 
 function DecodeEvent(msg: Event): any {
   if (!msg.data) {
