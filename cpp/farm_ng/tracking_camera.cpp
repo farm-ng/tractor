@@ -121,7 +121,9 @@ class TrackingCameraClient {
     // TODO(ethanrublee) look up image size from realsense profile.
     std::string cmd0 =
         std::string("appsrc !") +
-        " videoconvert ! omxh264enc control-rate=1 bitrate=1000000 ! " +
+        " videoconvert ! " +
+      //" x264enc bitrate=600 speed-preset=ultrafast tune=zerolatency key-int-max=15 ! video/x-h264,profile=constrained-baseline ! queue max-size-time=100000000 ! h264parse ! "
+        " omxh264enc control-rate=1 bitrate=1000000 ! " +
         " video/x-h264, stream-format=byte-stream !" +
         " rtph264pay pt=96 mtu=1400 config-interval=10 !" +
         " udpsink host=239.20.20.20 auto-multicast=true  port=5000";
