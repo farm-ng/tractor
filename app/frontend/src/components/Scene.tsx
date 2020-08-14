@@ -19,7 +19,7 @@ export const Scene: React.FC = () => {
 
   return (
     <Canvas
-      style={{ background: gray300, height: 800, width: 800 }}
+      style={{ background: gray300, height: "400px", width: "400px" }}
       camera={{
         position: [2.5, 2.5, 2.5],
         fov: 60,
