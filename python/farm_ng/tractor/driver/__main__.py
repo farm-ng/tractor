@@ -4,10 +4,13 @@ import sys
 
 from farm_ng.canbus import CANSocket
 from farm_ng.ipc import get_event_bus
+from farm_ng.ipc import make_event
 from farm_ng.motor import HubMotor
 from farm_ng.periodic import Periodic
 from farm_ng.steering import SteeringClient
 from farm_ng.tractor.kinematics import TractorKinematics
+from farm_ng.utils.proto import se3_to_proto
+from farm_ng_proto.tractor.v1.geometry_pb2 import NamedSE3Pose
 from google.protobuf.text_format import MessageToString
 from google.protobuf.timestamp_pb2 import Timestamp
 from liegroups import SE3
@@ -28,6 +31,7 @@ class TractorController:
         self.angular = 0.0
         # self.record_counter = 0
         # self.recording = False
+        self.event_bus = get_event_bus()
         self.lock_out = False
         self.can_socket = CANSocket('can0', self.event_loop)
         self.steering = SteeringClient()
@@ -78,6 +82,11 @@ class TractorController:
                 self._right_vel,
                 dt,
             )
+            pose_msg = NamedSE3Pose()
+            pose_msg.a_pose_b = se3_to_proto(self.odom_pose_tractor)
+            pose_msg.frame_a = 'odometry/wheel'
+            pose_msg.frame_b = 'tractor/base'
+            self.event_bus.send(make_event('pose/tractor/base', pose_msg, stamp=now))
 
         self._last_odom_stamp = now
 

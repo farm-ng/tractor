@@ -37,3 +37,9 @@ message SE3Pose {
   Vec3 position = 1;
   Quaternion rotation = 2;
 }
+
+message NamedSE3Pose {
+  SE3Pose a_pose_b = 1;
+  string frame_a = 2;
+  string frame_b = 3;
+}

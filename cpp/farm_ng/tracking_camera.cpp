@@ -5,12 +5,16 @@
 #include <librealsense2/rs.hpp>
 
 #include <farm_ng/ipc.h>
+#include <farm_ng_proto/tractor/v1/geometry.pb.h>
 #include <farm_ng_proto/tractor/v1/tracking_camera.pb.h>
 #include <google/protobuf/util/time_util.h>
 
 #include <opencv2/opencv.hpp>
 
+using farm_ng_proto::tractor::v1::Event;
+using farm_ng_proto::tractor::v1::NamedSE3Pose;
 using farm_ng_proto::tractor::v1::TrackingCameraPoseFrame;
+
 namespace farm_ng {
 
 // Convert rs2::frame to cv::Mat
@@ -44,6 +48,13 @@ void SetVec3FromRs(farm_ng_proto::tractor::v1::Vec3* out, rs2_vector vec) {
   out->set_y(vec.y);
   out->set_z(vec.z);
 }
+void SetQuatFromRs(farm_ng_proto::tractor::v1::Quaternion* out,
+                   rs2_quaternion vec) {
+  out->set_w(vec.w);
+  out->set_x(vec.x);
+  out->set_y(vec.y);
+  out->set_z(vec.z);
+}
 
 TrackingCameraPoseFrame::Confidence ToConfidence(int x) {
   switch (x) {
@@ -69,6 +80,8 @@ TrackingCameraPoseFrame ToPoseFrame(const rs2::pose_frame& rs_pose_frame) {
   auto pose_data = rs_pose_frame.get_pose_data();
   SetVec3FromRs(pose_frame.mutable_start_pose_current()->mutable_position(),
                 pose_data.translation);
+  SetQuatFromRs(pose_frame.mutable_start_pose_current()->mutable_rotation(),
+                pose_data.rotation);
   SetVec3FromRs(pose_frame.mutable_velocity(), pose_data.velocity);
   SetVec3FromRs(pose_frame.mutable_acceleration(), pose_data.acceleration);
   SetVec3FromRs(pose_frame.mutable_angular_velocity(),
@@ -78,6 +91,27 @@ TrackingCameraPoseFrame ToPoseFrame(const rs2::pose_frame& rs_pose_frame) {
   pose_frame.set_tracker_confidence(ToConfidence(pose_data.tracker_confidence));
   pose_frame.set_mapper_confidence(ToConfidence(pose_data.mapper_confidence));
   return pose_frame;
+}
+
+Event ToNamedPoseEvent(const rs2::pose_frame& rs_pose_frame) {
+  // TODO(ethanrublee) support front and rear cameras.
+  NamedSE3Pose vodom_pose_t265;
+  // here we distinguish where visual_odom frame by which camera it refers to,
+  // will have to connect each camera pose to the mobile base with an extrinsic
+  // transform
+  vodom_pose_t265.set_frame_a("odometry/tracking_camera/front");
+  vodom_pose_t265.set_frame_b("tracking_camera/front");
+  auto pose_data = rs_pose_frame.get_pose_data();
+  SetVec3FromRs(vodom_pose_t265.mutable_a_pose_b()->mutable_position(),
+                pose_data.translation);
+  SetQuatFromRs(vodom_pose_t265.mutable_a_pose_b()->mutable_rotation(),
+                pose_data.rotation);
+  Event event =
+      farm_ng::MakeEvent("pose/tracking_camera/front", vodom_pose_t265);
+  *event.mutable_stamp() =
+      google::protobuf::util::TimeUtil::MillisecondsToTimestamp(
+          rs_pose_frame.get_timestamp());
+  return event;
 }
 
 class TrackingCameraClient {
@@ -120,6 +154,7 @@ class TrackingCameraClient {
     pipe_.start(cfg, std::bind(&TrackingCameraClient::frame_callback, this,
                                std::placeholders::_1));
   }
+
   // The callback is executed on a sensor thread and can be called
   // simultaneously from multiple sensors Therefore any modification to common
   // memory should be done under lock
@@ -141,6 +176,7 @@ class TrackingCameraClient {
       // << " " << pose_data.translation.z << " (meters)";
       event_bus_.Send(farm_ng::MakeEvent("tracking_camera/front/pose",
                                          ToPoseFrame(pose_frame)));
+      event_bus_.Send(ToNamedPoseEvent(pose_frame));
     }
   }
   boost::asio::io_service& io_service_;
