@@ -1,8 +1,9 @@
+-r third_party/protoc-gen-validate/requirements.txt
 cython
-linuxfd
-proio
 git+https://github.com/utiasSTARS/liegroups.git@11e0203048def0345097cb42c664aa91435c3dd0
+linuxfd
 numpy
+proio
 protobuf
 tornado
--r third_party/protoc-gen-validate/requirements.txt
+websockets
