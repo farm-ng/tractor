@@ -16,11 +16,16 @@ sudo add-apt-repository "deb http://realsense-hw-public.s3.amazonaws.com/Debian/
 sudo apt-get update
 sudo apt-get install apt-utils -y
 sudo apt-get install -y \
-     python3-pip \
      build-essential \
      cmake \
+     libboost-filesystem-dev \
+     libboost-regex-dev \
+     libboost-system-dev \
+     libprotobuf-dev \
+     librealsense2-dev \
      librealsense2-utils \
-     librealsense2-dev
+     protobuf-compiler \
+     python3-pip
 
 sudo pip3 install virtualenv
 
