@@ -1,12 +1,11 @@
 import * as React from "react";
 import { Suspense, useState } from "react";
 import { Canvas, PointerEvent } from "react-three-fiber";
-import { Tractor } from "./Tractor";
 import { Controls } from "./Controls";
 import { Lights } from "./Lights";
 import { Ground } from "./Ground";
 import { Vector3 } from "three";
-import { gray300 } from "./colors";
+import { PoseViz } from "./PoseViz";
 
 type Waypoints = Vector3[];
 
@@ -19,7 +18,7 @@ export const Scene: React.FC = () => {
 
   return (
     <Canvas
-      style={{ background: gray300, height: "400px", width: "400px" }}
+      style={{ background: "darkgray", width: "100%", height: "100%" }}
       camera={{
         position: [2.5, 2.5, 2.5],
         fov: 60,
@@ -30,10 +29,10 @@ export const Scene: React.FC = () => {
     >
       <Lights />
       <Ground onClick={onGroundClick} />
-      <fogExp2 args={[gray300.getHex(), 0.02]} />
+      <fogExp2 args={[0xcccccc, 0.02]} />
       <Controls />
       <Suspense fallback={null}>
-        <Tractor />
+        <PoseViz />
       </Suspense>
     </Canvas>
   );

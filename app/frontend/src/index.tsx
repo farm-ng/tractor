@@ -1,13 +1,8 @@
-// The following hack is a work around for this issue:
-// https://github.com/stephenh/ts-proto/issues/108
-import * as protobuf from "protobufjs/minimal";
-import * as Long from "long";
-protobuf.util.Long = Long;
-protobuf.configure();
-
 import * as React from "react";
 import * as ReactDOM from "react-dom";
 import { Scene } from "./components/Scene";
+import { ipcClient } from "./config";
+
 import { Event } from "../genproto/farm_ng_proto/tractor/v1/io";
 import { SteeringCommand } from "../genproto/farm_ng_proto/tractor/v1/steering";
 import {
@@ -16,6 +11,8 @@ import {
 } from "../genproto/farm_ng_proto/tractor/v1/tracking_camera";
 import { NamedSE3Pose } from "../genproto/farm_ng_proto/tractor/v1/geometry";
 import { MotorControllerState } from "../genproto/farm_ng_proto/tractor/v1/motor";
+
+import "./styles.css";
 
 type ProtobufAnyMap = {
   [key: string]: (data: Uint8Array) => any;
@@ -57,29 +54,24 @@ export type State = {
   readonly data: EventMap;
 };
 
-class App extends React.Component<{}, State> {
+export class App extends React.Component<{}, State> {
   constructor(props: any) {
     super(props);
     this.state = { data: {} };
   }
 
   public componentDidMount() {
-    const ws = new WebSocket("ws://localhost:8989");
-    ws.binaryType = "arraybuffer";
-    ws.onmessage = (ev: MessageEvent) => {
-      const pbEvent = Event.decode(new Uint8Array(ev.data));
+    ipcClient.on("*", (ev: Event) => {
       const data = { ...this.state.data };
-      data[pbEvent.name] = DecodeEvent(pbEvent);
+      data[ev.name] = DecodeEvent(ev);
       this.setState({ data: data });
-    };
+    });
   }
 
   public render() {
     return (
-      <div>
-        <Scene />
-
-        <div>
+      <Scene />
+      /* <div style={{ flex: 0.5 }}>
           {Object.keys(this.state.data).map((key, i) => (
             <p key={i}>
               <span>Key Name: {key} </span>
@@ -93,10 +85,9 @@ class App extends React.Component<{}, State> {
               </p>
             </p>
           ))}
-        </div>
-      </div>
+        </div> */
     );
   }
 }
 
-ReactDOM.render(<App />, document.getElementById("root"));
+ReactDOM.render(<Scene />, document.getElementById("root"));

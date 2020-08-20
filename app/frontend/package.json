@@ -33,6 +33,7 @@
   },
   "dependencies": {
     "copy-webpack-plugin": "^6.0.2",
+    "drei": "^0.0.72",
     "long": "^4.0.0",
     "protobufjs": "^6.9.0",
     "react": "^16.13.1",

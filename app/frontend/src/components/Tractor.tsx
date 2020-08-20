@@ -2,8 +2,7 @@ import { useState, useEffect } from "react";
 import * as React from "react";
 import { useLoader, ReactThreeFiber } from "react-three-fiber";
 import { STLLoader } from "three/examples/jsm/loaders/STLLoader";
-import { red, gray900 } from "./colors";
-import { Quaternion, Vector3 } from "three";
+import { Quaternion, Vector3, Color } from "three";
 
 export const Tractor: React.FC = () => {
   // TODO: Should this be bundled?
@@ -28,8 +27,8 @@ export const Tractor: React.FC = () => {
         <bufferGeometry attach="geometry" {...stl} />
         <meshPhongMaterial
           attach="material"
-          color={red}
-          specular={gray900}
+          color={Color.NAMES.red}
+          specular={new Color(Color.NAMES.lightgray)}
           shininess={200}
         />
       </mesh>
