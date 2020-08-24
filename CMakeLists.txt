@@ -15,7 +15,12 @@ find_package(Protobuf REQUIRED)
 find_package(Boost REQUIRED system filesystem regex)
 find_package(realsense2 REQUIRED)
 find_package(OpenCV REQUIRED)
+find_package(glog REQUIRED)
+find_package(Ceres REQUIRED)
+find_package(Sophus REQUIRED)
+
 include_directories(${Protobuf_INCLUDE_DIRS})
+include_directories(${CERES_INCLUDE_DIRS})
 include_directories(${CMAKE_CURRENT_BINARY_DIR}/protos)
 
 add_subdirectory(third_party)

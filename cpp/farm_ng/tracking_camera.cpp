@@ -5,6 +5,8 @@
 #include <librealsense2/rs.hpp>
 
 #include <farm_ng/ipc.h>
+#include <farm_ng/sophus_protobuf.h>
+
 #include <farm_ng_proto/tractor/v1/geometry.pb.h>
 #include <farm_ng_proto/tractor/v1/tracking_camera.pb.h>
 #include <google/protobuf/util/time_util.h>
@@ -99,13 +101,18 @@ Event ToNamedPoseEvent(const rs2::pose_frame& rs_pose_frame) {
   // here we distinguish where visual_odom frame by which camera it refers to,
   // will have to connect each camera pose to the mobile base with an extrinsic
   // transform
-  vodom_pose_t265.set_frame_a("odometry/tracking_camera/front");
-  vodom_pose_t265.set_frame_b("tracking_camera/front");
+  vodom_pose_t265.set_frame_b("odometry/tracking_camera/front");
+  vodom_pose_t265.set_frame_a("tracking_camera/front");
   auto pose_data = rs_pose_frame.get_pose_data();
   SetVec3FromRs(vodom_pose_t265.mutable_a_pose_b()->mutable_position(),
                 pose_data.translation);
   SetQuatFromRs(vodom_pose_t265.mutable_a_pose_b()->mutable_rotation(),
                 pose_data.rotation);
+
+  Sophus::SE3d se3;
+  ProtoToSophus(vodom_pose_t265.a_pose_b(), &se3);
+  SophusToProto(se3.inverse(), vodom_pose_t265.mutable_a_pose_b());
+
   Event event =
       farm_ng::MakeEvent("pose/tracking_camera/front", vodom_pose_t265);
   *event.mutable_stamp() =
@@ -120,9 +127,10 @@ class TrackingCameraClient {
       : io_service_(io_service), event_bus_(GetEventBus(io_service_)) {
     // TODO(ethanrublee) look up image size from realsense profile.
     std::string cmd0 =
-        std::string("appsrc !") +
-        " videoconvert ! " +
-      //" x264enc bitrate=600 speed-preset=ultrafast tune=zerolatency key-int-max=15 ! video/x-h264,profile=constrained-baseline ! queue max-size-time=100000000 ! h264parse ! "
+        std::string("appsrc !") + " videoconvert ! " +
+        //" x264enc bitrate=600 speed-preset=ultrafast tune=zerolatency
+        // key-int-max=15 ! video/x-h264,profile=constrained-baseline ! queue
+        // max-size-time=100000000 ! h264parse ! "
         " omxh264enc control-rate=1 bitrate=1000000 ! " +
         " video/x-h264, stream-format=byte-stream !" +
         " rtph264pay pt=96 mtu=1400 config-interval=10 !" +
