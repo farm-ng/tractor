@@ -42,4 +42,8 @@ third_party/build-*/
 *.out
 *.app
 
+# cmake build
 build/
+
+# virtual env
+env/
