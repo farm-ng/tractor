@@ -29,9 +29,13 @@ class ExtrinsicCalibrator {
     NamedSE3Pose base_pose_t265;
     base_pose_t265.set_frame_a("tractor/base");
     base_pose_t265.set_frame_b("tracking_camera/front");
-    Sophus::SE3d se3;
+    Sophus::SE3d se3(Sophus::SE3d::rotZ(-M_PI / 2.0));
+    se3 = se3 * Sophus::SE3d::rotX(M_PI / 2.0);
     se3.translation().x() = 0.20;
     se3.translation().z() = 0.20;
+    // for good diagram of t265:
+    // https://github.com/IntelRealSense/librealsense/blob/development/doc/t265.md
+
     SophusToProto(se3, base_pose_t265.mutable_a_pose_b());
     Event event =
         farm_ng::MakeEvent("pose/extrinsic_calibrator", base_pose_t265);

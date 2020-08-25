@@ -160,6 +160,21 @@ class TrackingCameraClient {
     cfg.enable_stream(RS2_STREAM_FISHEYE, 1, RS2_FORMAT_Y8);
     cfg.enable_stream(RS2_STREAM_FISHEYE, 2, RS2_FORMAT_Y8);
 
+    auto profile = cfg.resolve(pipe_);
+    auto tm2 = profile.get_device().as<rs2::tm2>();
+    auto pose_sensor = tm2.first<rs2::pose_sensor>();
+
+    // setting options for slam:
+    // https://github.com/IntelRealSense/librealsense/issues/1011
+    // and what to set:
+    //  https://github.com/IntelRealSense/realsense-ros/issues/779 "
+    // I would suggest leaving mapping enabled, but disabling
+    // relocalization and jumping. This may avoid the conflict with
+    // RTabMap while still giving good results."
+
+    pose_sensor.set_option(RS2_OPTION_ENABLE_POSE_JUMPING, 0);
+    pose_sensor.set_option(RS2_OPTION_ENABLE_RELOCALIZATION, 0);
+
     // Start pipeline with chosen configuration
     pipe_.start(cfg, std::bind(&TrackingCameraClient::frame_callback, this,
                                std::placeholders::_1));

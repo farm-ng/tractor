@@ -14,6 +14,11 @@ sudo udevadm control --reload-rules && udevadm trigger
 ```
 
 
+Ceres deps:
+```
+sudo apt-get install libgoogle-glog-dev libatlas-base-dev libeigen3-dev libsuitesparse-dev
+```
+
 To build ceres:
 
 ```bash
