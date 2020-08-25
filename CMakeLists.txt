@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 3.10)
 project(farm-ng-tractor)
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/third_party/ceres-solver/cmake)
 
 include(CMakeToolsHelpers OPTIONAL)
 
@@ -15,7 +16,7 @@ find_package(Protobuf REQUIRED)
 find_package(Boost REQUIRED system filesystem regex)
 find_package(realsense2 REQUIRED)
 find_package(OpenCV REQUIRED)
-find_package(glog REQUIRED)
+find_package(Glog REQUIRED)
 find_package(Ceres REQUIRED)
 find_package(Sophus REQUIRED)
 

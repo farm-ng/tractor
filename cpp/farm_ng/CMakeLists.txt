@@ -19,4 +19,4 @@ target_link_libraries(farm-ng-tracking_camera farm-ng-ipc farm-ng-protobuf ${Boo
 
 
 add_executable(farm-ng-extrinsic_calibrator extrinsic_calibrator.cpp)
-target_link_libraries(farm-ng-extrinsic_calibrator farm-ng-ipc farm-ng-protobuf ${CERES_LIBRARIES} glog::glog Sophus::Sophus)
+target_link_libraries(farm-ng-extrinsic_calibrator farm-ng-ipc farm-ng-protobuf ${CERES_LIBRARIES} ${GLOG_LIBRARIES} Sophus::Sophus)
