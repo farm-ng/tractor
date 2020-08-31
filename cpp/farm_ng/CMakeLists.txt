@@ -15,7 +15,7 @@ add_executable(farm-ng-log-playback log_playback.cpp)
 target_link_libraries(farm-ng-log-playback farm-ng-ipc farm-ng-protobuf ${Boost_SYSTEM_LIBRARY})
 
 add_executable(farm-ng-tracking_camera tracking_camera.cpp)
-target_link_libraries(farm-ng-tracking_camera farm-ng-ipc farm-ng-protobuf ${Boost_SYSTEM_LIBRARY} ${realsense2_LIBRARY}  ${OpenCV_LIBS} Sophus::Sophus)
+target_link_libraries(farm-ng-tracking_camera farm-ng-ipc farm-ng-protobuf apriltag::apriltag ${Boost_SYSTEM_LIBRARY} ${realsense2_LIBRARY}  ${OpenCV_LIBS} Sophus::Sophus ${GLOG_LIBRARIES})
 
 
 add_executable(farm-ng-extrinsic_calibrator extrinsic_calibrator.cpp)

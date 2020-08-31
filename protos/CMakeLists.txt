@@ -1,6 +1,7 @@
 set(Protobuf_IMPORT_DIRS ${CMAKE_CURRENT_SOURCE_DIR})
 
 set(PROTO_FILES
+  ./farm_ng_proto/tractor/v1/apriltag.proto
   ./farm_ng_proto/tractor/v1/steering.proto
   ./farm_ng_proto/tractor/v1/tracking_camera.proto
   ./farm_ng_proto/tractor/v1/geometry.proto

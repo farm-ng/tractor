@@ -43,3 +43,9 @@ message NamedSE3Pose {
   string frame_a = 2;
   string frame_b = 3;
 }
+
+message Matrix {
+  uint32 rows = 1;
+  uint32 cols = 2;
+  repeated double data = 3 [packed=true];
+};

@@ -1,0 +1,47 @@
+syntax = "proto3";
+
+import "farm_ng_proto/tractor/v1/geometry.proto";
+
+package farm_ng_proto.tractor.v1;
+
+message ApriltagDetection {
+   enum Family {
+     FAMILY_UNSPECIFIED=0;
+     FAMILY_TAG36H11=1;
+   }
+   Family tag_family = 1;
+    // The decoded ID of the tag
+   int32 id = 2;
+
+    // How many error bits were corrected? Note: accepting large numbers of
+    // corrected errors leads to greatly increased false positive rates.
+    // NOTE: As of this implementation, the detector cannot detect tags with
+    // a hamming distance greater than 2.
+    int32 hamming = 3;
+
+    // A measure of the quality of the binary decoding process: the
+    // average difference between the intensity of a data bit versus
+    // the decision threshold. Higher numbers roughly indicate better
+    // decodes. This is a reasonable measure of detection accuracy
+    // only for very small tags-- not effective for larger tags (where
+    // we could have sampled anywhere within a bit cell and still
+    // gotten a good detection.)
+    float decision_margin = 4;
+
+    // The 3x3 homography matrix describing the projection from an
+    // "ideal" tag (with corners at (-1,1), (1,1), (1,-1), and (-1,
+    // -1)) to pixels in the image. This matrix will be freed by
+    // apriltag_detection_destroy.
+    Matrix image_h_tag = 5;
+
+    // The center of the detection in image pixel coordinates.
+    Vec2  c = 6;
+
+    // The corners of the tag in image pixel coordinates. These always
+    // wrap counter-clock wise around the tag.
+    repeated Vec2 p = 7;
+}
+
+message ApriltagDetections {
+	repeated ApriltagDetection detections=1;
+}

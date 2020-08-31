@@ -7,14 +7,27 @@
 #include <farm_ng/ipc.h>
 #include <farm_ng/sophus_protobuf.h>
 
+#include <farm_ng_proto/tractor/v1/apriltag.pb.h>
 #include <farm_ng_proto/tractor/v1/geometry.pb.h>
 #include <farm_ng_proto/tractor/v1/tracking_camera.pb.h>
 #include <google/protobuf/util/time_util.h>
 
+#include <glog/logging.h>
+
+#include <chrono>
 #include <opencv2/opencv.hpp>
+
+extern "C" {
+#include "apriltag.h"
+#include "tag36h11.h"
+}
 
 using farm_ng_proto::tractor::v1::Event;
 using farm_ng_proto::tractor::v1::NamedSE3Pose;
+using farm_ng_proto::tractor::v1::Vec2;
+
+using farm_ng_proto::tractor::v1::ApriltagDetection;
+using farm_ng_proto::tractor::v1::ApriltagDetections;
 using farm_ng_proto::tractor::v1::TrackingCameraPoseFrame;
 
 namespace farm_ng {
@@ -121,6 +134,67 @@ Event ToNamedPoseEvent(const rs2::pose_frame& rs_pose_frame) {
   return event;
 }
 
+class ApriltagDetector {
+  // see
+  // https://github.com/AprilRobotics/apriltag/blob/master/example/opencv_demo.cc
+ public:
+  ApriltagDetector() {
+    tag_family_ = tag36h11_create();
+    tag_detector_ = apriltag_detector_create();
+    apriltag_detector_add_family(tag_detector_, tag_family_);
+    tag_detector_->quad_decimate = 2;
+    tag_detector_->quad_sigma = 0.0;
+    tag_detector_->nthreads = 1;
+    tag_detector_->debug = false;
+    tag_detector_->refine_edges = false;
+  }
+
+  ~ApriltagDetector() {
+    apriltag_detector_destroy(tag_detector_);
+    tag36h11_destroy(tag_family_);
+  }
+
+  ApriltagDetections Detect(cv::Mat gray) {
+    auto start = std::chrono::high_resolution_clock::now();
+
+    // Make an image_u8_t header for the Mat data
+    image_u8_t im = {.width = gray.cols,
+                     .height = gray.rows,
+                     .stride = gray.cols,
+                     .buf = gray.data};
+
+    ApriltagDetections pb_out;
+    zarray_t* detections = apriltag_detector_detect(tag_detector_, &im);
+    // Draw detection outlines
+    for (int i = 0; i < zarray_size(detections); i++) {
+      ApriltagDetection* detection = pb_out.add_detections();
+      apriltag_detection_t* det;
+      zarray_get(detections, i, &det);
+      for (int j = 0; j < 4; j++) {
+        Vec2* p_j = detection->add_p();
+        p_j->set_x(det->p[j][0]);
+        p_j->set_y(det->p[j][1]);
+      }
+      detection->mutable_c()->set_x(det->c[0]);
+      detection->mutable_c()->set_y(det->c[1]);
+      detection->set_id(det->id);
+      detection->set_hamming(static_cast<uint8_t>(det->hamming));
+      detection->set_decision_margin(det->decision_margin);
+    }
+    apriltag_detections_destroy(detections);
+    auto stop = std::chrono::high_resolution_clock::now();
+    auto duration =
+        std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+    LOG_EVERY_N(INFO, 1) << "april tag detection took: " << duration.count()
+                         << " microseconds";
+    return pb_out;
+  }
+
+ private:
+  apriltag_family_t* tag_family_;
+  apriltag_detector_t* tag_detector_;
+};
+
 class TrackingCameraClient {
  public:
   TrackingCameraClient(boost::asio::io_service& io_service)
@@ -191,6 +265,25 @@ class TrackingCameraClient {
       count_ = (count_ + 1) % 3;
       if (count_ == 0) {
         writer_->write(frame_0);
+        if (!detection_in_progress_) {
+          detection_in_progress_ = true;
+          auto stamp =
+              google::protobuf::util::TimeUtil::MillisecondsToTimestamp(
+                  fisheye_frame.get_timestamp());
+
+          cv::Mat frame_0_copy = frame_0.clone();
+
+          // schedule april tag detection, do it as frequently as possible.
+          io_service_.post([this, frame_0_copy, stamp] {
+            Event event = farm_ng::MakeEvent("tracking_camera/front/apriltags",
+                                             detector_.Detect(frame_0_copy));
+            *event.mutable_stamp() = stamp;
+
+            event_bus_.Send(event);
+            std::lock_guard<std::mutex> lock(mtx_);
+            detection_in_progress_ = false;
+          });
+        }
       }
     } else if (rs2::pose_frame pose_frame = frame.as<rs2::pose_frame>()) {
       auto pose_data = pose_frame.get_pose_data();
@@ -211,10 +304,16 @@ class TrackingCameraClient {
   rs2::pipeline pipe_;
   std::mutex mtx_;
   int count_ = 0;
+  bool detection_in_progress_ = false;
+  ApriltagDetector detector_;
 };
 }  // namespace farm_ng
 
 int main(int argc, char* argv[]) try {
+  // Initialize Google's logging library.
+  FLAGS_logtostderr = 1;
+  google::InitGoogleLogging(argv[0]);
+
   // Declare RealSense pipeline, encapsulating the actual device and sensors
   rs2::pipeline pipe;
   boost::asio::io_service io_service;
