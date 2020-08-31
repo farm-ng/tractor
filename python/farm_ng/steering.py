@@ -59,13 +59,13 @@ class SteeringSenderJoystick:
         self._command = SteeringCommand()
 
     def send(self, n_periods):
-        if not self.joystick.get_button_state('tl2', False) or not self.joystick.is_connected() or n_periods > self.rate_hz/4:
+        if not self.joystick.get_button_state('tl', False) or not self.joystick.is_connected() or n_periods > self.rate_hz/4:
             self._command.velocity = 0.0
             self._command.angular_velocity = 0.0
             self._command.brake = 1.0
             self._command.deadman = 0.0
         else:
-            self._command.deadman = 1.0 if self.joystick.get_button_state('tl2', False) else 0.0
+            self._command.deadman = 1.0 if self.joystick.get_button_state('tl', False) else 0.0
             self._command.brake = 0.0
 
             velocity = np.clip(-self.joystick.get_axis_state('y', 0), -1.0, 1.0)
@@ -74,7 +74,7 @@ class SteeringSenderJoystick:
             if abs(velocity) >= 0.5:
                 velocity = np.sign(velocity) * (0.5/4 + (abs(velocity) - 0.5)*2)
             self._command.velocity = velocity
-            angular_velocity = np.clip(-self.joystick.get_axis_state('rx', 0), -1.0, 1.0)*np.pi/3.0
+            angular_velocity = np.clip(-self.joystick.get_axis_state('z', 0), -1.0, 1.0)*np.pi/3.0
             self._command.angular_velocity = angular_velocity
         get_event_bus('steering').send(make_event(_g_message_name, self._command))
 
