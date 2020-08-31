@@ -1,14 +1,11 @@
 import asyncio
-import json
 import logging
 
-import farm_ng_proto.tractor.v1.io_pb2
-import farm_ng_proto.tractor.v1.motor_pb2
-import farm_ng_proto.tractor.v1.steering_pb2
-import farm_ng_proto.tractor.v1.tracking_camera_pb2
+import farm_ng.proto_utils  # noqa: F401 # loads all the protos for pretty print of any
 import websockets
 from farm_ng_proto.tractor.v1.io_pb2 import Event
 from google.protobuf.text_format import MessageToString
+
 
 logging.basicConfig()
 

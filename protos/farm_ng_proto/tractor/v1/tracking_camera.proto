@@ -20,7 +20,7 @@ message TrackingCameraPoseFrame {
   Vec3 angular_velocity = 6;
   // X, Y, Z values of angular acceleration, in radians/sec^2
   Vec3 angular_acceleration = 7;
-  
+
    enum Confidence {
      CONFIDENCE_UNSPECIFIED=0;
      CONFIDENCE_FAILED=1;

@@ -38,4 +38,3 @@ journalctl -f -u tractor-steering
 ```
 
 Or ``tail -f /var/log/syslog`` ...
-

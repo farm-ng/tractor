@@ -9,6 +9,6 @@ cmake -DBUILD_PYTHON_BINDINGS=true -DCMAKE_BUILD_TYPE=Release -DBUILD_EXAMPLES=f
 
 Install udev rules:
 ```
-sudo cp $FARM_NG_ROOT/third_party/librealsense/config/99-realsense-libusb.rules /etc/udev/rules.d/ 
+sudo cp $FARM_NG_ROOT/third_party/librealsense/config/99-realsense-libusb.rules /etc/udev/rules.d/
 sudo udevadm control --reload-rules && udevadm trigger
 ```

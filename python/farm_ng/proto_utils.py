@@ -1,3 +1,9 @@
+# loads all the protos for the type registry
+import farm_ng_proto.tractor.v1.apriltag_pb2  # noqa: F401
+import farm_ng_proto.tractor.v1.io_pb2  # noqa: F401
+import farm_ng_proto.tractor.v1.motor_pb2  # noqa: F401
+import farm_ng_proto.tractor.v1.steering_pb2  # noqa: F401
+import farm_ng_proto.tractor.v1.tracking_camera_pb2  # noqa: F401
 from farm_ng_proto.tractor.v1 import geometry_pb2
 from liegroups import SE3
 
