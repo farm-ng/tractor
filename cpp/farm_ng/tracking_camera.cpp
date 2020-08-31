@@ -260,6 +260,7 @@ class TrackingCameraClient {
   void frame_callback(const rs2::frame& frame) {
     if (rs2::frameset fs = frame.as<rs2::frameset>()) {
       rs2::video_frame fisheye_frame = fs.get_fisheye_frame(0);
+      fisheye_frame.keep();
       cv::Mat frame_0 = frame_to_mat(fisheye_frame);
       std::lock_guard<std::mutex> lock(mtx_);
       count_ = (count_ + 1) % 3;
@@ -271,12 +272,11 @@ class TrackingCameraClient {
               google::protobuf::util::TimeUtil::MillisecondsToTimestamp(
                   fisheye_frame.get_timestamp());
 
-          cv::Mat frame_0_copy = frame_0.clone();
-
           // schedule april tag detection, do it as frequently as possible.
-          io_service_.post([this, frame_0_copy, stamp] {
+          io_service_.post([this, fisheye_frame, stamp] {
+	    cv::Mat frame_0 = frame_to_mat(fisheye_frame);
             Event event = farm_ng::MakeEvent("tracking_camera/front/apriltags",
-                                             detector_.Detect(frame_0_copy));
+                                             detector_.Detect(frame_0));
             *event.mutable_stamp() = stamp;
 
             event_bus_.Send(event);
