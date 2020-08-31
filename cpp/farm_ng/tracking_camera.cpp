@@ -185,8 +185,8 @@ class ApriltagDetector {
     auto stop = std::chrono::high_resolution_clock::now();
     auto duration =
         std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-    LOG_EVERY_N(INFO, 1) << "april tag detection took: " << duration.count()
-                         << " microseconds";
+    LOG_EVERY_N(INFO, 200) << "april tag detection took: " << duration.count()
+			   << " microseconds\n" << pb_out.ShortDebugString();
     return pb_out;
   }
 
