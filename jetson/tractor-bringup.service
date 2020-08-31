@@ -3,8 +3,8 @@ Description="Tractor canbus service"
 After=network.target
 
 [Service]
-ExecStart=/home/farmer/tractor/app/tractor/driver/bringup.sh
-WorkingDirectory=/home/farmer/tractor
+ExecStart=/opt/farm_ng/systemd/bringup.sh
+WorkingDirectory=/opt/farm_ng/systemd
 StandardOutput=inherit
 StandardError=inherit
 Restart=always

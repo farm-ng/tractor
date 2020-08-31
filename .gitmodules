@@ -7,3 +7,6 @@
 [submodule "third_party/protoc-gen-validate"]
 	path = third_party/protoc-gen-validate
 	url = https://github.com/envoyproxy/protoc-gen-validate.git
+[submodule "jetson/uhubctl"]
+	path = jetson/uhubctl
+	url = https://github.com/mvp/uhubctl.git

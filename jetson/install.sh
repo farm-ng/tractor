@@ -9,9 +9,15 @@ while [ -h "$SOURCE" ]; do # resolve $SOURCE until the file is no longer a symli
 done
 export SERVICE_DIR=$( cd "$( dirname "${SOURCE}" )" >/dev/null 2>&1 && pwd )
 
-$SERVICE_DIR/bringup_can.sh
-while true
-do
-    ip -details -statistics link show can0
-    sleep 5
-done
+mkdir -p /opt/farm_ng/systemd
+prefix=/opt/farm_ng make -C $SERVICE_DIR/uhubctl
+prefix=/opt/farm_ng make -C $SERVICE_DIR/uhubctl install
+cp $SERVICE_DIR/*.sh /opt/farm_ng/systemd
+cp $SERVICE_DIR/*.service /etc/systemd/system/
+
+systemctl daemon-reload
+
+# start on boot always...
+systemctl enable tractor-bringup.service
+systemctl enable tractor-steering.service
+systemctl enable tractor.service
