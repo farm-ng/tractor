@@ -142,11 +142,11 @@ class ApriltagDetector {
     tag_family_ = tag36h11_create();
     tag_detector_ = apriltag_detector_create();
     apriltag_detector_add_family(tag_detector_, tag_family_);
-    tag_detector_->quad_decimate = 2;
-    tag_detector_->quad_sigma = 0.0;
+    tag_detector_->quad_decimate = 2.0;
+    tag_detector_->quad_sigma = 0.8;
     tag_detector_->nthreads = 1;
     tag_detector_->debug = false;
-    tag_detector_->refine_edges = false;
+    tag_detector_->refine_edges = true;
   }
 
   ~ApriltagDetector() {
@@ -185,7 +185,7 @@ class ApriltagDetector {
     auto stop = std::chrono::high_resolution_clock::now();
     auto duration =
         std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-    LOG_EVERY_N(INFO, 200) << "april tag detection took: " << duration.count()
+    LOG_EVERY_N(INFO, 10) << "april tag detection took: " << duration.count()
 			   << " microseconds\n" << pb_out.ShortDebugString();
     return pb_out;
   }
@@ -208,7 +208,7 @@ class TrackingCameraClient {
         " omxh264enc control-rate=1 bitrate=1000000 ! " +
         " video/x-h264, stream-format=byte-stream !" +
         " rtph264pay pt=96 mtu=1400 config-interval=10 !" +
-        " udpsink host=239.20.20.20 auto-multicast=true  port=5000";
+        " udpsink host=239.20.20.20 auto-multicast=true port=5000";
     std::cerr << "Running gstreamer with pipeline:\n" << cmd0 << std::endl;
     std::cerr << "To view streamer run:\n"
               << "gst-launch-1.0 udpsrc multicast-group=239.20.20.20 port=5000 "
