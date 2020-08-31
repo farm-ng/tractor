@@ -39,3 +39,13 @@ cmake -DCMAKE_INSTALL_PREFIX=$FARM_NG_ROOT/env -DCMAKE_PREFIX_PATH=$FARM_NG_ROOT
 make -j7
 make install
 ```
+
+To build apriltag
+```bash
+. ../setup.bash
+mkdir build-apriltag
+cd build-apriltag
+cmake -DCMAKE_INSTALL_PREFIX=$FARM_NG_ROOT/env -DCMAKE_PREFIX_PATH=$FARM_NG_ROOT/env/ -DCMAKE_BUILD_TYPE=Release ../apriltag
+make -j7
+make install
+```
