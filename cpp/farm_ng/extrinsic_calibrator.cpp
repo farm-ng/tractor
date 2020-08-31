@@ -55,7 +55,7 @@ class ExtrinsicCalibrator {
 
   void on_event(const farm_ng_proto::tractor::v1::Event& event) {
     if (event.data().type_url() !=
-        "type.googleapis.com/farm_ng_proto.tractor.v1.NamedSE3Pose") {
+        "type.googleapis.com/" + farm_ng_proto::tractor::v1::NamedSE3Pose::descriptor()->full_name()) {
       return;
     }
     farm_ng_proto::tractor::v1::NamedSE3Pose pose;
