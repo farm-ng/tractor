@@ -15,7 +15,7 @@ from google.protobuf.text_format import MessageToString
 from google.protobuf.timestamp_pb2 import Timestamp
 from liegroups import SE3
 
-logger = logging.getLogger('tractor.driver')
+logger = logging.getLogger('tractor')
 logger.setLevel(logging.INFO)
 
 kinematics = TractorKinematics()
@@ -113,7 +113,7 @@ class TractorController:
 def main():
     logging.basicConfig(stream=sys.stdout, level=logging.INFO)
     event_loop = asyncio.get_event_loop()
-    get_event_bus('farm_ng.tractor.driver')
+    get_event_bus('farm_ng.tractor')
     controller = TractorController(event_loop)
     logger.info('Created controller %s', controller)
     event_loop.run_forever()
