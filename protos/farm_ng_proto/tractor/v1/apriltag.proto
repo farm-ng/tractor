@@ -4,6 +4,9 @@ import "farm_ng_proto/tractor/v1/geometry.proto";
 
 package farm_ng_proto.tractor.v1;
 
+// protobuf copy of the ApriltagDetection struct from apriltag library.
+// source: https://github.com/AprilRobotics/apriltag/blob/master/apriltag.h#L196
+// comments copied for reference.
 message ApriltagDetection {
    enum Family {
      FAMILY_UNSPECIFIED=0;
@@ -30,8 +33,7 @@ message ApriltagDetection {
 
     // The 3x3 homography matrix describing the projection from an
     // "ideal" tag (with corners at (-1,1), (1,1), (1,-1), and (-1,
-    // -1)) to pixels in the image. This matrix will be freed by
-    // apriltag_detection_destroy.
+    // -1)) to pixels in the image.
     Matrix image_h_tag = 5;
 
     // The center of the detection in image pixel coordinates.

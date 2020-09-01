@@ -1,8 +1,17 @@
-// License: Apache 2.0. See LICENSE file in root directory.
-// Copyright(c) 2019 Intel Corporation. All Rights Reserved.
+#include <chrono>
 #include <iomanip>
 #include <iostream>
+#include <mutex>
+
+#include <glog/logging.h>
+#include <google/protobuf/util/time_util.h>
 #include <librealsense2/rs.hpp>
+#include <opencv2/opencv.hpp>
+
+extern "C" {
+#include "apriltag.h"
+#include "tag36h11.h"
+}
 
 #include <farm_ng/ipc.h>
 #include <farm_ng/sophus_protobuf.h>
@@ -10,17 +19,7 @@
 #include <farm_ng_proto/tractor/v1/apriltag.pb.h>
 #include <farm_ng_proto/tractor/v1/geometry.pb.h>
 #include <farm_ng_proto/tractor/v1/tracking_camera.pb.h>
-#include <google/protobuf/util/time_util.h>
 
-#include <glog/logging.h>
-
-#include <chrono>
-#include <opencv2/opencv.hpp>
-
-extern "C" {
-#include "apriltag.h"
-#include "tag36h11.h"
-}
 
 using farm_ng_proto::tractor::v1::Event;
 using farm_ng_proto::tractor::v1::NamedSE3Pose;
@@ -58,11 +57,13 @@ static cv::Mat frame_to_mat(const rs2::frame& f) {
 
   throw std::runtime_error("Frame format is not supported yet!");
 }
+
 void SetVec3FromRs(farm_ng_proto::tractor::v1::Vec3* out, rs2_vector vec) {
   out->set_x(vec.x);
   out->set_y(vec.y);
   out->set_z(vec.z);
 }
+
 void SetQuatFromRs(farm_ng_proto::tractor::v1::Quaternion* out,
                    rs2_quaternion vec) {
   out->set_w(vec.w);
@@ -155,6 +156,9 @@ class ApriltagDetector {
   }
 
   ApriltagDetections Detect(cv::Mat gray) {
+    CHECK_EQ(gray.channels(), 1);
+    CHECK_EQ(gray.type(), CV_8UC1);
+
     auto start = std::chrono::high_resolution_clock::now();
 
     // Make an image_u8_t header for the Mat data
@@ -163,13 +167,15 @@ class ApriltagDetector {
                      .stride = gray.cols,
                      .buf = gray.data};
 
-    ApriltagDetections pb_out;
     zarray_t* detections = apriltag_detector_detect(tag_detector_, &im);
-    // Draw detection outlines
+
+    // copy detections into protobuf
+    ApriltagDetections pb_out;
     for (int i = 0; i < zarray_size(detections); i++) {
-      ApriltagDetection* detection = pb_out.add_detections();
       apriltag_detection_t* det;
       zarray_get(detections, i, &det);
+
+      ApriltagDetection* detection = pb_out.add_detections();
       for (int j = 0; j < 4; j++) {
         Vec2* p_j = detection->add_p();
         p_j->set_x(det->p[j][0]);
@@ -260,12 +266,18 @@ class TrackingCameraClient {
   void frame_callback(const rs2::frame& frame) {
     if (rs2::frameset fs = frame.as<rs2::frameset>()) {
       rs2::video_frame fisheye_frame = fs.get_fisheye_frame(0);
+      // Add a reference to fisheye_frame, cause we're scheduling
+      // april tag detection for later.
       fisheye_frame.keep();
       cv::Mat frame_0 = frame_to_mat(fisheye_frame);
-      std::lock_guard<std::mutex> lock(mtx_);
+
+      // lock for rest of scope, so we can edit some member state.
+      std::lock_guard<std::mutex> lock(mtx_realsense_state_);
       count_ = (count_ + 1) % 3;
       if (count_ == 0) {
         writer_->write(frame_0);
+	// we only want to schedule detection if we're not currently
+	// detecting.  Apriltag detection takes >30ms on the nano.
         if (!detection_in_progress_) {
           detection_in_progress_ = true;
           auto stamp =
@@ -274,13 +286,15 @@ class TrackingCameraClient {
 
           // schedule april tag detection, do it as frequently as possible.
           io_service_.post([this, fisheye_frame, stamp] {
+            // note this function is called later, in main thread, via io_service_.run();
 	    cv::Mat frame_0 = frame_to_mat(fisheye_frame);
             Event event = farm_ng::MakeEvent("tracking_camera/front/apriltags",
                                              detector_.Detect(frame_0));
             *event.mutable_stamp() = stamp;
 
             event_bus_.Send(event);
-            std::lock_guard<std::mutex> lock(mtx_);
+	    // signal that we're done detecting, so can post another frame for detection.
+            std::lock_guard<std::mutex> lock(mtx_realsense_state_);
             detection_in_progress_ = false;
           });
         }
@@ -302,7 +316,7 @@ class TrackingCameraClient {
   std::unique_ptr<cv::VideoWriter> writer_;
   // Declare RealSense pipeline, encapsulating the actual device and sensors
   rs2::pipeline pipe_;
-  std::mutex mtx_;
+  std::mutex mtx_realsense_state_;
   int count_ = 0;
   bool detection_in_progress_ = false;
   ApriltagDetector detector_;

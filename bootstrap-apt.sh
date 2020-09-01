@@ -20,12 +20,17 @@ apt-get install -y \
      build-essential \
      cmake \
      git \
+     libatlas-base-dev \
      libboost-filesystem-dev \
      libboost-regex-dev \
      libboost-system-dev \
+     libeigen3-dev \
+     libgoogle-glog-dev \
+     libopencv-dev \
      libprotobuf-dev \
      librealsense2-dev \
      librealsense2-utils \
+     libsuitesparse-dev \
      protobuf-compiler \
      python3-pip
 
