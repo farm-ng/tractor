@@ -20,7 +20,6 @@ extern "C" {
 #include <farm_ng_proto/tractor/v1/geometry.pb.h>
 #include <farm_ng_proto/tractor/v1/tracking_camera.pb.h>
 
-
 using farm_ng_proto::tractor::v1::Event;
 using farm_ng_proto::tractor::v1::NamedSE3Pose;
 using farm_ng_proto::tractor::v1::Vec2;
@@ -192,7 +191,8 @@ class ApriltagDetector {
     auto duration =
         std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
     LOG_EVERY_N(INFO, 10) << "april tag detection took: " << duration.count()
-			   << " microseconds\n" << pb_out.ShortDebugString();
+                          << " microseconds\n"
+                          << pb_out.ShortDebugString();
     return pb_out;
   }
 
@@ -276,8 +276,8 @@ class TrackingCameraClient {
       count_ = (count_ + 1) % 3;
       if (count_ == 0) {
         writer_->write(frame_0);
-	// we only want to schedule detection if we're not currently
-	// detecting.  Apriltag detection takes >30ms on the nano.
+        // we only want to schedule detection if we're not currently
+        // detecting.  Apriltag detection takes >30ms on the nano.
         if (!detection_in_progress_) {
           detection_in_progress_ = true;
           auto stamp =
@@ -286,14 +286,16 @@ class TrackingCameraClient {
 
           // schedule april tag detection, do it as frequently as possible.
           io_service_.post([this, fisheye_frame, stamp] {
-            // note this function is called later, in main thread, via io_service_.run();
-	    cv::Mat frame_0 = frame_to_mat(fisheye_frame);
+            // note this function is called later, in main thread, via
+            // io_service_.run();
+            cv::Mat frame_0 = frame_to_mat(fisheye_frame);
             Event event = farm_ng::MakeEvent("tracking_camera/front/apriltags",
                                              detector_.Detect(frame_0));
             *event.mutable_stamp() = stamp;
 
             event_bus_.Send(event);
-	    // signal that we're done detecting, so can post another frame for detection.
+            // signal that we're done detecting, so can post another frame for
+            // detection.
             std::lock_guard<std::mutex> lock(mtx_realsense_state_);
             detection_in_progress_ = false;
           });
