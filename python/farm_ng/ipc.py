@@ -6,15 +6,13 @@ import struct
 import sys
 import time
 
-import farm_ng_proto.tractor.v1.io_pb2
-import farm_ng_proto.tractor.v1.motor_pb2
-import farm_ng_proto.tractor.v1.steering_pb2
-import farm_ng_proto.tractor.v1.tracking_camera_pb2
+import farm_ng.proto_utils  # noqa: F401
 from farm_ng.periodic import Periodic
 from farm_ng_proto.tractor.v1.io_pb2 import Announce
 from farm_ng_proto.tractor.v1.io_pb2 import Event
 from google.protobuf.text_format import MessageToString
 from google.protobuf.timestamp_pb2 import Timestamp
+# loads all the protos for pretty print of any
 
 logger = logging.getLogger('ipc')
 logger.setLevel(logging.INFO)
@@ -82,7 +80,6 @@ class EventBus:
         announce.host = socket.getfqdn(host)
         announce.port = port
         announce.service = self._name
-        #logger.info('Sending announce for services. %s', MessageToString(announce, as_one_line=True))
         msg = announce.SerializeToString()
         self._mc_send_sock.sendto(msg, self._multicast_group)
         # send to any services we already know of directly

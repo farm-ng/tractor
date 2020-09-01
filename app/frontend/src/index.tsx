@@ -60,7 +60,7 @@ export class App extends React.Component<{}, State> {
     this.state = { data: {} };
   }
 
-  public componentDidMount() {
+  public componentDidMount(): any {
     ipcClient.on("*", (ev: Event) => {
       const data = { ...this.state.data };
       data[ev.name] = DecodeEvent(ev);
@@ -68,7 +68,7 @@ export class App extends React.Component<{}, State> {
     });
   }
 
-  public render() {
+  public render(): any {
     return (
       <Scene />
       /* <div style={{ flex: 0.5 }}>

@@ -1,0 +1,15 @@
+[Unit]
+Description=Tractor service.
+After=network.target
+Wants=tractor-bringup
+
+[Service]
+ExecStart=/home/farmer/tractor/jetson/tractor.sh
+WorkingDirectory=/home/farmer/tractor
+StandardOutput=inherit
+StandardError=inherit
+Restart=always
+User=farmer
+
+[Install]
+WantedBy=multi-user.target

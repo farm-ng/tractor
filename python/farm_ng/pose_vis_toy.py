@@ -5,9 +5,9 @@ import sys
 import numpy as np
 from farm_ng.ipc import get_event_bus
 from farm_ng.ipc import make_event
+from farm_ng.kinematics import TractorKinematics
 from farm_ng.periodic import Periodic
-from farm_ng.tractor.kinematics import TractorKinematics
-from farm_ng.utils.proto import se3_to_proto
+from farm_ng.proto_utils import se3_to_proto
 from farm_ng_proto.tractor.v1.geometry_pb2 import NamedSE3Pose
 from liegroups import SE3
 

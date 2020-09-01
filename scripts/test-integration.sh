@@ -4,6 +4,7 @@ DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 TAG="test-integration"
 (
     set -e
+    set -x
 
     docker build -t $TAG -f $DIR/Dockerfile.test-integration $DIR/..
     docker run \

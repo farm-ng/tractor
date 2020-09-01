@@ -1,0 +1,13 @@
+[Unit]
+Description="Tractor canbus service"
+After=network.target
+
+[Service]
+ExecStart=/opt/farm_ng/systemd/bringup.sh
+WorkingDirectory=/opt/farm_ng/systemd
+StandardOutput=inherit
+StandardError=inherit
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
