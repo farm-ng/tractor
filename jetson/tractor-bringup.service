@@ -1,6 +1,7 @@
 [Unit]
 Description="Tractor canbus service"
-After=network.target
+BindsTo=sys-subsystem-net-devices-wlan0.device sys-subsystem-net-devices-usb0.device
+After=sys-subsystem-net-devices-wlan0.device sys-subsystem-net-devices-usb0.device
 
 [Service]
 ExecStart=/opt/farm_ng/systemd/bringup.sh
