@@ -161,7 +161,10 @@ class EventBus:
     def _announce_recv(self):
 
         data, address = self._mc_recv_sock.recvfrom(1024)
-        if address[1] == self._mc_send_sock.getsockname()[1] and host_is_local(address[0], address[1]):
+        is_local = host_is_local(address[0], address[1])
+
+        # this is the announce from self... port match and host is local.
+        if address[1] == self._mc_send_sock.getsockname()[1] and is_local:
             return
 
         announce = Announce()
@@ -169,7 +172,13 @@ class EventBus:
         # logger.info('Recv announce for service: %s', MessageToString(announce, as_one_line=True))
         if address[1] != announce.port:
             logger.warning('announce port does not match sender... rejecting %s', MessageToString(announce, as_one_line=True))
-        announce.host = address[0]
+
+        if is_local:
+            # if we're a local port, don't use the address because it
+            # could change especially if wifi signal is lost
+            announce.host = '127.0.0.1'
+        else:
+            announce.host = address[0]
         announce.port = address[1]
         announce.recv_stamp.GetCurrentTime()
         self._services['%s:%d' % (announce.host, announce.port)] = announce
