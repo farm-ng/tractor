@@ -9,6 +9,15 @@ while [ -h "$SOURCE" ]; do # resolve $SOURCE until the file is no longer a symli
 done
 export SERVICE_DIR=$( cd "$( dirname "${SOURCE}" )" >/dev/null 2>&1 && pwd )
 
+# add some routes for wlan0, lo
+route add -net 224.0.0.0 netmask 240.0.0.0 dev lo
+route add -net 224.0.0.0 netmask 240.0.0.0 dev wlan0
+
+
+# enable multicast on loopback, cause we may not have a wireless or wired link.
+ifconfig lo multicast
+ifconfig wlan0 multicast
+
 # Power cycle the usb bus, due to an issue with the t265 camera
 # bootloader having a race condition if power is supplied before the
 # usb is ready.  uhubctl can power cycle the nano usb bus power in a
@@ -23,6 +32,8 @@ export SERVICE_DIR=$( cd "$( dirname "${SOURCE}" )" >/dev/null 2>&1 && pwd )
 sleep 1
 
 $SERVICE_DIR/bringup_can.sh
+touch /tmp/tractor-ready.touch
+
 while true
 do
     ip -details -statistics link show can0

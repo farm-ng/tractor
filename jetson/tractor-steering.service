@@ -1,7 +1,7 @@
 [Unit]
 Description=tractor steering service
 Requires=bluetooth.service
-After=bluetooth.service
+After=bluetooth.service tractor-bringup.service
 Wants=tractor-bringup
 
 [Service]

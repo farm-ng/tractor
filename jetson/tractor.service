@@ -1,7 +1,6 @@
 [Unit]
 Description=Tractor service.
-After=network.target
-Wants=tractor-bringup
+ConditionPathExists=/tmp/tractor-ready.touch
 
 [Service]
 ExecStart=/home/farmer/tractor/jetson/tractor.sh
