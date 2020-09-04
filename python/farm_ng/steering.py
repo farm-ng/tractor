@@ -9,7 +9,6 @@ from farm_ng.ipc import make_event
 from farm_ng.joystick import MaybeJoystick
 from farm_ng.periodic import Periodic
 from farm_ng_proto.tractor.v1.steering_pb2 import SteeringCommand
-from farm_ng_proto.tractor.v1.tractor_pb2 import TractorState
 
 logger = logging.getLogger('steering')
 logger.setLevel(logging.INFO)
@@ -63,13 +62,6 @@ class SteeringSenderJoystick:
         self.joystick.set_button_callback(self.on_button)
         self._periodic = Periodic(self.period, loop, self.send)
         self._command = SteeringCommand()
-        self._tractor_state = TractorState()
-
-    def get_tractor_state(self):
-        event = get_event_bus('steering').get_last_event('tractor_state')
-        if event is None:
-            return
-        event.data.Unpack(self._tractor_state)
 
     def stop(self):
         self._command.velocity = 0.0
@@ -83,7 +75,6 @@ class SteeringSenderJoystick:
             self.stop()
 
     def send(self, n_periods):
-        self.get_tractor_state()
         if self.joystick.get_axis_state('hat0y', 0.0) != 0:
             self._executing_motion_primitive = True
             # hat0y -1 is up dpad
