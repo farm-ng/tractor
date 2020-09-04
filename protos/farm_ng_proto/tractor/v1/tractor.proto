@@ -1,0 +1,10 @@
+syntax = "proto3";
+
+package farm_ng_proto.tractor.v1;
+
+message TractorState {
+  // Absolute distance traveled in meters. This resets to zero when the tractor
+  // program starts, which is usually on system boot; i.e. it will reset if the
+  // program or computer is restarted.
+  double abs_distance_traveled = 1;
+}

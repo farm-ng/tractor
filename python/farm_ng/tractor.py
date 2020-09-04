@@ -2,6 +2,7 @@ import asyncio
 import logging
 import sys
 
+import numpy as np
 from farm_ng.canbus import CANSocket
 from farm_ng.ipc import get_event_bus
 from farm_ng.ipc import make_event
@@ -11,6 +12,7 @@ from farm_ng.periodic import Periodic
 from farm_ng.proto_utils import se3_to_proto
 from farm_ng.steering import SteeringClient
 from farm_ng_proto.tractor.v1.geometry_pb2 import NamedSE3Pose
+from farm_ng_proto.tractor.v1.tractor_pb2 import TractorState
 from google.protobuf.text_format import MessageToString
 from google.protobuf.timestamp_pb2 import Timestamp
 from liegroups import SE3
@@ -35,6 +37,7 @@ class TractorController:
         self.lock_out = False
         self.can_socket = CANSocket('can0', self.event_loop)
         self.steering = SteeringClient()
+        self.tractor_state = TractorState()
 
         self.odom_pose_tractor = SE3.identity()
 
@@ -65,10 +68,11 @@ class TractorController:
 
         if (self.n_cycle % (5*self.command_rate_hz)) == 0:
             logger.info(
-                '\nright motor:\n  %s\nleft motor:\n  %s\n odom_pose_tractor %s left_vel %f right_vel %f',
+                '\nright motor:\n  %s\nleft motor:\n  %s\n odom_pose_tractor %s left_vel %f right_vel %f \nstate: %s',
                 MessageToString(self.right_motor.get_state(), as_one_line=True),
                 MessageToString(self.left_motor.get_state(), as_one_line=True),
                 self.odom_pose_tractor, self._left_vel, self._right_vel,
+                MessageToString(self.tractor_state, as_one_line=True),
             )
 
         self._left_vel = self.left_motor.average_velocity()
@@ -76,18 +80,21 @@ class TractorController:
         if self._last_odom_stamp is not None:
             dt = (now.ToMicroseconds() - self._last_odom_stamp.ToMicroseconds())*1e-6
             assert dt > 0.0
-            self.odom_pose_tractor = kinematics.evolve_world_pose_tractor(
-                self.odom_pose_tractor,
+
+            tractor_pose_delta = kinematics.compute_tractor_pose_delta(
                 self._left_vel,
                 self._right_vel,
                 dt,
             )
+            self.odom_pose_tractor = self.odom_pose_tractor.dot(tractor_pose_delta)
+            self.tractor_state.abs_distance_traveled += np.linalg.norm(tractor_pose_delta.trans)
             pose_msg = NamedSE3Pose()
             pose_msg.a_pose_b.CopyFrom(se3_to_proto(self.odom_pose_tractor))
             pose_msg.frame_a = 'odometry/wheel'
             pose_msg.frame_b = 'tractor/base'
             self.event_bus.send(make_event('pose/tractor/base', pose_msg, stamp=now))
 
+        self.event_bus.send(make_event('tractor_state', self.tractor_state))
         self._last_odom_stamp = now
 
         self.n_cycle += 1
@@ -98,16 +105,14 @@ class TractorController:
             self.left_motor.send_current_brake_command(brake_current)
             self.speed = 0.0
             self.angular = 0.0
-            return
+        else:
+            alpha = 0.1
+            self.speed = self.speed * (1-alpha) + steering_command.velocity*alpha
+            self.angular = self.angular * (1-alpha) + steering_command.angular_velocity*alpha
 
-        alpha = 0.1
-        self.speed = self.speed * (1-alpha) + steering_command.velocity*alpha
-        self.angular = self.angular * (1-alpha) + steering_command.angular_velocity*alpha
-
-        left, right = kinematics.unicycle_to_wheel_velocity(self.speed, self.angular)
-        # print(left,right)
-        self.right_motor.send_velocity_command(right)
-        self.left_motor.send_velocity_command(left)
+            left, right = kinematics.unicycle_to_wheel_velocity(self.speed, self.angular)
+            self.right_motor.send_velocity_command(right)
+            self.left_motor.send_velocity_command(left)
 
 
 def main():
