@@ -61,8 +61,6 @@ class TractorController:
         self._last_odom_stamp = None
         self._left_vel = 0.0
         self._right_vel = 0.0
-        self._left_vel_cmd = 0.0
-        self._right_vel_cmd = 0.0
 
     def _command_loop(self, n_periods):
         now = Timestamp()
@@ -75,12 +73,10 @@ class TractorController:
                 MessageToString(self.left_motor.get_state(), as_one_line=True),
                 self.odom_pose_tractor, self._left_vel, self._right_vel,
                 MessageToString(self.tractor_state, as_one_line=True),
-
             )
 
         self._left_vel = self.left_motor.average_velocity()
         self._right_vel = self.right_motor.average_velocity()
-
         if self._last_odom_stamp is not None:
             dt = (now.ToMicroseconds() - self._last_odom_stamp.ToMicroseconds())*1e-6
             assert dt > 0.0
@@ -114,9 +110,9 @@ class TractorController:
             self.speed = self.speed * (1-alpha) + steering_command.velocity*alpha
             self.angular = self.angular * (1-alpha) + steering_command.angular_velocity*alpha
 
-            self._left_vel_cmd, self._right_vel_cmd = kinematics.unicycle_to_wheel_velocity(self.speed, self.angular)
-            self.right_motor.send_velocity_command(self._right_vel_cmd)
-            self.left_motor.send_velocity_command(self._left_vel_cmd)
+            left, right = kinematics.unicycle_to_wheel_velocity(self.speed, self.angular)
+            self.right_motor.send_velocity_command(right)
+            self.left_motor.send_velocity_command(left)
 
 
 def main():
