@@ -61,6 +61,8 @@ class TractorController:
         self._last_odom_stamp = None
         self._left_vel = 0.0
         self._right_vel = 0.0
+        self._left_vel_cmd = 0.0
+        self._right_vel_cmd = 0.0
 
     def _command_loop(self, n_periods):
         now = Timestamp()
