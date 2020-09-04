@@ -80,14 +80,14 @@ class TractorController:
         if self._last_odom_stamp is not None:
             dt = (now.ToMicroseconds() - self._last_odom_stamp.ToMicroseconds())*1e-6
             assert dt > 0.0
-            self.odom_pose_tractor, t1_pose_t2 = kinematics.evolve_world_pose_tractor(
-                self.odom_pose_tractor,
+
+            tractor_pose_delta = kinematics.compute_tractor_pose_delta(
                 self._left_vel,
                 self._right_vel,
                 dt,
-                delta_pose=True,
             )
-            self.tractor_state.abs_distance_traveled += np.linalg.norm(t1_pose_t2.trans)
+            self.odom_pose_tractor = self.odom_pose_tractor.dot(tractor_pose_delta)
+            self.tractor_state.abs_distance_traveled += np.linalg.norm(tractor_pose_delta.trans)
             pose_msg = NamedSE3Pose()
             pose_msg.a_pose_b.CopyFrom(se3_to_proto(self.odom_pose_tractor))
             pose_msg.frame_a = 'odometry/wheel'

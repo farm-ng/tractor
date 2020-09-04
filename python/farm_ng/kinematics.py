@@ -18,13 +18,14 @@ class TractorKinematics:
         v_left = (2*v - w*self.wheel_base_line)/(2*self.wheel_radius)
         return v_left, v_right
 
-    def evolve_world_pose_tractor(
-        self, world_pose_tractor: SE3, v_left: float,
-        v_right: float, delta_t: float, delta_pose: bool = False,
-    ) -> SE3:
+    def compute_tractor_pose_delta(self, v_left: float, v_right: float, delta_t: float) -> SE3:
         v, w = self.wheel_velocity_to_unicycle(v_left, v_right)
-        tractor_pose_t = SE3.exp([v*delta_t, 0, 0, 0, 0, w*delta_t])
-        world_pose_tractor = world_pose_tractor.dot(tractor_pose_t)
-        if delta_pose:
-            return world_pose_tractor, tractor_pose_t
-        return world_pose_tractor
+        tractor_pose_delta = SE3.exp([v*delta_t, 0, 0, 0, 0, w*delta_t])
+        return tractor_pose_delta
+
+    def evolve_world_pose_tractor(
+            self, world_pose_tractor: SE3, v_left: float,
+            v_right: float, delta_t: float,
+    ) -> SE3:
+        tractor_pose_delta = self.compute_tractor_pose_delta(v_left, v_right, delta_t)
+        return world_pose_tractor.dot(tractor_pose_delta)
