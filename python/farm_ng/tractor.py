@@ -61,6 +61,8 @@ class TractorController:
         self._last_odom_stamp = None
         self._left_vel = 0.0
         self._right_vel = 0.0
+        self._left_vel_cmd = 0.0
+        self._right_vel_cmd = 0.0
 
     def _command_loop(self, n_periods):
         now = Timestamp()
@@ -73,10 +75,25 @@ class TractorController:
                 MessageToString(self.left_motor.get_state(), as_one_line=True),
                 self.odom_pose_tractor, self._left_vel, self._right_vel,
                 MessageToString(self.tractor_state, as_one_line=True),
+
             )
 
         self._left_vel = self.left_motor.average_velocity()
         self._right_vel = self.right_motor.average_velocity()
+        self.tractor_state.left_velocity_measured = self._left_vel
+        self.tractor_state.right_velocity_measured = self._right_vel
+
+        right_duty_cycle = self.right_motor.get_state().duty_cycle
+        left_duty_cycle = self.left_motor.get_state().duty_cycle
+
+        if (right_duty_cycle and left_duty_cycle) and (
+                abs(right_duty_cycle.value) > 0.94 or
+                abs(left_duty_cycle.value) > 0.94
+        ):
+            self.tractor_state.e_stop_detected = True
+        else:
+            self.tractor_state.e_stop_detected = False
+
         if self._last_odom_stamp is not None:
             dt = (now.ToMicroseconds() - self._last_odom_stamp.ToMicroseconds())*1e-6
             assert dt > 0.0
@@ -110,9 +127,12 @@ class TractorController:
             self.speed = self.speed * (1-alpha) + steering_command.velocity*alpha
             self.angular = self.angular * (1-alpha) + steering_command.angular_velocity*alpha
 
-            left, right = kinematics.unicycle_to_wheel_velocity(self.speed, self.angular)
-            self.right_motor.send_velocity_command(right)
-            self.left_motor.send_velocity_command(left)
+            self._left_vel_cmd, self._right_vel_cmd = kinematics.unicycle_to_wheel_velocity(self.speed, self.angular)
+            self.tractor_state.left_velocity_command = self._left_vel_cmd
+            self.tractor_state.right_velocity_command = self._right_vel_cmd
+
+            self.right_motor.send_velocity_command(self._right_vel_cmd)
+            self.left_motor.send_velocity_command(self._left_vel_cmd)
 
 
 def main():
