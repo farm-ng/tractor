@@ -70,8 +70,6 @@ class SteeringSenderJoystick:
         if event is None:
             return
         event.data.Unpack(self._tractor_state)
-        if self._tractor_state.e_stop_detected:
-            self.stop()
 
     def stop(self):
         self._command.velocity = 0.0

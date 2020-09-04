@@ -7,12 +7,4 @@ message TractorState {
   // program starts, which is usually on system boot; i.e. it will reset if the
   // program or computer is restarted.
   double abs_distance_traveled = 1;
-
-  // Controller detected the e_stop is depressed.
-  bool e_stop_detected = 2;
-
-  double left_velocity_command = 3;
-  double left_velocity_measured = 4;
-  double right_velocity_command = 5;
-  double right_velocity_measured = 6;
 }
