@@ -1,6 +1,7 @@
 import * as React from "react";
 import * as ReactDOM from "react-dom";
 import { Scene } from "./components/Scene";
+import { Rtc } from "./components/Rtc";
 import { ipcClient } from "./config";
 
 import { Event } from "../genproto/farm_ng_proto/tractor/v1/io";
@@ -70,7 +71,11 @@ export class App extends React.Component<{}, State> {
 
   public render(): any {
     return (
-      <Scene />
+      <React.Fragment>
+        <Rtc />
+        <Scene />
+      </React.Fragment>
+
       /* <div style={{ flex: 0.5 }}>
           {Object.keys(this.state.data).map((key, i) => (
             <p key={i}>
@@ -90,4 +95,4 @@ export class App extends React.Component<{}, State> {
   }
 }
 
-ReactDOM.render(<Scene />, document.getElementById("root"));
+ReactDOM.render(<App />, document.getElementById("root"));

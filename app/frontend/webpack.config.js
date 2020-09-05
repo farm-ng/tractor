@@ -27,12 +27,12 @@ module.exports = {
   resolve: { extensions: ["*", ".js", ".jsx", ".ts", ".tsx"] },
   output: {
     path: path.resolve(__dirname, "dist/"),
-    publicPath: "/dist/",
     filename: "bundle.js"
   },
   devtool: "source-map",
   devServer: {
-    contentBase: path.join(__dirname, "dist/"),
+    contentBase: "dist",
+    host: "0.0.0.0",
     port: 3000,
     hotOnly: true
   },

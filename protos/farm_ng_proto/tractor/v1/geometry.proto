@@ -3,6 +3,7 @@ syntax = "proto3";
 import "google/protobuf/wrappers.proto";
 
 package farm_ng_proto.tractor.v1;
+option go_package = "github.com/farm_ng/genproto";
 
 message Vec2 {
   double x = 1;

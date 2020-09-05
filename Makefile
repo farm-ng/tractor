@@ -3,6 +3,9 @@ ifdef TEST_FILTER
 	JS_TEST_FILTER=:$(TEST_FILTER)
 endif
 
+frontend:
+	cd app/frontend && yarn
+
 protos:
 	scripts/build-protos.sh
 

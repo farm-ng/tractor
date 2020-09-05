@@ -3,6 +3,7 @@ syntax = "proto3";
 import "farm_ng_proto/tractor/v1/geometry.proto";
 
 package farm_ng_proto.tractor.v1;
+option go_package = "github.com/farm_ng/genproto";
 
 // protobuf copy of the ApriltagDetection struct from apriltag library.
 // source: https://github.com/AprilRobotics/apriltag/blob/master/apriltag.h#L196

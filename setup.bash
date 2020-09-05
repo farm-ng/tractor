@@ -13,3 +13,4 @@ export FARM_NG_ROOT=$( cd "$( dirname "${SOURCE}" )" >/dev/null 2>&1 && pwd )
 
 export PYTHONPATH=$FARM_NG_ROOT/python:$FARM_NG_ROOT/python/genproto:$FARM_NG_ROOT/env/lib
 export LD_LIBRARY_PATH=$FARM_NG_ROOT/env/lib
+export PATH=$PATH:/usr/local/go/bin

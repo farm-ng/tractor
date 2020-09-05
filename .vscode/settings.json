@@ -1,41 +1,56 @@
 {
   "clang-format.style": "google",
   "eslint.workingDirectories": ["./app/frontend"],
+  "files.exclude": {
+    "**/.git": true,
+    "**/.DS_Store": true,
+    "**/node_modules": true,
+    "**/build": true,
+    "**/env": true,
+    "**/third_party/build-*": true
+  },
+  "go.useLanguageServer": true,
+  "[go]": {
+    "editor.codeActionsOnSave": {
+      "source.organizeImports": true
+    },
+    "editor.snippetSuggestions": "none"
+  },
+  "[go.mod]": {
+    "editor.codeActionsOnSave": {
+      "source.organizeImports": true
+    }
+  },
+  "gopls": {
+    "usePlaceholders": true,
+    "staticcheck": false
+  },
   "python.linting.pylintEnabled": false,
   "python.linting.flake8Enabled": true,
   "python.linting.enabled": true,
-  "editor.formatOnSave" : true,
+  "editor.formatOnSave": true,
   "protoc": {
     "compile_on_save": false,
     "options": ["--proto_path=${workspaceRoot}/protos"]
   },
   "[javascript]": {
-    "editor.formatOnSave": true,
     "editor.defaultFormatter": "esbenp.prettier-vscode"
   },
   "[javascriptreact]": {
-    "editor.formatOnSave": true,
     "editor.defaultFormatter": "esbenp.prettier-vscode"
-  },
-  "[proto3]": {
-    "editor.formatOnSave": true
   },
   "[python]": {
     "editor.codeActionsOnSave": {
       "source.organizeImports": true
-    },
-    "editor.formatOnSave": true
+    }
   },
   "[typescript]": {
-    "editor.formatOnSave": true,
     "editor.defaultFormatter": "esbenp.prettier-vscode"
   },
   "[typescriptreact]": {
-    "editor.formatOnSave": true,
     "editor.defaultFormatter": "esbenp.prettier-vscode"
   },
   "git.ignoreLimitWarning": true,
   "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools",
   "cmake.configureOnOpen": true
-
 }
