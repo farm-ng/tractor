@@ -22,7 +22,6 @@ import sys
 
 import linuxfd
 
-
 logger = logging.getLogger('joystick')
 logger.setLevel(logging.INFO)
 
@@ -31,8 +30,8 @@ axis_names = {
     0x00: 'x',
     0x01: 'y',
     0x02: 'z',
-    0x03: 'rx',
-    0x04: 'ry',
+    0x03: 'L2',
+    0x04: 'R2',
     0x05: 'rz',
     0x06: 'trottle',
     0x07: 'rudder',
@@ -70,21 +69,21 @@ button_names = {
     0x12A: 'base5',
     0x12B: 'base6',
     0x12F: 'dead',
-    0x130: 'a',
-    0x131: 'b',
-    0x132: 'c',
-    0x133: 'x',
-    0x134: 'y',
-    0x135: 'z',
-    0x136: 'tl',
-    0x137: 'tr',
-    0x138: 'tl2',
-    0x139: 'tr2',
-    0x13A: 'select',
-    0x13B: 'start',
-    0x13C: 'mode',
-    0x13D: 'thumbl',
-    0x13E: 'thumbr',
+    0x130: 'square',
+    0x131: 'cross',
+    0x132: 'circle',
+    0x133: 'triangle',
+    0x134: 'L1',
+    0x135: 'R1',
+    0x136: 'L2',
+    0x137: 'R2',
+    0x138: 'share',
+    0x139: 'options',
+    0x13A: 'thumbl',
+    0x13B: 'thumbr',
+    0x13C: 'ps4',
+    0x13D: 'touch',
+    0x13E: 'start',
     0x220: 'dpad_up',
     0x221: 'dpad_down',
     0x222: 'dpad_left',
@@ -156,7 +155,7 @@ class Joystick:
     def fileno(self):
         return self.jsdev.fileno()
 
-    def read_event(self):
+    def read_event(self, button_callback=None):
         evbuf = self.jsdev.read(8)
         if not evbuf:
             return None
@@ -171,6 +170,8 @@ class Joystick:
             button = self.button_map[number]
             if button:
                 self.button_states[button] = value
+                if button_callback is not None:
+                    button_callback(button, value)
                 if value:
                     logger.info('%s pressed', button)
                 else:
@@ -200,6 +201,10 @@ Using this interface, you can't access the axis_states directly, use
         self.timer = linuxfd.timerfd(rtc=False, nonBlocking=True)
         self.timer.settime(value=1.0, interval=1.0)
         self.event_loop.add_reader(self.timer, self._read_timer)
+        self._button_callback = None
+
+    def set_button_callback(self, cb):
+        self._button_callback = cb
 
     def _read_timer(self):
         self.timer.read()
@@ -209,7 +214,7 @@ Using this interface, you can't access the axis_states directly, use
 
     def _read_joystick(self):
         try:
-            self.joystick.read_event()
+            self.joystick.read_event(button_callback=self._button_callback)
         except OSError as e:
             logger.warning('Error reading joystick: %s', e)
             self.event_loop.remove_reader(self.joystick)

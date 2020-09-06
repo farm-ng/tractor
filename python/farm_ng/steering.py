@@ -52,30 +52,71 @@ class SteeringClient:
 class SteeringSenderJoystick:
     def __init__(self):
         loop = asyncio.get_event_loop()
-        self.joystick = MaybeJoystick('/dev/input/js0',  loop)
         self.rate_hz = 50.0
         self.period = 1.0/self.rate_hz
+        self._executing_motion_primitive = False
+        self._delta_x_vel = 0.25/self.rate_hz
+        self._delta_angular_vel = np.pi/16
+
+        self.joystick = MaybeJoystick('/dev/input/js0',  loop)
+        self.joystick.set_button_callback(self.on_button)
         self._periodic = Periodic(self.period, loop, self.send)
         self._command = SteeringCommand()
 
-    def send(self, n_periods):
-        if not self.joystick.get_button_state('tl', False) or not self.joystick.is_connected() or n_periods > self.rate_hz/4:
-            self._command.velocity = 0.0
-            self._command.angular_velocity = 0.0
-            self._command.brake = 1.0
-            self._command.deadman = 0.0
-        else:
-            self._command.deadman = 1.0 if self.joystick.get_button_state('tl', False) else 0.0
-            self._command.brake = 0.0
+    def stop(self):
+        self._command.velocity = 0.0
+        self._command.angular_velocity = 0.0
+        self._command.brake = 1.0
+        self._command.deadman = 0.0
+        self._executing_motion_primitive = False
 
-            velocity = np.clip(-self.joystick.get_axis_state('y', 0), -1.0, 1.0)
-            if abs(velocity) < 0.5:
-                velocity = velocity/4.0
-            if abs(velocity) >= 0.5:
-                velocity = np.sign(velocity) * (0.5/4 + (abs(velocity) - 0.5)*2)
-            self._command.velocity = velocity
-            angular_velocity = np.clip(-self.joystick.get_axis_state('z', 0), -1.0, 1.0)*np.pi/3.0
-            self._command.angular_velocity = angular_velocity
+    def on_button(self, button, value):
+        if button == 'touch' and value:
+            self.stop()
+
+    def send(self, n_periods):
+        if self.joystick.get_axis_state('hat0y', 0.0) != 0:
+            self._executing_motion_primitive = True
+            # hat0y -1 is up dpad
+            # hat0y +1 is down dpad
+            inc_vel = -self.joystick.get_axis_state('hat0y', 0.0)*self._delta_x_vel
+            self._command.brake = 0.0
+            self._command.deadman = 0.0
+            self._command.angular_velocity = 0.0
+            self._command.velocity = np.clip(
+                self._command.velocity + inc_vel,
+                -2, 2,
+            )
+
+        if self.joystick.get_axis_state('hat0x', 0.0) != 0:
+            self._executing_motion_primitive = True
+            # hat0x -1 is left dpad
+            # hat0x +1 is right dpad
+            inc_vel = -self.joystick.get_axis_state('hat0x', 0.0)*self._delta_angular_vel
+            self._command.brake = 0.0
+            self._command.deadman = 0.0
+            self._command.angular_velocity = inc_vel
+        elif self._executing_motion_primitive:
+            # angular velocity resets if left or right dpad is not pressed,
+            # so its like a nudge rather than cruise control.
+            self._command.angular_velocity = 0.0
+
+        if not self._executing_motion_primitive:
+            if not self.joystick.get_button_state('L2', False) or not self.joystick.is_connected() or n_periods > self.rate_hz/4:
+                self.stop()
+            else:
+                self._command.deadman = 1.0 if self.joystick.get_button_state('L2', False) else 0.0
+                self._command.brake = 0.0
+
+                velocity = np.clip(-self.joystick.get_axis_state('y', 0), -1.0, 1.0)
+                if abs(velocity) < 0.5:
+                    velocity = velocity/4.0
+                if abs(velocity) >= 0.5:
+                    velocity = np.sign(velocity) * (0.5/4 + (abs(velocity) - 0.5)*2)
+                self._command.velocity = velocity
+                angular_velocity = np.clip(-self.joystick.get_axis_state('z', 0), -1.0, 1.0)*np.pi/3.0
+                self._command.angular_velocity = angular_velocity
+
         get_event_bus('steering').send(make_event(_g_message_name, self._command))
 
 
