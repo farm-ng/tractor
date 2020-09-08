@@ -84,8 +84,8 @@ class TractorController:
             assert dt > 0.0
 
             tractor_pose_delta = self.kinematics.compute_tractor_pose_delta(
-                self._left_vel,
-                self._right_vel,
+                self.left_motor.average_velocity_rads(),
+                self.right_motor.average_velocity_rads(),
                 dt,
             )
             self.odom_pose_tractor = self.odom_pose_tractor.dot(tractor_pose_delta)

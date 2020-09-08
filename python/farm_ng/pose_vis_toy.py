@@ -3,6 +3,7 @@ import logging
 import sys
 
 import numpy as np
+from farm_ng.config import default_config
 from farm_ng.ipc import get_event_bus
 from farm_ng.ipc import make_event
 from farm_ng.kinematics import TractorKinematics
@@ -25,7 +26,7 @@ class PoseVisToy:
         self.tractor_pose_wheel_left = SE3.exp((0.0, 1.0, 0, 0, 0, 0)).dot(SE3.exp((0.0, 0.0, 0, -np.pi/2, 0, 0)))
         self.tractor_pose_wheel_right = SE3.exp((0.0, -1.0, 0, 0, 0, 0)).dot(SE3.exp((0.0, 0.0, 0, -np.pi/2, 0, 0)))
 
-        self.kinematic_model = TractorKinematics()
+        self.kinematic_model = TractorKinematics(default_config())
 
         self.control_timer = Periodic(
             self.command_period_seconds, self.event_loop,
@@ -45,7 +46,7 @@ class PoseVisToy:
         self.event_bus.send(make_event('pose/tractor/base', pose_msg))
 
         pose_msg = NamedSE3Pose()
-        radius = 0.5*17*0.0254
+        radius = self.kinematic_model.wheel_radius
         self.tractor_pose_wheel_left = self.tractor_pose_wheel_left.dot(SE3.exp((0, 0, 0, 0, 0, left_speed/radius*self.command_period_seconds*n_periods)))
         pose_msg.a_pose_b.CopyFrom(se3_to_proto(self.tractor_pose_wheel_left))
         pose_msg.frame_a = 'tractor/base'

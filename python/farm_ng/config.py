@@ -37,6 +37,9 @@ def main():
     parser_gen.add_argument('--hub_motor_poll_pairs', help='Number of pools in drive motor', default=cfg.hub_motor_poll_pairs.value, type=int)
     parser_gen.set_defaults(func=main_gen)
     args = parser.parse_args()
+    if not hasattr(args, 'func'):
+        parser.print_help()
+        return
     args.func(args)
 
 
