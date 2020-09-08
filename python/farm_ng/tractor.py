@@ -4,6 +4,7 @@ import sys
 
 import numpy as np
 from farm_ng.canbus import CANSocket
+from farm_ng.config import default_config
 from farm_ng.ipc import get_event_bus
 from farm_ng.ipc import make_event
 from farm_ng.kinematics import TractorKinematics
@@ -19,8 +20,6 @@ from liegroups import SE3
 
 logger = logging.getLogger('tractor')
 logger.setLevel(logging.INFO)
-
-kinematics = TractorKinematics()
 
 
 class TractorController:
@@ -40,10 +39,13 @@ class TractorController:
         self.tractor_state = TractorState()
 
         self.odom_pose_tractor = SE3.identity()
+        # TODO(ethanrublee|isherman) load from disk somehow.
+        self.config = default_config()
 
-        radius = (17*0.0254)/2.0  # in meters, 15" diameter wheels
-        gear_ratio = 29.9
-        poll_pairs = 8
+        self.kinematics = TractorKinematics(tractor_config=self.config)
+        radius = self.config.wheel_radius.value
+        gear_ratio = self.config.hub_motor_gear_ratio.value
+        poll_pairs = self.config.hub_motor_poll_pairs.value
         self.right_motor = HubMotor(
             'right_motor',
             radius, gear_ratio, poll_pairs, 7, self.can_socket,
@@ -81,7 +83,7 @@ class TractorController:
             dt = (now.ToMicroseconds() - self._last_odom_stamp.ToMicroseconds())*1e-6
             assert dt > 0.0
 
-            tractor_pose_delta = kinematics.compute_tractor_pose_delta(
+            tractor_pose_delta = self.kinematics.compute_tractor_pose_delta(
                 self._left_vel,
                 self._right_vel,
                 dt,
@@ -110,7 +112,7 @@ class TractorController:
             self.speed = self.speed * (1-alpha) + steering_command.velocity*alpha
             self.angular = self.angular * (1-alpha) + steering_command.angular_velocity*alpha
 
-            left, right = kinematics.unicycle_to_wheel_velocity(self.speed, self.angular)
+            left, right = self.kinematics.unicycle_to_wheel_velocity(self.speed, self.angular)
             self.right_motor.send_velocity_command(right)
             self.left_motor.send_velocity_command(left)
 

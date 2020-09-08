@@ -1,12 +1,13 @@
 from typing import Tuple
 
+from farm_ng_proto.tractor.v1.tractor_pb2 import TractorConfig
 from liegroups import SE3
 
 
 class TractorKinematics:
-    def __init__(self):
-        self.wheel_radius = 1.0  # 0.0254*17/2.0
-        self.wheel_base_line = 0.0254*46
+    def __init__(self, tractor_config: TractorConfig):
+        self.wheel_radius = tractor_config.wheel_radius.value
+        self.wheel_base_line = tractor_config.wheel_baseline.value
 
     def wheel_velocity_to_unicycle(self, v_left: float, v_right: float) -> Tuple[float, float]:
         v = (self.wheel_radius/2.0)*(v_left+v_right)

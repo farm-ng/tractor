@@ -1,5 +1,8 @@
 syntax = "proto3";
 
+import "google/protobuf/wrappers.proto";
+import "farm_ng_proto/tractor/v1/geometry.proto";
+
 package farm_ng_proto.tractor.v1;
 option go_package = "github.com/farm_ng/genproto";
 
@@ -8,4 +11,18 @@ message TractorState {
   // program starts, which is usually on system boot; i.e. it will reset if the
   // program or computer is restarted.
   double abs_distance_traveled = 1;
+}
+
+message TractorConfig {
+  // distance between the wheels, in meters
+  google.protobuf.DoubleValue wheel_baseline = 1;
+  // Radius of wheel, in meters.
+  google.protobuf.DoubleValue wheel_radius = 2;
+  // Hub motor gear ratio
+  google.protobuf.DoubleValue hub_motor_gear_ratio = 3;
+  // Hub motor polls
+  google.protobuf.Int32Value hub_motor_poll_pairs = 4;
+
+  // Extrinsic relationship of sensors and motors.
+  PoseTree extrinsics = 5;
 }
