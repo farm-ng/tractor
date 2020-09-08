@@ -3,10 +3,13 @@ import logging
 import sys
 
 import numpy as np
+from google.protobuf.text_format import MessageToString
+from google.protobuf.timestamp_pb2 import Timestamp
+from liegroups import SE3
+
 from farm_ng.canbus import CANSocket
 from farm_ng.config import default_config
-from farm_ng.ipc import get_event_bus
-from farm_ng.ipc import make_event
+from farm_ng.ipc import get_event_bus, make_event
 from farm_ng.kinematics import TractorKinematics
 from farm_ng.motor import HubMotor
 from farm_ng.periodic import Periodic
@@ -14,9 +17,6 @@ from farm_ng.proto_utils import se3_to_proto
 from farm_ng.steering import SteeringClient
 from farm_ng_proto.tractor.v1.geometry_pb2 import NamedSE3Pose
 from farm_ng_proto.tractor.v1.tractor_pb2 import TractorState
-from google.protobuf.text_format import MessageToString
-from google.protobuf.timestamp_pb2 import Timestamp
-from liegroups import SE3
 
 logger = logging.getLogger('tractor')
 logger.setLevel(logging.INFO)
@@ -113,8 +113,8 @@ class TractorController:
             self.angular = self.angular * (1-alpha) + steering_command.angular_velocity*alpha
 
             left, right = self.kinematics.unicycle_to_wheel_velocity(self.speed, self.angular)
-            self.right_motor.send_velocity_command(right)
-            self.left_motor.send_velocity_command(left)
+            self.right_motor.send_velocity_command_rads(right)
+            self.left_motor.send_velocity_command_rads(left)
 
 
 def main():
