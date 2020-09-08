@@ -62,9 +62,9 @@ class SteeringSenderJoystick:
         self._delta_x_vel = 0.25/self.rate_hz
         # rate of angular velocity that occurs when nudging the tractor left/right with dpad left/right arrows
         self._delta_angular_vel = np.pi/16
-        
+
         # maximum acceleration for manual steering and motion primitives
-        self._max_acc = 1.5/self.rate_hz # m/s^2
+        self._max_acc = 1.5/self.rate_hz  # m/s^2
         # The target speed, used for smoothing out the commanded velocity to respect the max_acc limit
         self._target_speed = 0.0
 
@@ -72,7 +72,6 @@ class SteeringSenderJoystick:
         self.joystick.set_button_callback(self.on_button)
         self._periodic = Periodic(self.period, loop, self.send)
         self._command = SteeringCommand()
-
 
         # indexing state machine variables
         # ammount of time spent moving during indexing, if None, will move forever
@@ -103,13 +102,12 @@ class SteeringSenderJoystick:
         self._command.deadman = 0.0
         self._indexing = False
         self._executing_motion_primitive = False
-        
+
     def on_button(self, button, value):
         if button == 'touch' and value:
             self.stop()
 
-
-        if button == "cross" and value:
+        if button == 'cross' and value:
             # Pressing cross causes the indexing behavor to toggle on/off.
             # Pressing cross will recall the last indexing speed and moving/stopping durations.
             self._indexing = not self._indexing
@@ -117,7 +115,7 @@ class SteeringSenderJoystick:
                 self.stop()
             else:
                 self.enter_indexing_state('starting')
-                
+
         if button == 'square' and value:
             # pressing 'square' causes the indexing behavior to stop
             # and reset indexing moving/stopping durations and speed settings
@@ -145,8 +143,7 @@ class SteeringSenderJoystick:
             else:
                 self._stopping_duration = time.time() - self._stopping_start_time
                 print('pause duration: ', self._stopping_duration)
-            
-        
+
     def enter_indexing_state(self, state_name):
         self._indexing_state = state_name
         if self._indexing_state == 'starting':
@@ -157,7 +154,6 @@ class SteeringSenderJoystick:
         if self._indexing_state == 'stopping':
             self._stopping_start_time = time.time()
             self._target_speed = 0.0
-        
 
     def send(self, n_periods):
         if self.joystick.get_axis_state('hat0y', 0.0) != 0:
@@ -166,7 +162,7 @@ class SteeringSenderJoystick:
             # hat0y +1 is down dpad
             inc_vel = -self.joystick.get_axis_state('hat0y', 0.0)*self._delta_x_vel
             self._command.angular_velocity = 0.0
-                        
+
             self._target_speed = np.clip(
                 self._target_speed + inc_vel,
                 -2, 2,
@@ -189,17 +185,17 @@ class SteeringSenderJoystick:
         if self._executing_motion_primitive and self._indexing:
             if self._indexing_state == 'starting':
                 self.enter_indexing_state('moving')
-  
+
             elif self._indexing_state == 'moving':
                 self._target_speed = self._indexing_speed
                 if self._moving_duration is not None and time.time() - self._moving_start_time > self._moving_duration:
                     self.enter_indexing_state('stopping')
 
             elif self._indexing_state == 'stopping':
-                self._target_speed = 0.0                
+                self._target_speed = 0.0
                 if self._stopping_duration is not None and (time.time() - self._stopping_start_time) > self._stopping_duration:
                     self.enter_indexing_state('moving')
-                
+
         if not self._executing_motion_primitive:
             if not self.joystick.get_button_state('L2', False) or not self.joystick.is_connected() or n_periods > self.rate_hz/4:
                 self.stop()
