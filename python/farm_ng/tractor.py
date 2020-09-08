@@ -63,6 +63,7 @@ class TractorController:
         self._right_vel = 0.0
 
     def _command_loop(self, n_periods):
+        # n_periods is the number of periods since the last call. Should normally be 1.
         now = Timestamp()
         now.GetCurrentTime()
 
@@ -79,7 +80,14 @@ class TractorController:
         self._right_vel = self.right_motor.average_velocity()
         if self._last_odom_stamp is not None:
             dt = (now.ToMicroseconds() - self._last_odom_stamp.ToMicroseconds())*1e-6
-            assert dt > 0.0
+            min_dt = 0.0
+            max_dt = 1.0  # 1 second
+            if dt < min_dt or dt > max_dt:
+                # this condition can occur if n_periods skipped is high
+                # or negative if for some reason the clock is non-monotonic - TODO(ethanrublee) should we use a monotonic clock?
+                logger.warn('odometry time delta out of bounds, clamping. n_period=%d dt=%f min_dt=%f max_dt=%f', n_periods, dt, min_dt, max_dt)
+
+            dt = np.clamp(dt, min_dt, max_dt)
 
             tractor_pose_delta = kinematics.compute_tractor_pose_delta(
                 self._left_vel,
