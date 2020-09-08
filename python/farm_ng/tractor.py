@@ -85,9 +85,9 @@ class TractorController:
             if dt < min_dt or dt > max_dt:
                 # this condition can occur if n_periods skipped is high
                 # or negative if for some reason the clock is non-monotonic - TODO(ethanrublee) should we use a monotonic clock?
-                logger.warn('odometry time delta out of bounds, clamping. n_period=%d dt=%f min_dt=%f max_dt=%f', n_periods, dt, min_dt, max_dt)
+                logger.warn('odometry time delta out of bounds, clipping. n_period=%d dt=%f min_dt=%f max_dt=%f', n_periods, dt, min_dt, max_dt)
 
-            dt = np.clamp(dt, min_dt, max_dt)
+            dt = np.clip(dt, min_dt, max_dt)
 
             tractor_pose_delta = kinematics.compute_tractor_pose_delta(
                 self._left_vel,
