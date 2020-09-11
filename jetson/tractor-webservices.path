@@ -1,0 +1,9 @@
+[Unit]
+Description=Monitor /bin/tractor-ready.touch and start tractor-services
+
+[Path]
+PathExists=/tmp/tractor-ready.touch
+Unit=tractor-webservices.service
+
+[Install]
+WantedBy=multi-user.target
