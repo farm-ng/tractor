@@ -95,7 +95,7 @@ func (bus *EventBus) Start() {
 
 	// Set the time-to-live for messages to 1 so they do not go past the local network segment.
 	p = ipv4.NewPacketConn(bus.sendConn)
-	err = p.SetMulticastTTL(0) // local host only
+	err = p.SetMulticastTTL(1)
 	if err != nil {
 		log.Fatalf("sendConn could not set multicast TTL: %v", err)
 	}
@@ -129,7 +129,7 @@ func (bus *EventBus) announce() {
 	// if err != nil {
 	// 	log.Fatalln("lookup of sendConn's local addr failed: ", err)
 	// }
-	host := "127.0.0.1" //HACK bus.sendConn.LocalAddr().(*net.UDPAddr).IP.String()
+	host := bus.sendConn.LocalAddr().(*net.UDPAddr).IP.String()
 	announce := &pb.Announce{
 		Host:    host,
 		Port:    int32(bus.sendConn.LocalAddr().(*net.UDPAddr).Port),
@@ -237,8 +237,6 @@ func (bus *EventBus) handleEvents() {
 }
 
 func isHostLocal(host string) bool {
-	return true
-	// HACK
 	ifaces, err := net.Interfaces()
 	if err != nil {
 		log.Fatalln("could not get interfaces:", err)
