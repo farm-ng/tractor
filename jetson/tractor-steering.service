@@ -1,8 +1,6 @@
 [Unit]
 Description=tractor steering service
-Requires=bluetooth.service
-After=bluetooth.service tractor-bringup.service
-Wants=tractor-bringup.service
+ConditionPathExists=/tmp/tractor-ready.touch
 
 [Service]
 ExecStart=/home/farmer/tractor/jetson/steering.sh

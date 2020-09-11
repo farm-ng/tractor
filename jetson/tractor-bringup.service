@@ -1,7 +1,8 @@
 [Unit]
 Description="Tractor canbus service"
 BindsTo=sys-subsystem-net-devices-wlan0.device dev-bus-usb-001-001.device dev-bus-usb-002-001.device
-After=network.target sys-subsystem-net-devices-wlan0.device dev-bus-usb-001-001.device dev-bus-usb-002-001.device
+Requires=bluetooth.service network.target
+After=bluetooth.service network.target sys-subsystem-net-devices-wlan0.device dev-bus-usb-001-001.device dev-bus-usb-002-001.device 
 
 [Service]
 ExecStart=/opt/farm_ng/systemd/bringup.sh

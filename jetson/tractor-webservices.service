@@ -1,6 +1,7 @@
 [Unit]
 Description=farm-ng web services
-After=network.target tractor-bringup.service
+ConditionPathExists=/tmp/tractor-ready.touch
+
 
 [Service]
 ExecStart=/home/farmer/tractor/jetson/webservices.sh
