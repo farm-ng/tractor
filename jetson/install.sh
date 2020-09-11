@@ -29,5 +29,3 @@ systemctl enable tractor.path
 systemctl enable tractor-steering.path
 systemctl enable tractor-camera.path
 systemctl enable tractor-webservices.path
-
-
