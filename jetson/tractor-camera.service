@@ -1,0 +1,15 @@
+[Unit]
+Description=tractor camera service
+ConditionPathExists=/tmp/tractor-ready.touch
+
+
+[Service]
+ExecStart=/home/farmer/tractor/jetson/camera.sh
+WorkingDirectory=/home/farmer/tractor
+StandardOutput=inherit
+StandardError=inherit
+Restart=always
+User=farmer
+
+[Install]
+WantedBy=multi-user.target

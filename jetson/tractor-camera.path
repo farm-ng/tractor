@@ -1,0 +1,9 @@
+[Unit]
+Description=Monitor /bin/tractor-ready.touch and start tractor-camera
+
+[Path]
+PathExists=/tmp/tractor-ready.touch
+Unit=tractor-camera.service
+
+[Install]
+WantedBy=multi-user.target

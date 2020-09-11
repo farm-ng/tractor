@@ -145,7 +145,7 @@ class EventBusImpl {
 
     auto endpoint = socket_.local_endpoint();
     farm_ng_proto::tractor::v1::Announce announce;
-    announce.set_host(endpoint.address().to_string());
+    announce.set_host("127.0.0.1"); // HACK endpoint.address().to_string());
     announce.set_port(endpoint.port());
     announce.set_service(service_name_);
 

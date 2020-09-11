@@ -6,12 +6,12 @@ import struct
 import sys
 import time
 
-import farm_ng.proto_utils  # noqa: F401
-from farm_ng.periodic import Periodic
-from farm_ng_proto.tractor.v1.io_pb2 import Announce
-from farm_ng_proto.tractor.v1.io_pb2 import Event
 from google.protobuf.text_format import MessageToString
 from google.protobuf.timestamp_pb2 import Timestamp
+
+import farm_ng.proto_utils  # noqa: F401
+from farm_ng.periodic import Periodic
+from farm_ng_proto.tractor.v1.io_pb2 import Announce, Event
 
 # loads all the protos for pretty print of any
 
@@ -78,7 +78,7 @@ class EventBus:
         host, port = self._mc_send_sock.getsockname()
         announce = Announce()
         announce.stamp.GetCurrentTime()
-        announce.host = socket.getfqdn(host)
+        announce.host = '127.0.0.1' # socket.getfqdn(host), this may take a while
         announce.port = port
         announce.service = self._name
         msg = announce.SerializeToString()
@@ -161,9 +161,11 @@ class EventBus:
 
     def _announce_recv(self):
 
+        # logger.info('announce recv')
         data, address = self._mc_recv_sock.recvfrom(1024)
-        is_local = host_is_local(address[0], address[1])
-
+        #logger.info('announce recved')
+        is_local = True #host_is_local(address[0], address[1])
+        # logger.info('is_local %s', is_local)
         # this is the announce from self... port match and host is local.
         if address[1] == self._mc_send_sock.getsockname()[1] and is_local:
             return
@@ -204,6 +206,7 @@ class EventBus:
         else:
             mreq = group_bin + struct.pack('@I', 0)
             sock.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_JOIN_GROUP, mreq)
+        
         return sock
 
     def _make_mc_send_socket(self):
@@ -212,8 +215,9 @@ class EventBus:
 
         # Set the time-to-live for messages to 1 so they do not
         # go past the local network segment.
-        ttl = struct.pack('b', 1)
+        ttl = struct.pack('b', 0)
         sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, ttl)
+        sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_LOOP, 1)
         sock.bind(('', 0))
         return sock
 

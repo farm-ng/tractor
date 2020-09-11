@@ -22,11 +22,15 @@ systemctl daemon-reload
 # start on boot always...
 systemctl enable tractor-bringup.service
 systemctl enable tractor-ready.path
+systemctl enable tractor-camera.path
+
 systemctl enable tractor-steering.service
 systemctl enable tractor.service
+systemctl enable tractor-camera.service
 systemctl enable tractor-webservices.service
 
 systemctl start tractor-ready.path
+systemctl start tractor-camera.path
 systemctl start tractor-steering.service
 systemctl start tractor-bringup.service
 systemctl start tractor-webservices.service

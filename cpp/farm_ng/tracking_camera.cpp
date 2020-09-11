@@ -301,8 +301,11 @@ class TrackingCameraClient {
           });
         }
       }
-    } else if (rs2::pose_frame pose_frame = frame.as<rs2::pose_frame>()) {
-      auto pose_data = pose_frame.get_pose_data();
+    } 
+    /*else if (rs2::pose_frame pose_frame = frame.as<rs2::pose_frame>()) {
+      // HACK disable for now, this harms the ipc perfomance.
+      
+       auto pose_data = pose_frame.get_pose_data();
       // Print the x, y, z values of the translation, relative to initial
       // position
       // std::cout << "\r Device Position: " << std::setprecision(3) <<
@@ -311,7 +314,7 @@ class TrackingCameraClient {
       event_bus_.Send(farm_ng::MakeEvent("tracking_camera/front/pose",
                                          ToPoseFrame(pose_frame)));
       event_bus_.Send(ToNamedPoseEvent(pose_frame));
-    }
+     }*/
   }
   boost::asio::io_service& io_service_;
   EventBus& event_bus_;
