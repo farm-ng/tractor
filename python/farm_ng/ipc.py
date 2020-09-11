@@ -217,7 +217,6 @@ class EventBus:
         # go past the local network segment.
         ttl = struct.pack('b', 0)
         sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, ttl)
-        sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_LOOP, 1)
         sock.bind(('', 0))
         return sock
 
