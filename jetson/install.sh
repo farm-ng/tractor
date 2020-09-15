@@ -9,23 +9,37 @@ while [ -h "$SOURCE" ]; do # resolve $SOURCE until the file is no longer a symli
 done
 export SERVICE_DIR=$( cd "$( dirname "${SOURCE}" )" >/dev/null 2>&1 && pwd )
 
+# install uhubctl
 mkdir -p /opt/farm_ng/systemd
 prefix=/opt/farm_ng make -C $SERVICE_DIR/uhubctl
 prefix=/opt/farm_ng make -C $SERVICE_DIR/uhubctl install
+
+# clean
+systemctl list-unit-files | grep "tractor" | awk '{print $1}' | xargs --no-run-if-empty -n1 sudo systemctl disable
+rm -f /opt/farm_ng/systemd/*.sh
+rm -f /etc/systemd/system/tractor*.service
+rm -f /etc/systemd/system/tractor*.path
+
+# install
 cp $SERVICE_DIR/*.sh /opt/farm_ng/systemd
 cp $SERVICE_DIR/*.service /etc/systemd/system/
 cp $SERVICE_DIR/*.path /etc/systemd/system/
-# https://superuser.com/a/1398400 - add udev rule so we can have services wait on the usb bus.
+
+# add udev rule so we can have services wait on the usb bus
+# https://superuser.com/a/1398400
 cp $SERVICE_DIR/20-usb-bus.rules /etc/udev/rules.d/
+
+# refresh
 systemctl daemon-reload
 
-# start on boot always...
+# start automatically on boot
 systemctl enable tractor-bringup.service
 systemctl enable tractor-ready.path
 systemctl enable tractor-steering.service
 systemctl enable tractor.service
 systemctl enable tractor-webservices.service
 
+# start immediately
 systemctl start tractor-ready.path
 systemctl start tractor-steering.service
 systemctl start tractor-bringup.service

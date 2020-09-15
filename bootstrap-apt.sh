@@ -35,4 +35,23 @@ apt-get install -y \
      protobuf-compiler \
      python3-pip
 
+# Virtualenv
 pip3 install virtualenv
+
+# Go
+wget https://golang.org/dl/go1.15.1.linux-arm64.tar.gz -P /tmp/
+sudo tar -C /usr/local -xzf /tmp/go1.15.1.linux-arm64.tar.gz
+/usr/local/go/bin/go version
+
+# Node
+sudo apt update
+sudo apt -y install curl dirmngr apt-transport-https lsb-release ca-certificates
+curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
+sudo apt -y install nodejs
+nodejs --version
+
+# Yarn
+curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | sudo apt-key add -
+echo "deb https://dl.yarnpkg.com/debian/ stable main" | sudo tee /etc/apt/sources.list.d/yarn.list
+sudo apt update
+sudo apt -y install yarn
