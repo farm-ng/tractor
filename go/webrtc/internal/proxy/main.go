@@ -59,7 +59,7 @@ func (p *RtpProxy) start() error {
 	if err != nil {
 		return err
 	}
-	listener, err := net.ListenMulticastUDP("udp", nil, resolvedListenAddr)
+	listener, err := net.ListenUDP("udp", resolvedListenAddr)
 	if err != nil {
 		return err
 	}

@@ -11,7 +11,7 @@ done
 
 logfile=$LOGDIR/systemd.log
 echo "Writing to $logfile"
-systemctl status --no-pager tractor* > $logfile
+systemctl status --no-pager 'tractor*' > $logfile
 
 logfile=$LOGDIR/dmesg.log
 echo "Writing to $logfile"
