@@ -6,12 +6,12 @@ import struct
 import sys
 import time
 
-from google.protobuf.text_format import MessageToString
-from google.protobuf.timestamp_pb2 import Timestamp
-
 import farm_ng.proto_utils  # noqa: F401
 from farm_ng.periodic import Periodic
-from farm_ng_proto.tractor.v1.io_pb2 import Announce, Event
+from farm_ng_proto.tractor.v1.io_pb2 import Announce
+from farm_ng_proto.tractor.v1.io_pb2 import Event
+from google.protobuf.text_format import MessageToString
+from google.protobuf.timestamp_pb2 import Timestamp
 
 # loads all the protos for pretty print of any
 
@@ -167,14 +167,14 @@ class EventBus:
 
         # Ignore non-local announcements
         if not host_is_local(address[0], address[1]):
-            logger.warning("ignoring non-local announcement: %s:%s", address[0], address[1])
+            logger.warning('ignoring non-local announcement: %s:%s', address[0], address[1])
             return
 
         announce = Announce()
         announce.ParseFromString(data)
 
         # Ignore faulty announcements
-        if announce.host != "127.0.0.1" or announce.port != address[1]:
+        if announce.host != '127.0.0.1' or announce.port != address[1]:
             logger.warning('announcement does not match sender... rejecting %s', MessageToString(announce, as_one_line=True))
             return
 
