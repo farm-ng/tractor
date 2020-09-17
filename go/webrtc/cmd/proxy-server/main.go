@@ -33,7 +33,14 @@ const (
 func main() {
 	// Create EventBus proxy
 	eventChan := make(chan *pb.Event)
-	eventBus := eventbus.NewEventBus((net.UDPAddr{IP: net.ParseIP(eventBusAddr), Port: eventBusPort}), "webrtc-proxy", eventChan, true)
+	eventBus := eventbus.NewEventBus(&eventbus.EventBusConfig{
+		MulticastGroup: (net.UDPAddr{IP: net.ParseIP(eventBusAddr), Port: eventBusPort}),
+		ServiceName:    "webrtc-proxy",
+	}).WithEventChannel(&eventbus.EventChannelConfig{
+		Channel:              eventChan,
+		PublishAnnouncements: true,
+	})
+
 	eventBusProxy := proxy.NewEventBusProxy((&proxy.EventBusProxyConfig{EventBus: eventBus, EventSource: eventChan}))
 
 	// Create RTP proxy

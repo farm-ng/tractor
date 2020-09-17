@@ -6,12 +6,12 @@ import struct
 import sys
 import time
 
-import farm_ng.proto_utils  # noqa: F401
-from farm_ng.periodic import Periodic
-from farm_ng_proto.tractor.v1.io_pb2 import Announce
-from farm_ng_proto.tractor.v1.io_pb2 import Event
 from google.protobuf.text_format import MessageToString
 from google.protobuf.timestamp_pb2 import Timestamp
+
+import farm_ng.proto_utils  # noqa: F401
+from farm_ng.periodic import Periodic
+from farm_ng_proto.tractor.v1.io_pb2 import Announce, Event
 
 # loads all the protos for pretty print of any
 
@@ -85,9 +85,6 @@ class EventBus:
         announce.service = self._name
         msg = announce.SerializeToString()
         self._mc_send_sock.sendto(msg, self._multicast_group)
-        # send to any services we already know of directly
-        for key, service in self._services.items():
-            self._mc_send_sock.sendto(msg, (service.host, self._multicast_group[1]))
 
     def _queue(self):
         queue = asyncio.Queue()
@@ -162,33 +159,26 @@ class EventBus:
             q.put_nowait(event)
 
     def _announce_recv(self):
-
-        # logger.info('announce recv')
         data, address = self._mc_recv_sock.recvfrom(1024)
-        # logger.info('announce recved')
 
-        # For now, only announce our local address
-        # is_local = host_is_local(address[0], address[1])
-        is_local = True
+        # Ignore self-announcements
+        if address[1] == self._mc_send_sock.getsockname()[1]:
+            return
 
-        # logger.info('is_local %s', is_local)
-        # this is the announce from self... port match and host is local.
-        if address[1] == self._mc_send_sock.getsockname()[1] and is_local:
+        # Ignore non-local announcements
+        if not host_is_local(address[0], address[1]):
+            logger.warning("ignoring non-local announcement: %s:%s", address[0], address[1])
             return
 
         announce = Announce()
         announce.ParseFromString(data)
-        # logger.info('Recv announce for service: %s', MessageToString(announce, as_one_line=True))
-        if address[1] != announce.port:
-            logger.warning('announce port does not match sender... rejecting %s', MessageToString(announce, as_one_line=True))
 
-        if is_local:
-            # if we're a local port, don't use the address because it
-            # could change especially if wifi signal is lost
-            announce.host = '127.0.0.1'
-        else:
-            announce.host = address[0]
-        announce.port = address[1]
+        # Ignore faulty announcements
+        if announce.host != "127.0.0.1" or announce.port != address[1]:
+            logger.warning('announcement does not match sender... rejecting %s', MessageToString(announce, as_one_line=True))
+            return
+
+        # Store the announcement
         announce.recv_stamp.GetCurrentTime()
         self._services['%s:%d' % (announce.host, announce.port)] = announce
 

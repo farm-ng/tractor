@@ -56,20 +56,36 @@ class receiver {
 
   void handle_receive_from(const boost::system::error_code& error,
                            size_t bytes_recvd) {
-    if (!error) {
-      auto recv_stamp = MakeTimestampNow();
-      farm_ng_proto::tractor::v1::Announce announce;
-      announce.ParseFromArray(static_cast<const void*>(data_), bytes_recvd);
-      *announce.mutable_recv_stamp() = recv_stamp;
-      // std::cout << sender_endpoint_ << " : " <<  announce.ShortDebugString()
-      // << std::endl;
-      announce.set_host(sender_endpoint_.address().to_string());
-      announcements_[sender_endpoint_] = announce;
-      socket_.async_receive_from(
-          boost::asio::buffer(data_, max_length), sender_endpoint_,
-          std::bind(&receiver::handle_receive_from, this, std::placeholders::_1,
-                    std::placeholders::_2));
+    if (error) {
+      std::cerr << "handle_receive_from error: " << error << std::endl;
+      return;
     }
+
+    // Ignore self-announcements
+    if (sender_endpoint_.port() == multicast_port) {
+      return;
+    }
+
+    // Ignore non-local announcements
+    // TODO: Implement this
+
+    farm_ng_proto::tractor::v1::Announce announce;
+    announce.ParseFromArray(static_cast<const void*>(data_), bytes_recvd);
+    *announce.mutable_recv_stamp() = MakeTimestampNow();
+
+    // Ignore faulty announcements
+    if (announce.host() != "127.0.0.1" || announce.port() != sender_endpoint_.port()) {
+      std::cerr << "announcement does not match sender... rejecting: " << announce.host() << ":" << announce.port() << std::endl;
+      return;
+    }
+
+    // Store the announcement
+    announcements_[sender_endpoint_] = announce;
+
+    socket_.async_receive_from(
+        boost::asio::buffer(data_, max_length), sender_endpoint_,
+        std::bind(&receiver::handle_receive_from, this, std::placeholders::_1,
+                  std::placeholders::_2));
   }
 
   const std::map<boost::asio::ip::udp::endpoint,
@@ -157,12 +173,6 @@ class EventBusImpl {
     recv_.clear_stale_announcements();
 
     socket_.send_to(boost::asio::buffer(announce_message_), announce_endpoint_);
-    for (const auto& it : recv_.announcements()) {
-      boost::asio::ip::udp::endpoint ep(
-          boost::asio::ip::address::from_string(it.second.host()),
-          multicast_port);
-      socket_.send_to(boost::asio::buffer(announce_message_), ep);
-    }
   }
 
   void handle_receive_from(const boost::system::error_code& error,

@@ -32,24 +32,39 @@ type EventBus struct {
 	sendConn             *net.UDPConn
 }
 
+// EventBusConfig configures an EventBus
+type EventBusConfig struct {
+	MulticastGroup net.UDPAddr
+	ServiceName    string
+}
+
 // NewEventBus returns a new EventBus.
-//
-// A channel may be provided for event callbacks. This channel must be serviced, or the bus will hang.
-// If a channel is provided and `publishAnnouncement` is true, the channel will receive announcement events too.
-func NewEventBus(multicastGroup net.UDPAddr, serviceName string, eventChan chan<- *pb.Event, publishAnnouncements bool) *EventBus {
+func NewEventBus(config *EventBusConfig) *EventBus {
 	return &EventBus{
-		multicastGroup:       multicastGroup,
-		serviceName:          serviceName,
-		Announcements:        make(map[string]*pb.Announce),
-		announcementsMutex:   &sync.Mutex{},
-		State:                make(map[string]*pb.Event),
-		eventChan:            eventChan,
-		publishAnnouncements: publishAnnouncements,
+		multicastGroup:     config.MulticastGroup,
+		serviceName:        config.ServiceName,
+		Announcements:      make(map[string]*pb.Announce),
+		announcementsMutex: &sync.Mutex{},
+		State:              make(map[string]*pb.Event),
 	}
 }
 
+type EventChannelConfig struct {
+	Channel chan<- *pb.Event
+	// If true, the channel will receive announcement events too.
+	PublishAnnouncements bool
+}
+
+// A channel may be provided for event callbacks. This channel must be serviced, or the bus will hang.
+func (bus *EventBus) WithEventChannel(config *EventChannelConfig) *EventBus {
+	bus.eventChan = config.Channel
+	bus.publishAnnouncements = config.PublishAnnouncements
+	return bus
+}
+
 func (bus *EventBus) Start() {
-	listenConfig := net.ListenConfig{
+	// Shared socket configuration
+	socketConfig := net.ListenConfig{
 		Control: func(network, address string, c syscall.RawConn) error {
 			var err error
 			c.Control(func(fd uintptr) {
@@ -67,35 +82,44 @@ func (bus *EventBus) Start() {
 		},
 	}
 
-	c, err := listenConfig.ListenPacket(context.Background(), "udp4", fmt.Sprintf(":%d", bus.multicastGroup.Port))
+	// Configure receive connection
+	receiveConn, err := socketConfig.ListenPacket(
+		context.Background(),
+		"udp4",
+		fmt.Sprintf(":%d", bus.multicastGroup.Port),
+	)
 	if err != nil {
 		log.Fatalf("could not create receiveConn: %v", err)
 	}
-	defer c.Close()
-	bus.receiveConn = c.(*net.UDPConn)
+	defer receiveConn.Close()
+	bus.receiveConn = receiveConn.(*net.UDPConn)
 	bus.receiveConn.SetReadBuffer(maxDatagramSize)
 
-	// https://godoc.org/golang.org/x/net/ipv4#PacketConn.JoinGroup
-	// JoinGroup uses the system assigned multicast interface when ifi is nil,
-	// although this is not recommended...
-	p := ipv4.NewPacketConn(bus.receiveConn)
-	err = p.JoinGroup(nil, &net.UDPAddr{IP: bus.multicastGroup.IP})
+	// Additional receive connection configuration requires ipv4 wrapper
+	receiveConnWrapper := ipv4.NewPacketConn(bus.receiveConn)
+
+	lo, err := net.InterfaceByName("lo")
+	if err != nil {
+		log.Fatalf("could not find lo interface: %v", err)
+	}
+	err = receiveConnWrapper.JoinGroup(lo, &net.UDPAddr{IP: bus.multicastGroup.IP})
 	if err != nil {
 		log.Fatalf("receiveConn could not join group: %v", err)
 	}
-	// TODO: LeaveGroup?
-	// defer p.LeaveGroup(nil, &net.UDPAddr{IP: bus.multicastGroup.IP})
+	defer receiveConnWrapper.LeaveGroup(lo, &net.UDPAddr{IP: bus.multicastGroup.IP})
 
-	c, err = listenConfig.ListenPacket(context.Background(), "udp4", ":0")
+	// Configure send connection
+	sendConn, err := socketConfig.ListenPacket(context.Background(), "udp4", ":0")
 	if err != nil {
 		log.Fatalf("could not create sendConn: %v", err)
 	}
-	defer c.Close()
-	bus.sendConn = c.(*net.UDPConn)
+	defer sendConn.Close()
+	bus.sendConn = sendConn.(*net.UDPConn)
 
+	// Additional send connection configuration requires ipv4 wrapper
 	// Set the time-to-live for messages to 0 so they do not leave localhost.
-	p = ipv4.NewPacketConn(bus.sendConn)
-	err = p.SetMulticastTTL(0)
+	sendConnWrapper := ipv4.NewPacketConn(bus.sendConn)
+	err = sendConnWrapper.SetMulticastTTL(0)
 	if err != nil {
 		log.Fatalf("sendConn could not set multicast TTL: %v", err)
 	}
@@ -124,13 +148,6 @@ func (bus *EventBus) SendEvent(e *pb.Event) {
 }
 
 func (bus *EventBus) announce() {
-	// TODO: What's the expected behavior here?
-	// host, err := net.LookupAddr(bus.sendConn.LocalAddr().(*net.UDPAddr).IP.String())
-	// if err != nil {
-	// 	log.Fatalln("lookup of sendConn's local addr failed: ", err)
-	// }
-	// host := bus.sendConn.LocalAddr().(*net.UDPAddr).IP.String()
-
 	// For now, only announce our local address
 	host := "127.0.0.1"
 	announce := &pb.Announce{
@@ -145,28 +162,8 @@ func (bus *EventBus) announce() {
 	}
 
 	for {
-		// log.Println("announcing: ", announce)
-		bus.sendConn.WriteToUDP(announceBytes, &bus.multicastGroup)
 		// log.Println("announcing to: ", bus.multicastGroup.IP, bus.multicastGroup.Port)
-
-		bus.announcementsMutex.Lock()
-		for key, a := range bus.Announcements {
-			receiveTime, err := ptypes.Timestamp(a.RecvStamp)
-			if err != nil {
-				log.Fatalln("invalid receive timestamp: ", err)
-			}
-			if time.Now().Sub(receiveTime) > time.Second*10 {
-				log.Println("deleting stale: ", key)
-				delete(bus.Announcements, key)
-				continue
-			}
-			bus.sendConn.WriteToUDP(announceBytes, &net.UDPAddr{
-				IP:   []byte(a.Host),
-				Port: bus.multicastGroup.Port,
-			})
-			// log.Println("announcing to: ", a.Host, bus.multicastGroup.Port)
-		}
-		bus.announcementsMutex.Unlock()
+		bus.sendConn.WriteToUDP(announceBytes, &bus.multicastGroup)
 
 		time.Sleep(1 * time.Second)
 	}
@@ -179,29 +176,34 @@ func (bus *EventBus) handleAnnouncements() {
 		if err != nil {
 			log.Fatalln("handleAnnouncements ReadFromUDP failed:", err)
 		}
-		srcIP := src.IP.String()
-		srcPort := src.Port
+		srcIP, srcPort := src.IP.String(), src.Port
 
 		// Ignore self-announcements
-		if srcPort == bus.sendConn.LocalAddr().(*net.UDPAddr).Port && isHostLocal(srcIP) {
-			// log.Println("ignoring self-announcement: ", srcIP, srcPort)
+		if srcPort == bus.sendConn.LocalAddr().(*net.UDPAddr).Port {
+			continue
+		}
+
+		// Ignore non-local announcements
+		if !isHostLocal(srcIP) {
+			log.Println("ignoring non-local announcement: ", srcIP, srcPort)
 			continue
 		}
 
 		announce := &pb.Announce{}
-		now := ptypes.TimestampNow()
 		err = proto.Unmarshal(buf[:n], announce)
 		if err != nil {
 			log.Fatalln("announcement parsing failed:", err, announce)
 		}
 
+		// Ignore faulty announcements
 		if srcPort != int(announce.Port) {
 			log.Printf("sender port (%v) does not match announcement: %v", srcPort, announce)
+			continue
 		}
-		announce.Host = srcIP
-		announce.Port = int32(srcPort)
-		announce.RecvStamp = now
-		// log.Println("received announcement: ", announce)
+
+		// Store the announcement
+		announce.RecvStamp = ptypes.TimestampNow()
+		log.Println("received announcement: ", announce)
 		bus.announcementsMutex.Lock()
 		bus.Announcements[src.String()] = announce
 		bus.announcementsMutex.Unlock()
