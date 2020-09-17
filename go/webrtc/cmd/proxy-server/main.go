@@ -22,7 +22,7 @@ import (
 const (
 	eventBusAddr = "239.20.20.21"
 	eventBusPort = 10000
-	rtpAddr      = "239.20.20.20:5000"
+	rtpAddr      = "127.0.0.1:5000"
 	// Set this too low and we see packet loss in chrome://webrtc-internals, and on the network interface (`netstat -suna`)
 	// But what should it be? `sysctl net.core.rmem_max`?
 	rtpReadBufferSize  = 1024 * 1024 * 8

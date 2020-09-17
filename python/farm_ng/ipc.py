@@ -78,7 +78,9 @@ class EventBus:
         host, port = self._mc_send_sock.getsockname()
         announce = Announce()
         announce.stamp.GetCurrentTime()
-        announce.host = '127.0.0.1'  # socket.getfqdn(host), this may take a while
+        # For now, only announce our local address
+        # announce.host = socket.getfqdn(host) # this may take a while
+        announce.host = '127.0.0.1'
         announce.port = port
         announce.service = self._name
         msg = announce.SerializeToString()
@@ -164,7 +166,11 @@ class EventBus:
         # logger.info('announce recv')
         data, address = self._mc_recv_sock.recvfrom(1024)
         # logger.info('announce recved')
-        is_local = True  # host_is_local(address[0], address[1])
+
+        # For now, only announce our local address
+        # is_local = host_is_local(address[0], address[1])
+        is_local = True
+
         # logger.info('is_local %s', is_local)
         # this is the announce from self... port match and host is local.
         if address[1] == self._mc_send_sock.getsockname()[1] and is_local:
@@ -213,8 +219,8 @@ class EventBus:
         # Create the socket
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
-        # Set the time-to-live for messages to 1 so they do not
-        # go past the local network segment.
+        # Set the time-to-live for messages to 0 so they do not
+        # leave localhost.
         ttl = struct.pack('b', 0)
         sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, ttl)
         sock.bind(('', 0))

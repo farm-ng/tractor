@@ -214,10 +214,10 @@ class TrackingCameraClient {
         " omxh264enc control-rate=1 bitrate=1000000 ! " +
         " video/x-h264, stream-format=byte-stream !" +
         " rtph264pay pt=96 mtu=1400 config-interval=10 !" +
-        " udpsink host=239.20.20.20 auto-multicast=true port=5000";
+        " udpsink port=5000";
     std::cerr << "Running gstreamer with pipeline:\n" << cmd0 << std::endl;
     std::cerr << "To view streamer run:\n"
-              << "gst-launch-1.0 udpsrc multicast-group=239.20.20.20 port=5000 "
+              << "gst-launch-1.0 udpsrc port=5000 "
                  "! application/x-rtp,encoding-name=H264,payload=96 ! "
                  "rtph264depay ! h264parse ! queue ! avdec_h264 ! xvimagesink "
                  "sync=false async=false -e"
