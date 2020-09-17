@@ -165,6 +165,21 @@ func (bus *EventBus) announce() {
 		// log.Println("announcing to: ", bus.multicastGroup.IP, bus.multicastGroup.Port)
 		bus.sendConn.WriteToUDP(announceBytes, &bus.multicastGroup)
 
+		// Clear stale announcements
+		bus.announcementsMutex.Lock()
+		for key, a := range bus.Announcements {
+			receiveTime, err := ptypes.Timestamp(a.RecvStamp)
+			if err != nil {
+				log.Fatalln("invalid receive timestamp: ", err)
+			}
+			if time.Now().Sub(receiveTime) > time.Second*10 {
+				log.Println("deleting stale: ", key)
+				delete(bus.Announcements, key)
+				continue
+			}
+		}
+		bus.announcementsMutex.Unlock()
+
 		time.Sleep(1 * time.Second)
 	}
 }
