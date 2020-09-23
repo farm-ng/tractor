@@ -5,7 +5,7 @@ import { ContainerProps } from "react-three-fiber/targets/shared/web/ResizeConta
 export const Canvas: typeof CanvasR3F = (props: ContainerProps) => {
   return (
     <CanvasR3F
-      style={{ background: "darkgray", width: "100%", height: "100%" }}
+      style={{ background: "darkgray", width: "100%", height: "auto" }}
       camera={{
         position: [2.5, 2.5, 2.5],
         fov: 60,

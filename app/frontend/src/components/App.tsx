@@ -4,7 +4,6 @@ import { Switch, Route, Link } from "react-router-dom";
 import { Overview } from "./Overview";
 import { State } from "./State";
 import { Video } from "./Video";
-import { Debug } from "./Debug";
 import { Map } from "./Map";
 import { Root as Scope } from "./scope/Root";
 import styles from "./App.module.scss";
@@ -31,9 +30,6 @@ export const App: React.FC = () => {
             <Nav.Link as={Link} to="/map">
               Map
             </Nav.Link>
-            <Nav.Link as={Link} to="/debug">
-              Debug
-            </Nav.Link>
             <Nav.Link as={Link} to="/scope">
               Scope
             </Nav.Link>
@@ -46,7 +42,6 @@ export const App: React.FC = () => {
         <Route exact path="/state" component={State} />
         <Route exact path="/video" component={Video} />
         <Route exact path="/map" component={Map} />
-        <Route exact path="/debug" component={Debug} />
         <Route exact path="/scope" component={Scope} />
         <Route render={() => <p>Not found</p>} />
       </Switch>
