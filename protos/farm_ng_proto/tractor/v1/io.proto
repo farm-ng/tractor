@@ -22,26 +22,31 @@ message Announce {
 }
 
 message LoggingCommand {
+  message RecordStop {
+  }
   message RecordStart {
     enum Mode {
       MODE_UNSPECIFIED = 0;
       MODE_ALL_MESSAGES = 1;
     }
     // log name, location on disk is determined by this.
-    string name = 1;
+    string archive_path = 1;
     Mode mode = 2;
   }
 
   oneof command {
-    bool record_stop = 2;
+    RecordStop record_stop = 3;
     RecordStart record_start = 1;
   }
 }
 
 message LoggingStatus {
+  message Stopped {
+  }
+
   message Recording {
     // Log name
-    string name = 1;
+    string archive_path = 1;
     // Where on disk the log is located
     string path = 2;
     // Number of messages recorded
@@ -49,8 +54,9 @@ message LoggingStatus {
     // Timestamp of the when the log started recording
     google.protobuf.Timestamp stamp_begin = 4;
   }
+
   oneof state {
-    bool stopped = 1;
+    Stopped stopped = 3;
     Recording recording = 2;
   }
 }

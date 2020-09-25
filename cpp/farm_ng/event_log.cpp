@@ -6,8 +6,8 @@
 namespace farm_ng {
 class EventLogWriterImpl {
  public:
-  EventLogWriterImpl(std::string log_path)
-      : log_path_(log_path), out_(log_path_, std::ofstream::binary) {}
+  EventLogWriterImpl(const boost::filesystem::path& log_path)
+      : log_path_(log_path), out_(log_path_.string(), std::ofstream::binary) {}
   void Write(const farm_ng_proto::tractor::v1::Event& event) {
     std::string packet;
     event.SerializeToString(&packet);
@@ -20,11 +20,12 @@ class EventLogWriterImpl {
     out_.flush();
   }
 
-  std::string log_path_;
+  boost::filesystem::path log_path_;
   std::ofstream out_;
 };
-EventLogWriter::EventLogWriter(std::string log_path)
+EventLogWriter::EventLogWriter(const boost::filesystem::path& log_path)
     : impl_(new EventLogWriterImpl(log_path)) {}
+
 EventLogWriter::~EventLogWriter() { impl_.reset(nullptr); }
 
 void EventLogWriter::Write(const farm_ng_proto::tractor::v1::Event& event) {

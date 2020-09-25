@@ -25,5 +25,7 @@ cp $zipfile $HOME/tractor-logs/adhoc/$LOGNAME.zip
 cd $HOME/tractor-logs
 git add adhoc/$LOGNAME.zip
 git commit -m "[$(hostname)] automated upload"
+git fetch origin
+git merge origin/master --no-edit
 git push origin master
 cd -

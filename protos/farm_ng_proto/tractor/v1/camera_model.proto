@@ -9,10 +9,10 @@ message CameraModel {
   // Image height in pixels.
   int32 image_height = 2;
 
-  // Image projection center x cooridinate in pixels, typically close to
+  // Image projection center x coordinate in pixels, typically close to
   // (image_width-1)/2.0
   double cx = 3;
-  // Image projection center y cooridinate in pixels, typically close to
+  // Image projection center y coordinate in pixels, typically close to
   // (image_height-1)/2.0
   double cy = 4;
   // X focal length, in pixels.
@@ -28,7 +28,7 @@ message CameraModel {
 
   // Specifies the distortion model.
   DistortionModel distortion_model = 7;
-  // Distorion model coeffecients, typically has 5 values, some may be 0.0.
+  // Distortion model coefficients, typically has 5 values, some may be 0.0.
   repeated double distortion_coefficients = 8;
 
   // Frame name

@@ -16,3 +16,6 @@
 [submodule "third_party/apriltag"]
 	path = third_party/apriltag
 	url = https://github.com/AprilRobotics/apriltag.git
+[submodule "third_party/googletest"]
+	path = third_party/googletest
+	url = https://github.com/google/googletest.git

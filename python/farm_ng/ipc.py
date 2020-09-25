@@ -1,6 +1,7 @@
 # socket_multicast_receiver.py
 import asyncio
 import logging
+import re
 import socket
 import struct
 import sys
@@ -22,6 +23,8 @@ logger.setLevel(logging.INFO)
 # https://en.wikipedia.org/wiki/Multicast_address
 # adminstratively scoped: 239.0.0.0 to 239.255.255.255
 _g_multicast_group = ('239.20.20.21', 10000)
+
+_g_datagram_size = 65507
 
 
 def host_is_local(hostname, port):
@@ -49,9 +52,23 @@ class EventBusQueue:
         self._queue = self._event_bus._queue()
         return self._queue
 
-    def __exit__(self, type, vlaue, traceback):
+    def __exit__(self, type, value, traceback):
         logger.info('removing event queue')
         self._event_bus._remove_queue(self._queue)
+
+
+class AnnounceQueue:
+    def __init__(self, event_bus):
+        self._event_bus = event_bus
+
+    def __enter__(self):
+        logger.info('adding announce queue')
+        self._queue = self._event_bus._announce_queue()
+        return self._queue
+
+    def __exit__(self, type, value, traceback):
+        logger.info('removing announce queue')
+        self._event_bus._remove_announce_queue(self._queue)
 
 
 class EventBus:
@@ -73,6 +90,7 @@ class EventBus:
         self._services = dict()
         self._state = dict()
         self._subscribers = set()
+        self._announce_subscribers = set()
 
     def _announce_service(self, n_periods):
         host, port = self._mc_send_sock.getsockname()
@@ -93,6 +111,14 @@ class EventBus:
 
     def _remove_queue(self, queue):
         self._subscribers.remove(queue)
+
+    def _announce_queue(self):
+        queue = asyncio.Queue()
+        self._announce_subscribers.add(queue)
+        return queue
+
+    def _remove_announce_queue(self, queue):
+        self._announce_subscribers.remove(queue)
 
     def _listen_for_services(self, n_periods):
         if self._mc_recv_sock is None:
@@ -143,7 +169,7 @@ class EventBus:
             self._mc_send_sock.sendto(buff, (service.host, service.port))
 
     def _send_recv(self):
-        data, server = self._mc_send_sock.recvfrom(1024)
+        data, server = self._mc_send_sock.recvfrom(_g_datagram_size)
         if self._recv_raw:
             for q in self._subscribers:
                 q.put_nowait(data)
@@ -159,7 +185,7 @@ class EventBus:
             q.put_nowait(event)
 
     def _announce_recv(self):
-        data, address = self._mc_recv_sock.recvfrom(1024)
+        data, address = self._mc_recv_sock.recvfrom(_g_datagram_size)
 
         # Ignore self-announcements
         if address[1] == self._mc_send_sock.getsockname()[1]:
@@ -181,6 +207,8 @@ class EventBus:
         # Store the announcement
         announce.recv_stamp.GetCurrentTime()
         self._services['%s:%d' % (announce.host, announce.port)] = announce
+        for q in self._announce_subscribers:
+            q.put_nowait(announce)
 
     def _make_mc_recv_socket(self):
         # Look up multicast group address in name server and find out IP version
@@ -244,6 +272,17 @@ def make_event(name: str, message, stamp: Timestamp = None) -> Event:
     event.name = name
     event.data.Pack(message)
     return event
+
+
+async def get_message(event_queue, name_pattern, message_type):
+    program = re.compile(name_pattern)
+    message = message_type()
+    while True:
+        event = await event_queue.get()
+        if program.match(event.name) is None:
+            continue
+        if event.data.Unpack(message):
+            return message
 
 
 def main():

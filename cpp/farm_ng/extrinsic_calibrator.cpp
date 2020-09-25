@@ -19,7 +19,8 @@ namespace farm_ng {
 class ExtrinsicCalibrator {
  public:
   ExtrinsicCalibrator(boost::asio::io_service& io_service)
-      : bus_(GetEventBus(io_service, "extrinsic-calibrator")), timer_(io_service) {
+      : bus_(GetEventBus(io_service, "extrinsic-calibrator")),
+        timer_(io_service) {
     bus_.GetEventSignal()->connect(
         std::bind(&ExtrinsicCalibrator::on_event, this, std::placeholders::_1));
     on_timer(boost::system::error_code());
@@ -55,7 +56,9 @@ class ExtrinsicCalibrator {
 
   void on_event(const farm_ng_proto::tractor::v1::Event& event) {
     if (event.data().type_url() !=
-        "type.googleapis.com/" + farm_ng_proto::tractor::v1::NamedSE3Pose::descriptor()->full_name()) {
+        "type.googleapis.com/" +
+            farm_ng_proto::tractor::v1::NamedSE3Pose::descriptor()
+                ->full_name()) {
       return;
     }
     farm_ng_proto::tractor::v1::NamedSE3Pose pose;

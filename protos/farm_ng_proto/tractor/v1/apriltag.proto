@@ -58,18 +58,36 @@ message ApriltagDetection {
 message ApriltagDetections {
   repeated ApriltagDetection detections = 1;
   Image image = 2;
-  double rmse = 3;
 }
 
+//  A rigid collection of apriltags, useful for pose estimation and calibration
+//  fixtures.
 message ApriltagRig {
-  message Entry {
+  message Node {
+    // the apriltag tag id.
     int32 id = 1;
+    // the frame name for this node (used in NameSE3Pose)
+    // <rig name>/tag/<id %05d>
     string frame_name = 2;
+    // Tag size in meters, same as in ApriltagDetection above.
     double tag_size = 3;
-    repeated Vec3 tag_points = 4;
+    // The tag corner points, in the tag's reference frame
+    repeated Vec3 points_tag = 4;
+    // The pose of the tag w.r.t. to some frame in the rig.
+    // One of the frames will this node's tag frame (frame_name), the other will
+    // typically be the root tag id in the rig.
+    // The order is (frame_a,frame_b) is dependent on the solver implementation,
+    // and should be checked at runtime.
     NamedSE3Pose pose = 5;
   }
+  // Name of the rig, used for constructing frame names.
   string name = 1;
+  // The root tag id which is used as the root frame of this rig,
+  // tag poses are typically with respect to this tag id.
+  // TODO(ethanrublee) NOTE In the future, there may be an arbitrary rig frame
+  // which is related with a rigid pose to the root tag id.
   int32 root_tag_id = 2;
-  repeated Entry entries = 3;
+
+  // The set of nodes that make up this rig.
+  repeated Node nodes = 3;
 }

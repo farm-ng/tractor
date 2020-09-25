@@ -13,10 +13,6 @@ message Resource {
   // ("foo//bar").
   string path = 1;
 
-  // The path to the archive.  For writing or reading locally, this will be
-  // something like /var/log/farm-ng/00001.
-  string archive_path = 2;
-
   // (Optional) The content-type (aka MIME-type) of the file.
   // See https://www.iana.org/assignments/media-types/media-types.xhtml.
   string content_type = 3;

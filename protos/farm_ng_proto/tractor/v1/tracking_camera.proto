@@ -47,6 +47,8 @@ message TrackingCameraMotionFrame {
 }
 
 message TrackingCameraCommand {
+  message RecordStop {
+  }
   message RecordStart {
     enum Mode {
       MODE_UNSPECIFIED = 0;
@@ -58,7 +60,7 @@ message TrackingCameraCommand {
   }
 
   oneof command {
+    RecordStop record_stop = 3;
     RecordStart record_start = 1;
-    bool record_stop = 2;
   }
 }

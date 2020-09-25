@@ -27,7 +27,7 @@ const (
 	// But what should it be? `sysctl net.core.rmem_max`?
 	rtpReadBufferSize  = 1024 * 1024 * 8
 	maxRtpDatagramSize = 4096
-	defaultServerAddr  = ":8080"
+	defaultServerAddr  = ":8585"
 )
 
 func main() {

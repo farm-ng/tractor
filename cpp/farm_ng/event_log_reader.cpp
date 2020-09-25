@@ -8,7 +8,7 @@ class EventLogReaderImpl {
  public:
   EventLogReaderImpl(std::string log_path)
       : log_path_(log_path), in_(log_path_, std::ofstream::binary) {
-    if(!in_) {
+    if (!in_) {
       throw std::runtime_error("Could not open file");
     }
   }
