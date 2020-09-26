@@ -3,20 +3,20 @@ import logging
 import sys
 
 import numpy as np
-from farm_ng.canbus import CANSocket
-from farm_ng.config import default_config
-from farm_ng.ipc import get_event_bus
-from farm_ng.ipc import make_event
-from farm_ng.kinematics import TractorKinematics
-from farm_ng.motor import HubMotor
-from farm_ng.periodic import Periodic
-from farm_ng.proto_utils import se3_to_proto
-from farm_ng.steering import SteeringClient
 from farm_ng_proto.tractor.v1.geometry_pb2 import NamedSE3Pose
 from farm_ng_proto.tractor.v1.tractor_pb2 import TractorState
 from google.protobuf.text_format import MessageToString
 from google.protobuf.timestamp_pb2 import Timestamp
 from liegroups import SE3
+
+from farm_ng.canbus import CANSocket
+from farm_ng.config import default_config
+from farm_ng.ipc import get_event_bus, make_event
+from farm_ng.kinematics import TractorKinematics
+from farm_ng.motor import HubMotor
+from farm_ng.periodic import Periodic
+from farm_ng.proto_utils import se3_to_proto
+from farm_ng.steering import SteeringClient
 
 logger = logging.getLogger('tractor')
 logger.setLevel(logging.INFO)
@@ -28,8 +28,7 @@ class TractorController:
         self.command_rate_hz = 50
         self.command_period_seconds = 1.0 / self.command_rate_hz
         self.n_cycle = 0
-        self.speed = 0.0
-        self.angular = 0.0
+
         # self.record_counter = 0
         # self.recording = False
         self.event_bus = get_event_bus('farm_ng.tractor')
@@ -61,8 +60,6 @@ class TractorController:
         )
 
         self._last_odom_stamp = None
-        self._left_vel = 0.0
-        self._right_vel = 0.0
 
     def _command_loop(self, n_periods):
         # n_periods is the number of periods since the last call. Should normally be 1.
@@ -71,15 +68,16 @@ class TractorController:
 
         if (self.n_cycle % (5*self.command_rate_hz)) == 0:
             logger.info(
-                '\nright motor:\n  %s\nleft motor:\n  %s\n odom_pose_tractor %s left_vel %f right_vel %f \nstate: %s',
+                '\nright motor:\n  %s\nleft motor:\n  %s\n state:\n %s',
                 MessageToString(self.right_motor.get_state(), as_one_line=True),
                 MessageToString(self.left_motor.get_state(), as_one_line=True),
-                self.odom_pose_tractor, self._left_vel, self._right_vel,
                 MessageToString(self.tractor_state, as_one_line=True),
             )
 
-        self._left_vel = self.left_motor.average_velocity()
-        self._right_vel = self.right_motor.average_velocity()
+        self.tractor_state.stamp = now
+        self.tractor_state.wheel_velocity_rads_left = self.left_motor.average_velocity()
+        self.tractor_state.wheel_velocity_rads_right = self.right_motor.average_velocity()
+
         if self._last_odom_stamp is not None:
             dt = (now.ToMicroseconds() - self._last_odom_stamp.ToMicroseconds())*1e-6
             min_dt = 0.0
@@ -89,40 +87,55 @@ class TractorController:
                 # or negative if for some reason the clock is non-monotonic - TODO(ethanrublee) should we use a monotonic clock?
                 logger.warn('odometry time delta out of bounds, clipping. n_period=%d dt=%f min_dt=%f max_dt=%f', n_periods, dt, min_dt, max_dt)
 
-            dt = np.clip(dt, min_dt, max_dt)
+            self.tractor_state.dt = np.clip(dt, min_dt, max_dt)
 
             tractor_pose_delta = self.kinematics.compute_tractor_pose_delta(
-                self.left_motor.average_velocity_rads(),
-                self.right_motor.average_velocity_rads(),
-                dt,
-            )
+                self.tractor_state.wheel_velocity_rads_left,
+                self.tractor_state.wheel_velocity_rads_right,
+                self.tractor_state.dt)
+
             self.odom_pose_tractor = self.odom_pose_tractor.dot(tractor_pose_delta)
             self.tractor_state.abs_distance_traveled += np.linalg.norm(tractor_pose_delta.trans)
-            pose_msg = NamedSE3Pose()
-            pose_msg.a_pose_b.CopyFrom(se3_to_proto(self.odom_pose_tractor))
-            pose_msg.frame_a = 'odometry/wheel'
-            pose_msg.frame_b = 'tractor/base'
-            self.event_bus.send(make_event('pose/tractor/base', pose_msg, stamp=now))
 
-        self.event_bus.send(make_event('tractor_state', self.tractor_state))
+            self.tractor_state.a_pose_b.CopyFrom(se3_to_proto(self.odom_pose_tractor))
+            self.tractor_state.odometry_pose_base.frame_a = 'odometry/wheel'
+            self.tractor_state.odometry_pose_base.frame_b = 'tractor/base'
+            self.event_bus.send(make_event('pose/tractor/base',
+                                           self.tractor_state.odometry_pose_base, stamp=now))
+
         self._last_odom_stamp = now
 
         self.n_cycle += 1
         brake_current = 10.0
         steering_command = self.steering.get_steering_command()
         if steering_command.brake > 0.0:
+            self.tractor_state.commanded_brake_current = brake_current
+            self.tractor_state.commanded_wheel_velocity_rads_left = 0.0
+            self.tractor_state.commanded_wheel_velocity_rads_right = 0.0
+            self.tractor_state.target_unicycle_velocity = 0.0
+            self.tractor_state.target_unicycle_angular_velocity = 0.0
             self.right_motor.send_current_brake_command(brake_current)
             self.left_motor.send_current_brake_command(brake_current)
-            self.speed = 0.0
-            self.angular = 0.0
         else:
+            # TODO(ethanrublee) remove this smoothing by alpha blending as it may be confusing,
+            # not respecting the steering commands, or implement acceleration here.
             alpha = 0.1
-            self.speed = self.speed * (1-alpha) + steering_command.velocity*alpha
-            self.angular = self.angular * (1-alpha) + steering_command.angular_velocity*alpha
+            self.tractor_state.target_unicycle_velocity = (
+                self.tractor_state.target_unicycle_velocity * (1-alpha)
+                + steering_command.velocity*alpha)
+            self.tractor_state.target_unicycle_angular_velocity = (
+                self.tractor_state.target_unicycle_angular_velocity * (1-alpha)
+                + steering_command.angular_velocity*alpha)
 
-            left, right = self.kinematics.unicycle_to_wheel_velocity(self.speed, self.angular)
+            left, right = self.kinematics.unicycle_to_wheel_velocity(self.tractor_state.target_unicycle_velocity,
+                                                                     self.tractor_state.target_unicycle_angular_velocity)
+
+            self.tractor_state.commanded_brake_current = 0
+            self.tractor_state.commanded_wheel_velocity_rads_left = left
+            self.tractor_state.commanded_wheel_velocity_rads_right = right
             self.right_motor.send_velocity_command_rads(right)
             self.left_motor.send_velocity_command_rads(left)
+        self.event_bus.send(make_event('tractor_state', self.tractor_state))
 
 
 def main():
