@@ -2,19 +2,23 @@
 foreach(src_prefix
    apriltag
    solver
+   apriltag_rig_calibrator
+   camera_model
+   local_parameterization_se3
+   pose_utils
 )
 list(APPEND cpp_files ${src_prefix}.cpp)
 list(APPEND h_files ${src_prefix}.h)
 list(APPEND test_files ${src_prefix}_test.cpp)
 endforeach()
 
-add_library(farm_ng_calibration
+add_library(farm-ng-calibration
   ${cpp_files}
   ${h_files}
 )
 
-target_link_libraries(farm_ng_calibration
-   ${CERES_LIBRARIES} ${GLOG_LIBRARIES} Sophus::Sophus)
+target_link_libraries(farm-ng-calibration
+   ${CERES_LIBRARIES} ${GLOG_LIBRARIES} Sophus::Sophus opencv_imgcodecs farm-ng-protobuf farm-ng-ipc)
 
 
 add_executable(farm_ng_calibration_test
@@ -22,7 +26,7 @@ add_executable(farm_ng_calibration_test
 )
 
 target_link_libraries(farm_ng_calibration_test
-    farm_ng_calibration
+    farm-ng-calibration
     gtest gmock gtest_main
 )
 gtest_discover_tests(farm_ng_calibration_test)
