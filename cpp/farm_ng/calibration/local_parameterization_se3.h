@@ -5,10 +5,8 @@
 #include <sophus/se3.hpp>
 
 namespace farm_ng {
-
 using Sophus::SE3d;
 using Sophus::Vector6d;
-
 // https://github.com/strasdat/Sophus/blob/master/test/ceres/local_parameterization_se3.hpp
 class LocalParameterizationSE3 : public ceres::LocalParameterization {
  public:

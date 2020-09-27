@@ -357,6 +357,7 @@ EventPb GenerateExtrinsicPoseEvent() {
   base_pose_t265.set_frame_b("tracking_camera/front/left");
   Sophus::SE3d se3(Sophus::SE3d::rotZ(-M_PI / 2.0));
   se3 = se3 * Sophus::SE3d::rotX(M_PI / 2.0);
+  se3 = se3 * Sophus::SE3d::rotY(M_PI);
   // se3 = se3 * Sophus::SE3d::rotZ(M_PI);
   se3.translation().x() = -1.0;
   se3.translation().z() = 1.0;

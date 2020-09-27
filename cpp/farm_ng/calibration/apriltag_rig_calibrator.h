@@ -2,6 +2,7 @@
 #define FARM_NG_CALIBRATION_APRILTAG_RIG_CALIBRATOR_H_
 #include <array>
 #include <string>
+#include <unordered_set>
 #include <vector>
 
 #include <sophus/se3.hpp>
@@ -12,6 +13,7 @@
 
 namespace farm_ng {
 using farm_ng_proto::tractor::v1::ApriltagDetections;
+using farm_ng_proto::tractor::v1::ApriltagRig;
 using farm_ng_proto::tractor::v1::ApriltagRigTagStats;
 using farm_ng_proto::tractor::v1::CalibratorCommand;
 using farm_ng_proto::tractor::v1::Image;
@@ -43,6 +45,10 @@ struct ApriltagRigModel {
 };
 
 void ModelError(ApriltagRigModel& model);
+
+Sophus::optional<SE3d> EstimateCameraPoseRig(
+    const ApriltagRig& rig, const ApriltagDetections& detections);
+
 class ApriltagRigCalibrator {
  public:
   ApriltagRigCalibrator(EventBus* bus,

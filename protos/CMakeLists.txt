@@ -11,6 +11,8 @@ set(PROTO_FILES
   ./farm_ng_proto/tractor/v1/resource.proto
   ./farm_ng_proto/tractor/v1/steering.proto
   ./farm_ng_proto/tractor/v1/tracking_camera.proto
+  ./farm_ng_proto/tractor/v1/tractor.proto
+
  )
 
 foreach (_proto_path ${PROTO_FILES})

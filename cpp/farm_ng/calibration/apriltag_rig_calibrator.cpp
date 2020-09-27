@@ -16,6 +16,25 @@
 namespace farm_ng {
 using farm_ng_proto::tractor::v1::ApriltagRig;
 
+Sophus::optional<SE3d> CameraPoseRigRootInit(
+    const std::unordered_map<int, SE3d>& tag_poses_root,
+    const std::unordered_map<int, SE3d>& camera_poses_tag) {
+  std::vector<SE3d> camera_poses_root;
+  for (const auto& id_camera_pose_tag : camera_poses_tag) {
+    int tag_id = id_camera_pose_tag.first;
+    const SE3d& camera_pose_tag = id_camera_pose_tag.second;
+    auto tag_pose_root = tag_poses_root.find(tag_id);
+    if (tag_pose_root == tag_poses_root.end()) {
+      continue;
+    }
+    camera_poses_root.push_back(camera_pose_tag * tag_pose_root->second);
+  }
+  if (camera_poses_root.empty()) {
+    return Sophus::optional<SE3d>();
+  }
+  return Sophus::average(camera_poses_root);
+}
+
 struct CameraApriltagRigCostFunctor {
   CameraApriltagRigCostFunctor(const CameraModel& camera,
                                std::array<Eigen::Vector3d, 4> points_tag,
@@ -133,8 +152,10 @@ void ModelError(ApriltagRigModel& model) {
         all_sum_error += norm;
       }
       per_tag_stats.set_tag_rig_rmse(per_tag_stats.tag_rig_rmse() + tag_error);
-      per_tag_stats.mutable_per_image_rmse()->insert(
-          {int(frame_n), std::sqrt(tag_error)});
+
+      auto* image_rmse = per_tag_stats.add_per_image_rmse();
+      image_rmse->set_frame_number(frame_n);
+      image_rmse->set_rmse(std::sqrt(tag_error));
     }
     // Reproject all tag points for visualization
     for (auto tag_id_points_tag : model.points_tag) {
@@ -393,4 +414,85 @@ bool Solve(ApriltagRigModel& model) {
 
   return true;
 }
+
+Sophus::optional<SE3d> EstimateCameraPoseRig(
+    const ApriltagRig& rig, const ApriltagDetections& detections) {
+  std::unordered_map<int, Sophus::SE3d> id_tag_poses_root;
+  for (const ApriltagRig::Node& node : rig.nodes()) {
+    Sophus::SE3d tag_pose_root;
+    ProtoToSophus(node.pose().a_pose_b(), &tag_pose_root);
+    CHECK_EQ(node.pose().frame_a(), FrameRigTag(rig.name(), node.id()));
+    CHECK_EQ(node.pose().frame_b(), FrameRigTag(rig.name(), rig.root_tag_id()));
+    id_tag_poses_root.insert(std::make_pair(node.id(), tag_pose_root));
+  }
+  std::unordered_map<int, Sophus::SE3d> id_camera_poses_tag;
+  auto camera_model = detections.image().camera_model();
+  for (const auto& detection : detections.detections()) {
+    SE3d camera_pose_tag;
+    ProtoToSophus(detection.pose().a_pose_b(), &camera_pose_tag);
+    if (StartsWith(detection.pose().frame_a(), "tag/")) {
+      CHECK_EQ(camera_model.frame_name(), detection.pose().frame_b());
+      camera_pose_tag = camera_pose_tag.inverse();
+    } else if (StartsWith(detection.pose().frame_b(), "tag/")) {
+      CHECK_EQ(camera_model.frame_name(), detection.pose().frame_a());
+    } else {
+      CHECK(false) << "Malformed apriltag : " << detection.ShortDebugString();
+    }
+    id_camera_poses_tag[detection.id()] = camera_pose_tag;
+  }
+  auto o_camera_pose_root =
+      CameraPoseRigRootInit(id_tag_poses_root, id_camera_poses_tag);
+  if (!o_camera_pose_root) {
+    return Sophus::optional<SE3d>();
+  }
+
+  ceres::Problem problem;
+  problem.AddParameterBlock(o_camera_pose_root->data(), SE3d::num_parameters,
+                            new LocalParameterizationSE3);
+
+  for (auto& id_tag_pose_root : id_tag_poses_root) {
+    int tag_id = id_tag_pose_root.first;
+    SE3d& tag_pose_root = id_tag_pose_root.second;
+    // Specify local update rule for our parameter
+    problem.AddParameterBlock(tag_pose_root.data(), SE3d::num_parameters,
+                              new LocalParameterizationSE3);
+    problem.SetParameterBlockConstant(tag_pose_root.data());
+  }
+
+  for (const auto& detection : detections.detections()) {
+    ceres::CostFunction* cost_function1 =
+        new ceres::AutoDiffCostFunction<CameraApriltagRigCostFunctor, 8,
+                                        Sophus::SE3d::num_parameters,
+                                        Sophus::SE3d::num_parameters>(
+            new CameraApriltagRigCostFunctor(camera_model, PointsTag(detection),
+                                             PointsImage(detection)));
+    problem.AddResidualBlock(cost_function1, new ceres::HuberLoss(1.0),
+                             o_camera_pose_root->data(),
+                             id_tag_poses_root.at(detection.id()).data());
+  }
+
+  // Set solver options (precision / method)
+  ceres::Solver::Options options;
+  options.linear_solver_type = ceres::DENSE_SCHUR;
+  options.gradient_tolerance = 1e-18;
+  options.function_tolerance = 1e-18;
+  options.parameter_tolerance = 1e-18;
+  options.max_num_iterations = 2000;
+
+  // Solve
+  ceres::Solver::Summary summary;
+  // options.logging_type = ceres::PER_MINIMIZER_ITERATION;
+  // options.minimizer_progress_to_stdout = false;
+  ceres::Solve(options, &problem, &summary);
+  // LOG(INFO) << summary.FullReport() << std::endl;
+  LOG(INFO) << "root mean of residual error: "
+            << std::sqrt(summary.final_cost / summary.num_residuals);
+
+  if (summary.IsSolutionUsable()) {
+    return o_camera_pose_root;
+  } else {
+    return Sophus::optional<SE3d>();
+  }
+}
+
 }  // namespace farm_ng
