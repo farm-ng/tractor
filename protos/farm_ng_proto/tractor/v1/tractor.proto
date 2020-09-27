@@ -35,6 +35,9 @@ message TractorState {
 
   // The time duration between measurements, in seconds.
   double dt = 11;
+
+  double average_update_rate_left_motor = 12;
+  double average_update_rate_right_motor = 13;
 }
 
 message TractorConfig {

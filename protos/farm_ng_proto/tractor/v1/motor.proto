@@ -19,4 +19,6 @@ message MotorControllerState {
   google.protobuf.DoubleValue pid_pos = 11;
   google.protobuf.DoubleValue tachometer = 12;
   google.protobuf.DoubleValue input_voltage = 13;
+  google.protobuf.DoubleValue commanded_rpm = 14;
+  google.protobuf.DoubleValue commanded_brake_current = 15;
 }

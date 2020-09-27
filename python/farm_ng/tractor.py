@@ -74,9 +74,11 @@ class TractorController:
                 MessageToString(self.tractor_state, as_one_line=True),
             )
 
-        self.tractor_state.stamp = now
-        self.tractor_state.wheel_velocity_rads_left = self.left_motor.average_velocity()
-        self.tractor_state.wheel_velocity_rads_right = self.right_motor.average_velocity()
+        self.tractor_state.stamp.CopyFrom(now)
+        self.tractor_state.wheel_velocity_rads_left = self.left_motor.velocity_rads()
+        self.tractor_state.wheel_velocity_rads_right = self.right_motor.velocity_rads()
+        self.tractor_state.average_update_rate_left_motor = self.left_motor.average_update_rate()
+        self.tractor_state.average_update_rate_right_motor = self.right_motor.average_update_rate()
 
         if self._last_odom_stamp is not None:
             dt = (now.ToMicroseconds() - self._last_odom_stamp.ToMicroseconds())*1e-6
@@ -97,7 +99,7 @@ class TractorController:
             self.odom_pose_tractor = self.odom_pose_tractor.dot(tractor_pose_delta)
             self.tractor_state.abs_distance_traveled += np.linalg.norm(tractor_pose_delta.trans)
 
-            self.tractor_state.a_pose_b.CopyFrom(se3_to_proto(self.odom_pose_tractor))
+            self.tractor_state.odometry_pose_base.a_pose_b.CopyFrom(se3_to_proto(self.odom_pose_tractor))
             self.tractor_state.odometry_pose_base.frame_a = 'odometry/wheel'
             self.tractor_state.odometry_pose_base.frame_b = 'tractor/base'
             self.event_bus.send(make_event('pose/tractor/base',
@@ -116,16 +118,10 @@ class TractorController:
             self.tractor_state.target_unicycle_angular_velocity = 0.0
             self.right_motor.send_current_brake_command(brake_current)
             self.left_motor.send_current_brake_command(brake_current)
+
         else:
-            # TODO(ethanrublee) remove this smoothing by alpha blending as it may be confusing,
-            # not respecting the steering commands, or implement acceleration here.
-            alpha = 0.1
-            self.tractor_state.target_unicycle_velocity = (
-                self.tractor_state.target_unicycle_velocity * (1-alpha)
-                + steering_command.velocity*alpha)
-            self.tractor_state.target_unicycle_angular_velocity = (
-                self.tractor_state.target_unicycle_angular_velocity * (1-alpha)
-                + steering_command.angular_velocity*alpha)
+            self.tractor_state.target_unicycle_velocity = steering_command.velocity
+            self.tractor_state.target_unicycle_angular_velocity = steering_command.angular_velocity
 
             left, right = self.kinematics.unicycle_to_wheel_velocity(self.tractor_state.target_unicycle_velocity,
                                                                      self.tractor_state.target_unicycle_angular_velocity)

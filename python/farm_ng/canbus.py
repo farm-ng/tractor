@@ -93,7 +93,10 @@ class CANSocket:
     def send(self, cob_id, data, flags=0):
         cob_id = cob_id | flags
         can_pkt = struct.pack(self.FORMAT, cob_id, len(data), data)
-        self.sock.send(can_pkt)
+        try:
+            self.sock.send(can_pkt)
+        except Exception as e:
+            print(e)
 
     def recv(self, flags=0):
         can_pkt = self.sock.recv(72)

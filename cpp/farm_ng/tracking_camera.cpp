@@ -405,7 +405,7 @@ class ApriltagDetector {
     tag_family_ = tag36h11_create();
     tag_detector_ = apriltag_detector_create();
     apriltag_detector_add_family(tag_detector_, tag_family_);
-    tag_detector_->quad_decimate = 2.0;
+    tag_detector_->quad_decimate = 1.0;
     tag_detector_->quad_sigma = 0.8;
     tag_detector_->nthreads = 1;
     tag_detector_->debug = false;
@@ -567,17 +567,21 @@ class TrackingCameraClient {
         &TrackingCameraClient::on_event, this, std::placeholders::_1));
     // TODO(ethanrublee) look up image size from realsense profile.
 
-    std::string cmd0 =
-        std::string("appsrc !") + " videoconvert ! " +
-        " x264enc bitrate=600 speed-preset=ultrafast tune=zerolatency "
-        "key-int-max=15 ! video/x-h264,profile=constrained-baseline ! queue "
-        "max-size-time=100000000 ! h264parse ! "
-        /*
-                " omxh264enc control-rate=1 bitrate=1000000 ! " +
-                " video/x-h264, stream-format=byte-stream !" +
-         */
-        " rtph264pay pt=96 mtu=1400 config-interval=10 !" +
-        " udpsink port=5000";
+    std::string encoder_x264 =
+        std::string(
+            " x264enc bitrate=600 speed-preset=ultrafast tune=zerolatency ") +
+        "key-int-max=15 ! video/x-h264,profile=constrained-baseline ! queue " +
+        "max-size-time=100000000 ! h264parse ! ";
+
+    std::string encoder_omxh264 =
+        std::string(" omxh264enc control-rate=1 bitrate=1000000 ! ") +
+        " video/x-h264, stream-format=byte-stream !";
+
+    std::string cmd0 = std::string("appsrc !") + " videoconvert ! " +
+                       encoder_omxh264 +
+
+                       " rtph264pay pt=96 mtu=1400 config-interval=10 !" +
+                       " udpsink port=5000";
     std::cerr << "Running gstreamer with pipeline:\n" << cmd0 << std::endl;
     std::cerr << "To view streamer run:\n"
               << "gst-launch-1.0 udpsrc port=5000 "
