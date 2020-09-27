@@ -4,11 +4,11 @@ import sys
 import time
 
 import numpy as np
-from farm_ng_proto.tractor.v1.steering_pb2 import SteeringCommand
-
-from farm_ng.ipc import get_event_bus, make_event
+from farm_ng.ipc import get_event_bus
+from farm_ng.ipc import make_event
 from farm_ng.joystick import MaybeJoystick
 from farm_ng.periodic import Periodic
+from farm_ng_proto.tractor.v1.steering_pb2 import SteeringCommand
 
 logger = logging.getLogger('steering')
 logger.setLevel(logging.INFO)
@@ -215,8 +215,10 @@ class SteeringSenderJoystick:
                 self._target_angular_velocity = np.clip(-self.joystick.get_axis_state('z', 0), -1.0, 1.0)*np.pi/3.0
 
         self._command.velocity += np.clip((self._target_speed - self._command.velocity), -self._max_acc, self._max_acc)
-        self._command.angular_velocity += np.clip((self._target_angular_velocity - self._command.angular_velocity), -
-                                                  self._max_angular_acc, self._max_angular_acc)
+        self._command.angular_velocity += np.clip(
+            (self._target_angular_velocity - self._command.angular_velocity), -
+            self._max_angular_acc, self._max_angular_acc,
+        )
         get_event_bus('steering').send(make_event(_g_message_name, self._command))
 
 

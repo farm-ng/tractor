@@ -6,13 +6,13 @@ import sys
 
 import linuxfd
 import numpy as np
+from farm_ng.canbus import CANSocket
+from farm_ng.config import default_config
+from farm_ng.ipc import get_event_bus
+from farm_ng.ipc import make_event
 from farm_ng_proto.tractor.v1 import motor_pb2
 from google.protobuf.text_format import MessageToString
 from google.protobuf.timestamp_pb2 import Timestamp
-
-from farm_ng.canbus import CANSocket
-from farm_ng.config import default_config
-from farm_ng.ipc import get_event_bus, make_event
 
 logger = logging.getLogger('farm_ng.motor')
 

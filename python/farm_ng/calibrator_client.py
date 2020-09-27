@@ -3,14 +3,17 @@ import asyncio
 import logging
 import sys
 
-from farm_ng_proto.tractor.v1.calibrator_pb2 import (CalibratorCommand,
-                                                     CalibratorStatus)
-from farm_ng_proto.tractor.v1.io_pb2 import LoggingCommand, LoggingStatus
+from farm_ng.ipc import AnnounceQueue
+from farm_ng.ipc import EventBus
+from farm_ng.ipc import EventBusQueue
+from farm_ng.ipc import get_message
+from farm_ng.ipc import make_event
+from farm_ng_proto.tractor.v1.calibrator_pb2 import CalibratorCommand
+from farm_ng_proto.tractor.v1.calibrator_pb2 import CalibratorStatus
+from farm_ng_proto.tractor.v1.io_pb2 import LoggingCommand
+from farm_ng_proto.tractor.v1.io_pb2 import LoggingStatus
 from farm_ng_proto.tractor.v1.tracking_camera_pb2 import TrackingCameraCommand
 from google.protobuf.text_format import MessageToString
-
-from farm_ng.ipc import (AnnounceQueue, EventBus, EventBusQueue, get_message,
-                         make_event)
 
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 

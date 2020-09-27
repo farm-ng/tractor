@@ -3,20 +3,19 @@ import logging
 import sys
 
 import numpy as np
-from farm_ng_proto.tractor.v1.geometry_pb2 import NamedSE3Pose
-from farm_ng_proto.tractor.v1.tractor_pb2 import TractorState
-from google.protobuf.text_format import MessageToString
-from google.protobuf.timestamp_pb2 import Timestamp
-from liegroups import SE3
-
 from farm_ng.canbus import CANSocket
 from farm_ng.config import default_config
-from farm_ng.ipc import get_event_bus, make_event
+from farm_ng.ipc import get_event_bus
+from farm_ng.ipc import make_event
 from farm_ng.kinematics import TractorKinematics
 from farm_ng.motor import HubMotor
 from farm_ng.periodic import Periodic
 from farm_ng.proto_utils import se3_to_proto
 from farm_ng.steering import SteeringClient
+from farm_ng_proto.tractor.v1.tractor_pb2 import TractorState
+from google.protobuf.text_format import MessageToString
+from google.protobuf.timestamp_pb2 import Timestamp
+from liegroups import SE3
 
 logger = logging.getLogger('tractor')
 logger.setLevel(logging.INFO)
@@ -94,7 +93,8 @@ class TractorController:
             tractor_pose_delta = self.kinematics.compute_tractor_pose_delta(
                 self.tractor_state.wheel_velocity_rads_left,
                 self.tractor_state.wheel_velocity_rads_right,
-                self.tractor_state.dt)
+                self.tractor_state.dt,
+            )
 
             self.odom_pose_tractor = self.odom_pose_tractor.dot(tractor_pose_delta)
             self.tractor_state.abs_distance_traveled += np.linalg.norm(tractor_pose_delta.trans)
@@ -102,8 +102,12 @@ class TractorController:
             self.tractor_state.odometry_pose_base.a_pose_b.CopyFrom(se3_to_proto(self.odom_pose_tractor))
             self.tractor_state.odometry_pose_base.frame_a = 'odometry/wheel'
             self.tractor_state.odometry_pose_base.frame_b = 'tractor/base'
-            self.event_bus.send(make_event('pose/tractor/base',
-                                           self.tractor_state.odometry_pose_base, stamp=now))
+            self.event_bus.send(
+                make_event(
+                    'pose/tractor/base',
+                    self.tractor_state.odometry_pose_base, stamp=now,
+                ),
+            )
 
         self._last_odom_stamp = now
 
@@ -123,8 +127,10 @@ class TractorController:
             self.tractor_state.target_unicycle_velocity = steering_command.velocity
             self.tractor_state.target_unicycle_angular_velocity = steering_command.angular_velocity
 
-            left, right = self.kinematics.unicycle_to_wheel_velocity(self.tractor_state.target_unicycle_velocity,
-                                                                     self.tractor_state.target_unicycle_angular_velocity)
+            left, right = self.kinematics.unicycle_to_wheel_velocity(
+                self.tractor_state.target_unicycle_velocity,
+                self.tractor_state.target_unicycle_angular_velocity,
+            )
 
             self.tractor_state.commanded_brake_current = 0
             self.tractor_state.commanded_wheel_velocity_rads_left = left
