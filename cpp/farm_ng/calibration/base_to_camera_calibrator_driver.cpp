@@ -55,6 +55,31 @@ struct BaseToCameraSample {
   std::vector<Eigen::Vector3d> wheel_velocities;
 };
 
+class LocalParameterizationAbs : public ceres::LocalParameterization {
+ public:
+  LocalParameterizationAbs(int size) : size_(size) {}
+
+  virtual ~LocalParameterizationAbs() {}
+
+  bool Plus(const double* x, const double* delta, double* x_plus_delta) const {
+    ceres::VectorRef(x_plus_delta, size_) =
+        (ceres::ConstVectorRef(x, size_) + ceres::ConstVectorRef(delta, size_))
+            .cwiseAbs();
+
+    return true;
+  }
+
+  bool ComputeJacobian(const double* x, double* jacobian) const {
+    ceres::MatrixRef(jacobian, size_, size_).setIdentity();
+    return true;
+  }
+
+  virtual int GlobalSize() const { return size_; }
+
+  virtual int LocalSize() const { return size_; }
+  int size_;
+};
+
 template <typename T>
 static Sophus::SE3<T> TractorPoseDelta(
     const Eigen::Matrix<T, 2, 1>& base_parameters,
@@ -138,21 +163,26 @@ class BaseToCameraIterationCallback : public ceres::IterationCallback {
 };
 
 Sophus::optional<BaseModel> SolveBasePoseCamera(
-    BaseModel base_model, std::vector<BaseToCameraSample>& samples) {
+    BaseModel base_model, std::vector<BaseToCameraSample>& samples,
+    bool hold_base_parameters_const) {
   ceres::Problem problem;
 
   problem.AddParameterBlock(base_model.base_pose_camera.data(),
                             SE3d::num_parameters, new LocalParameterizationSE3);
 
-  problem.AddParameterBlock(base_model.base_parameters.data(), 2, nullptr);
-  problem.SetParameterBlockConstant(base_model.base_parameters.data());
-
+  problem.AddParameterBlock(base_model.base_parameters.data(), 2,
+                            new LocalParameterizationAbs(2));
+  // problem.SetParameterLowerBound(base_model.base_parameters.data(), 0, 0.0);
+  // problem.SetParameterLowerBound(base_model.base_parameters.data(), 1, 0.0);
+  if (hold_base_parameters_const) {
+    problem.SetParameterBlockConstant(base_model.base_parameters.data());
+  }
   for (auto sample : samples) {
     ceres::CostFunction* cost_function1 =
         new ceres::AutoDiffCostFunction<BasePoseCameraCostFunctor, 6,
                                         Sophus::SE3d::num_parameters, 2>(
             new BasePoseCameraCostFunctor(sample));
-    problem.AddResidualBlock(cost_function1, new ceres::HuberLoss(1.0),
+    problem.AddResidualBlock(cost_function1, nullptr,
                              base_model.base_pose_camera.data(),
                              base_model.base_parameters.data());
   }
@@ -160,10 +190,9 @@ Sophus::optional<BaseModel> SolveBasePoseCamera(
   BaseToCameraIterationCallback callback(&base_model);
   // Set solver options (precision / method)
   ceres::Solver::Options options;
-  options.linear_solver_type = ceres::SPARSE_SCHUR;
-  options.gradient_tolerance = 1e-6;
-  options.function_tolerance = 1e-6;
-  options.parameter_tolerance = 1e-6;
+  options.gradient_tolerance = 1e-8;
+  options.function_tolerance = 1e-8;
+  options.parameter_tolerance = 1e-8;
   options.max_num_iterations = 2000;
   options.callbacks.push_back(&callback);
 
@@ -184,9 +213,7 @@ Sophus::optional<BaseModel> SolveBasePoseCamera(
             << " \n base parameters: "
             << base_model.base_parameters.transpose() / 0.0254;
   return base_model;
-
-}  // namespace farm_ng
-
+}
 }  // namespace farm_ng
 int main(int argc, char** argv) {
   // Initialize Google's logging library.
@@ -214,18 +241,20 @@ int main(int argc, char** argv) {
   farm_ng::EventLogReader log_reader(FLAGS_log);
 
   farm_ng::BaseModel base_model;
-  base_model.base_parameters[0] = (17.0 / 2.0) * 0.0254;
-  base_model.base_parameters[1] = (42) * 0.0254;
+  bool with_initialization = true;
+  if (with_initialization) {
+    base_model.base_parameters[0] = (17.0 / 2.0) * 0.0254;
+    base_model.base_parameters[1] = (42) * 0.0254;
 
-  base_model.base_pose_camera = Sophus::SE3d::rotZ(
-      0);  // n-M_PI / 2.0) *
-           //                              Sophus::SE3d::rotX(M_PI / 2.0) *
-           // Sophus::SE3d::rotY(M_PI);
-
-  base_model.base_pose_camera.translation().x() = 0.0;
-  base_model.base_pose_camera.translation().y() = 0.0;
-  base_model.base_pose_camera.translation().z() = 1.0;
-
+    base_model.base_pose_camera = Sophus::SE3d::rotZ(-M_PI / 2.0) *
+                                  Sophus::SE3d::rotX(M_PI / 2.0) *
+                                  Sophus::SE3d::rotY(M_PI);
+    LOG(INFO) << "\n" << base_model.base_pose_camera.matrix();
+  } else {
+    // this works, but takes a long time, and is scary!
+    base_model.base_parameters[0] = 1;
+    base_model.base_parameters[1] = 1;
+  }
   farm_ng::BaseToCameraSample sample;
   bool has_start = false;
 
@@ -239,8 +268,8 @@ int main(int argc, char** argv) {
       if (event.data().UnpackTo(&tractor_state)) {
         if (has_start) {
           Eigen::Vector3d wheel_velocity(
-              tractor_state.wheel_velocity_rads_right(),
-              tractor_state.wheel_velocity_rads_left(), tractor_state.dt());
+              tractor_state.wheel_velocity_rads_left(),
+              tractor_state.wheel_velocity_rads_right(), tractor_state.dt());
 
           sample.wheel_velocities.push_back(wheel_velocity);
         }
@@ -281,7 +310,17 @@ int main(int argc, char** argv) {
     }
   }
 
-  farm_ng::SolveBasePoseCamera(base_model, samples);
+  auto solved_model = farm_ng::SolveBasePoseCamera(base_model, samples, false);
 
+  if (false) {
+    // NOTE if you have a good initial guess of the wheel radius and baseline
+    // but not the camera, it works reasonably well to first solve for just
+    // base_pose_camera, with the base params held constant, then solve for both
+    // jointly.
+    auto solved_model = farm_ng::SolveBasePoseCamera(base_model, samples, true);
+    if (solved_model) {
+      solved_model = farm_ng::SolveBasePoseCamera(*solved_model, samples, true);
+    }
+  }
   return 0;
 }
