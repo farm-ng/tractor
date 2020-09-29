@@ -55,13 +55,6 @@ MonocularApriltagRigModel ReadMonocularApriltagRigModelFromDisk(
   return rig_model;
 }
 
-struct BaseToCameraSample {
-  Sophus::SE3d camera_pose_rig_start;
-  Sophus::SE3d camera_pose_rig_end;
-  // (left,right, dt),... radians per second
-  std::vector<Eigen::Vector3d> wheel_velocities;
-};
-
 class LocalParameterizationAbs : public ceres::LocalParameterization {
  public:
   LocalParameterizationAbs(int size) : size_(size) {}
@@ -115,11 +108,6 @@ Sophus::SE3<T> TractorStartPoseTractorEnd(
   }
   return tractor_start_pose_tractor_end;
 }
-
-struct BaseModel {
-  Sophus::SE3d base_pose_camera;
-  Eigen::Vector2d base_parameters;
-};
 
 struct BasePoseCameraCostFunctor {
   BasePoseCameraCostFunctor(const BaseToCameraModel::Sample& sample)
