@@ -83,12 +83,12 @@ class LocalParameterizationAbs : public ceres::LocalParameterization {
 template <typename T>
 static Sophus::SE3<T> TractorPoseDelta(
     const Eigen::Matrix<T, 2, 1>& base_parameters,
-    const BaseToCameraModel::WheelState wheel_state) {
+    const BaseToCameraModel::WheelMeasurement wheel_measurement) {
   const T& wheel_radius = base_parameters[0];
   const T& wheel_baseline = base_parameters[1];
-  T vel_left(wheel_state.wheel_velocity_rads_left());
-  T vel_right(wheel_state.wheel_velocity_rads_right());
-  T dt(wheel_state.dt());
+  T vel_left(wheel_measurement.wheel_velocity_rads_left());
+  T vel_right(wheel_measurement.wheel_velocity_rads_right());
+  T dt(wheel_measurement.dt());
   T v = T(wheel_radius / 2.0) * (vel_left + vel_right);
   T w = (wheel_radius / wheel_baseline) * (vel_right - vel_left);
   Eigen::Matrix<T, 6, 1> x;
@@ -101,7 +101,7 @@ Sophus::SE3<T> TractorStartPoseTractorEnd(
     const BaseToCameraModel::Sample& sample) {
   Sophus::SE3<T> tractor_start_pose_tractor_end =
       Sophus::SE3d::rotZ(0).cast<T>();
-  for (const auto& wheel_state : sample.wheel_states()) {
+  for (const auto& wheel_state : sample.wheel_measurements()) {
     tractor_start_pose_tractor_end =
         tractor_start_pose_tractor_end *
         TractorPoseDelta<T>(base_params, wheel_state);
@@ -228,57 +228,64 @@ BaseToCameraModel SolveBasePoseCamera(BaseToCameraModel model,
                 model.mutable_base_pose_camera()->mutable_a_pose_b());
 
   for (auto& sample : *model.mutable_samples()) {
-    sample.mutable_odometry_path_base()->Clear();
+    sample.mutable_odometry_trajectory_base()->Clear();
     SE3d odometry_pose_base;
-    SophusToProto(odometry_pose_base,
-                  sample.mutable_odometry_path_base()->add_a_poses_b());
-    for (const auto& wheel_state : sample.wheel_states()) {
-      auto base_pose_delta = TractorPoseDelta(base_parameters, wheel_state);
+    for (const auto& wheel_measurement : sample.wheel_measurements()) {
+      auto base_pose_delta =
+          TractorPoseDelta(base_parameters, wheel_measurement);
       odometry_pose_base = odometry_pose_base * base_pose_delta;
-      SophusToProto(odometry_pose_base,
-                    sample.mutable_odometry_path_base()->add_a_poses_b());
+      SophusToProto(odometry_pose_base, wheel_measurement.stamp(),
+                    sample.mutable_odometry_trajectory_base()->add_a_poses_b());
     }
 
-    sample.mutable_visual_odometry_path_base()->Clear();
-    SophusToProto(SE3d(),
-                  sample.mutable_visual_odometry_path_base()->add_a_poses_b());
+    sample.mutable_visual_odometry_trajectory_base()->Clear();
+
     SE3d camera_pose_rig_start;
     ProtoToSophus(sample.camera_pose_rig_start().a_pose_b(),
                   &camera_pose_rig_start);
+
+    SophusToProto(
+        SE3d(), sample.camera_pose_rig_start().a_pose_b().stamp(),
+        sample.mutable_visual_odometry_trajectory_base()->add_a_poses_b());
+
     for (const auto& camera_pose_rig_pb :
-         sample.camera_path_rig().a_poses_b()) {
+         sample.camera_trajectory_rig().a_poses_b()) {
       SE3d camera_pose_rig;
       ProtoToSophus(camera_pose_rig_pb, &camera_pose_rig);
       SophusToProto(
           base_pose_camera * camera_pose_rig_start * camera_pose_rig.inverse() *
               base_pose_camera.inverse(),
-          sample.mutable_visual_odometry_path_base()->add_a_poses_b());
+          camera_pose_rig_pb.stamp(),
+          sample.mutable_visual_odometry_trajectory_base()->add_a_poses_b());
     }
-    SE3d camera_pose_rig_end;
-    ProtoToSophus(sample.camera_pose_rig_end().a_pose_b(),
-                  &camera_pose_rig_end);
-
-    SophusToProto(base_pose_camera * camera_pose_rig_start *
-                      camera_pose_rig_end.inverse() *
-                      base_pose_camera.inverse(),
-                  sample.mutable_visual_odometry_path_base()->add_a_poses_b());
+    {
+      SE3d camera_pose_rig_end;
+      ProtoToSophus(sample.camera_pose_rig_end().a_pose_b(),
+                    &camera_pose_rig_end);
+      SophusToProto(
+          base_pose_camera * camera_pose_rig_start *
+              camera_pose_rig_end.inverse() * base_pose_camera.inverse(),
+          sample.camera_pose_rig_end().a_pose_b().stamp(),
+          sample.mutable_visual_odometry_trajectory_base()->add_a_poses_b());
+    }
   }
   LOG(INFO) << "root mean of residual error: " << rmse;
   callback();
   return model;
 }
 
-void CopyTractorStateToWheelState(const TractorState& tractor_state,
-                                  BaseToCameraModel::WheelState* wheel_state) {
-  wheel_state->set_wheel_velocity_rads_left(
+void CopyTractorStateToWheelState(
+    const TractorState& tractor_state,
+    BaseToCameraModel::WheelMeasurement* wheel_measurement) {
+  wheel_measurement->set_wheel_velocity_rads_left(
       tractor_state.wheel_velocity_rads_left());
 
-  wheel_state->set_wheel_velocity_rads_right(
+  wheel_measurement->set_wheel_velocity_rads_right(
       tractor_state.wheel_velocity_rads_right());
 
-  wheel_state->set_dt(tractor_state.dt());
+  wheel_measurement->set_dt(tractor_state.dt());
 
-  wheel_state->mutable_stamp()->CopyFrom(tractor_state.stamp());
+  wheel_measurement->mutable_stamp()->CopyFrom(tractor_state.stamp());
 }
 }  // namespace farm_ng
 int main(int argc, char** argv) {
@@ -338,8 +345,8 @@ int main(int argc, char** argv) {
       TractorState tractor_state;
       if (event.data().UnpackTo(&tractor_state)) {
         if (has_start) {
-          farm_ng::CopyTractorStateToWheelState(tractor_state,
-                                                sample.add_wheel_states());
+          farm_ng::CopyTractorStateToWheelState(
+              tractor_state, sample.add_wheel_measurements());
 
           // TODO(ethanrublee) Tractor state is offset by some time in the log,
           // due to the latency of detecting april tags.
@@ -375,31 +382,32 @@ int main(int argc, char** argv) {
           o_camera_pose_rig->mutable_a_pose_b()->mutable_stamp()->CopyFrom(
               event.stamp());
           if (!has_start && calibration_sample) {
-            sample.mutable_camera_path_rig()->set_frame_a(
+            sample.mutable_camera_trajectory_rig()->set_frame_a(
                 o_camera_pose_rig->frame_a());
-            sample.mutable_camera_path_rig()->set_frame_b(
+            sample.mutable_camera_trajectory_rig()->set_frame_b(
                 o_camera_pose_rig->frame_b());
 
             sample.mutable_camera_pose_rig_start()->CopyFrom(
                 *o_camera_pose_rig);
             has_start = true;
           } else if (has_start && !calibration_sample && full_path) {
-            CHECK_EQ(sample.camera_path_rig().frame_a(),
+            CHECK_EQ(sample.camera_trajectory_rig().frame_a(),
                      o_camera_pose_rig->frame_a());
-            CHECK_EQ(sample.camera_path_rig().frame_b(),
+            CHECK_EQ(sample.camera_trajectory_rig().frame_b(),
                      o_camera_pose_rig->frame_b());
-            sample.mutable_camera_path_rig()->add_a_poses_b()->CopyFrom(
+            sample.mutable_camera_trajectory_rig()->add_a_poses_b()->CopyFrom(
                 o_camera_pose_rig->a_pose_b());
           } else if (has_start && calibration_sample) {
             sample.mutable_camera_pose_rig_end()->CopyFrom(*o_camera_pose_rig);
             model.add_samples()->CopyFrom(sample);
-            LOG(INFO) << "n wheel states: " << sample.wheel_states().size();
+            LOG(INFO) << "n wheel measurments: "
+                      << sample.wheel_measurements().size();
             sample.Clear();
             sample.mutable_camera_pose_rig_start()->CopyFrom(
                 *o_camera_pose_rig);
-            sample.mutable_camera_path_rig()->set_frame_a(
+            sample.mutable_camera_trajectory_rig()->set_frame_a(
                 o_camera_pose_rig->frame_a());
-            sample.mutable_camera_path_rig()->set_frame_b(
+            sample.mutable_camera_trajectory_rig()->set_frame_b(
                 o_camera_pose_rig->frame_b());
           }
         }

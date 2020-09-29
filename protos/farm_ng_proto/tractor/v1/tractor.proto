@@ -25,7 +25,7 @@ message TractorState {
   // estimated odometry_pose_base, based on integrating the wheel velocity
   // above, through the current kinematic model based on the TractorConfig.
   // This is likely to slip based on poor traction moments, as its only based on
-  // motor hall effect tachometer measurements.  It may also be innacurate if
+  // motor hall effect tachometer measurements.  It may also be inaccurate if
   // the tractor config does not match the tractor's actual wheel baseline or
   // radius.
   NamedSE3Pose odometry_pose_base = 9;
@@ -33,7 +33,7 @@ message TractorState {
   // Timestamp of this estimate.
   google.protobuf.Timestamp stamp = 10;
 
-  // The time duration between measurements, in seconds.
+  // The time duration between state updates, in seconds.
   double dt = 11;
 
   double average_update_rate_left_motor = 12;

@@ -47,7 +47,7 @@ message NamedSE3Pose {
   string frame_b = 3;
 }
 
-message Path {
+message TrajectorySE3 {
   repeated SE3Pose a_poses_b = 1;
   string frame_a = 2;
   string frame_b = 3;

@@ -108,23 +108,24 @@ message MonocularApriltagRigModel {
 }
 
 message BaseToCameraModel {
-  message WheelState {
+  message WheelMeasurement {
     double wheel_velocity_rads_left = 1;
     double wheel_velocity_rads_right = 2;
     // duration that the measurement applies to, in seconds
     // Used to integrate odometry_pose_base
     double dt = 3;
+    // The timestamp from the robot, when this measurement was sampled.
     google.protobuf.Timestamp stamp = 4;
   }
 
   message Sample {
     NamedSE3Pose camera_pose_rig_start = 1;
     NamedSE3Pose camera_pose_rig_end = 2;
-    Path camera_path_rig = 3;
-    repeated WheelState wheel_states = 4;
+    TrajectorySE3 camera_trajectory_rig = 3;
+    repeated WheelMeasurement wheel_measurements = 4;
 
-    Path odometry_path_base = 5;
-    Path visual_odometry_path_base = 6;
+    TrajectorySE3 odometry_trajectory_base = 5;
+    TrajectorySE3 visual_odometry_trajectory_base = 6;
   }
   // For diagnosis of failures or unexpected results its useful to look at the
   // initialization first.
