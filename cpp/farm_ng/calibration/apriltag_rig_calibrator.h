@@ -46,7 +46,7 @@ struct ApriltagRigModel {
 
 void ModelError(ApriltagRigModel& model);
 
-Sophus::optional<SE3d> EstimateCameraPoseRig(
+Sophus::optional<NamedSE3Pose> EstimateCameraPoseRig(
     const ApriltagRig& rig, const ApriltagDetections& detections);
 
 class ApriltagRigCalibrator {

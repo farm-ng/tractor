@@ -56,4 +56,7 @@ message TractorConfig {
   google.protobuf.DoubleValue hub_motor_gear_ratio = 3;
   // Hub motor polls
   google.protobuf.Int32Value hub_motor_poll_pairs = 4;
+
+  // Extrinsic relationships to sensors.
+  repeated NamedSE3Pose base_poses_sensor = 7;
 }

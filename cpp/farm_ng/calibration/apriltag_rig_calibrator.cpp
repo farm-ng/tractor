@@ -415,7 +415,7 @@ bool Solve(ApriltagRigModel& model) {
   return true;
 }
 
-Sophus::optional<SE3d> EstimateCameraPoseRig(
+Sophus::optional<NamedSE3Pose> EstimateCameraPoseRig(
     const ApriltagRig& rig, const ApriltagDetections& detections) {
   std::unordered_map<int, Sophus::SE3d> id_tag_poses_root;
   for (const ApriltagRig::Node& node : rig.nodes()) {
@@ -443,7 +443,7 @@ Sophus::optional<SE3d> EstimateCameraPoseRig(
   auto o_camera_pose_root =
       CameraPoseRigRootInit(id_tag_poses_root, id_camera_poses_tag);
   if (!o_camera_pose_root) {
-    return Sophus::optional<SE3d>();
+    return Sophus::optional<NamedSE3Pose>();
   }
 
   ceres::Problem problem;
@@ -485,13 +485,17 @@ Sophus::optional<SE3d> EstimateCameraPoseRig(
   // options.minimizer_progress_to_stdout = false;
   ceres::Solve(options, &problem, &summary);
   // LOG(INFO) << summary.FullReport() << std::endl;
-  LOG(INFO) << "root mean of residual error: "
-            << std::sqrt(summary.final_cost / summary.num_residuals);
-
   if (summary.IsSolutionUsable()) {
-    return o_camera_pose_root;
+    NamedSE3Pose camera_pose_rig;
+    SophusToProto(*o_camera_pose_root, camera_model.frame_name(),
+                  FrameRigTag(rig.name(), rig.root_tag_id()), &camera_pose_rig);
+    VLOG(2) << "root mean of residual error: "
+            << std::sqrt(summary.final_cost / summary.num_residuals) << " "
+            << camera_pose_rig.ShortDebugString();
+
+    return camera_pose_rig;
   } else {
-    return Sophus::optional<SE3d>();
+    return Sophus::optional<NamedSE3Pose>();
   }
 }
 
