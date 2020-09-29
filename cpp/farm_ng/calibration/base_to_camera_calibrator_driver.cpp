@@ -334,9 +334,9 @@ int main(int argc, char** argv) {
 
   bool has_start = false;
 
-  // Set this to add the april tag path to sample, useful for visualization of
-  // pose error.
-  bool full_path = true;
+  // Set this to add the april tag trajectory to sample, useful for
+  // visualization of pose error.
+  bool full_apriltag_trajectory = true;
 
   while (true) {
     EventPb event;
@@ -364,7 +364,7 @@ int main(int argc, char** argv) {
       } else {
         bool calibration_sample =
             farm_ng::StartsWith(event.name(), "calibrator");
-        if (!calibration_sample && !full_path) {
+        if (!calibration_sample && !full_apriltag_trajectory) {
           continue;
         }
         ApriltagDetections detections;
@@ -377,42 +377,41 @@ int main(int argc, char** argv) {
         // LOG(INFO) << event.ShortDebugString();
         Sophus::optional<NamedSE3Pose> o_camera_pose_rig =
             farm_ng::EstimateCameraPoseRig(rig_model.rig(), detections);
-        if (o_camera_pose_rig) {
-          // set our event stamp as the pose stamp.
-          o_camera_pose_rig->mutable_a_pose_b()->mutable_stamp()->CopyFrom(
-              event.stamp());
-          if (!has_start && calibration_sample) {
-            sample.mutable_camera_trajectory_rig()->set_frame_a(
-                o_camera_pose_rig->frame_a());
-            sample.mutable_camera_trajectory_rig()->set_frame_b(
-                o_camera_pose_rig->frame_b());
+        if (!o_camera_pose_rig) {
+          continue;
+        }
+        // set our event stamp as the pose stamp.
+        o_camera_pose_rig->mutable_a_pose_b()->mutable_stamp()->CopyFrom(
+            event.stamp());
+        if (!has_start && calibration_sample) {
+          sample.mutable_camera_trajectory_rig()->set_frame_a(
+              o_camera_pose_rig->frame_a());
+          sample.mutable_camera_trajectory_rig()->set_frame_b(
+              o_camera_pose_rig->frame_b());
 
-            sample.mutable_camera_pose_rig_start()->CopyFrom(
-                *o_camera_pose_rig);
-            has_start = true;
-          } else if (has_start && !calibration_sample && full_path) {
-            CHECK_EQ(sample.camera_trajectory_rig().frame_a(),
-                     o_camera_pose_rig->frame_a());
-            CHECK_EQ(sample.camera_trajectory_rig().frame_b(),
-                     o_camera_pose_rig->frame_b());
-            sample.mutable_camera_trajectory_rig()->add_a_poses_b()->CopyFrom(
-                o_camera_pose_rig->a_pose_b());
-          } else if (has_start && calibration_sample) {
-            sample.mutable_camera_pose_rig_end()->CopyFrom(*o_camera_pose_rig);
-            model.add_samples()->CopyFrom(sample);
-            LOG(INFO) << "n wheel measurments: "
-                      << sample.wheel_measurements().size();
-            sample.Clear();
-            sample.mutable_camera_pose_rig_start()->CopyFrom(
-                *o_camera_pose_rig);
-            sample.mutable_camera_trajectory_rig()->set_frame_a(
-                o_camera_pose_rig->frame_a());
-            sample.mutable_camera_trajectory_rig()->set_frame_b(
-                o_camera_pose_rig->frame_b());
-          }
+          sample.mutable_camera_pose_rig_start()->CopyFrom(*o_camera_pose_rig);
+          has_start = true;
+        } else if (has_start && !calibration_sample &&
+                   full_apriltag_trajectory) {
+          CHECK_EQ(sample.camera_trajectory_rig().frame_a(),
+                   o_camera_pose_rig->frame_a());
+          CHECK_EQ(sample.camera_trajectory_rig().frame_b(),
+                   o_camera_pose_rig->frame_b());
+          sample.mutable_camera_trajectory_rig()->add_a_poses_b()->CopyFrom(
+              o_camera_pose_rig->a_pose_b());
+        } else if (has_start && calibration_sample) {
+          sample.mutable_camera_pose_rig_end()->CopyFrom(*o_camera_pose_rig);
+          model.add_samples()->CopyFrom(sample);
+          LOG(INFO) << "n wheel measurments: "
+                    << sample.wheel_measurements().size();
+          sample.Clear();
+          sample.mutable_camera_pose_rig_start()->CopyFrom(*o_camera_pose_rig);
+          sample.mutable_camera_trajectory_rig()->set_frame_a(
+              o_camera_pose_rig->frame_a());
+          sample.mutable_camera_trajectory_rig()->set_frame_b(
+              o_camera_pose_rig->frame_b());
         }
       }
-
     } catch (std::runtime_error& e) {
       break;
     }
