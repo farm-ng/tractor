@@ -19,7 +19,7 @@ logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 
 parser = argparse.ArgumentParser()
 parser.add_argument('name')
-parser.add_argument('--tag_ids', nargs='+', default=[221, 226, 225, 218, 222])
+parser.add_argument('--tag_ids', nargs='+', type=int, default=[221, 226, 225, 218, 222])
 parser.add_argument('--num_frames', type=int, default=2)
 args = parser.parse_args()
 

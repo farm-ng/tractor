@@ -61,12 +61,14 @@ class SteeringSenderJoystick:
         # rate that the speed of the tractor changes when pressing the dpad up/down arrows
         self._delta_x_vel = 0.25/self.rate_hz
         # rate of angular velocity that occurs when nudging the tractor left/right with dpad left/right arrows
-        self._delta_angular_vel = np.pi/16
+        self._delta_angular_vel = np.pi/8
 
         # maximum acceleration for manual steering and motion primitives
         self._max_acc = 1.5/self.rate_hz  # m/s^2
+        self._max_angular_acc = np.pi/(4*self.rate_hz)
         # The target speed, used for smoothing out the commanded velocity to respect the max_acc limit
         self._target_speed = 0.0
+        self._target_angular_velocity = 0.0
 
         self.joystick = MaybeJoystick('/dev/input/js0',  loop)
         self.joystick.set_button_callback(self.on_button)
@@ -99,6 +101,7 @@ class SteeringSenderJoystick:
         self._command.angular_velocity = 0.0
         self._command.brake = 1.0
         self._target_speed = 0.0
+        self._target_angular_velocity = 0.0
         self._command.deadman = 0.0
         self._indexing = False
         self._executing_motion_primitive = False
@@ -161,7 +164,7 @@ class SteeringSenderJoystick:
             # hat0y -1 is up dpad
             # hat0y +1 is down dpad
             inc_vel = -self.joystick.get_axis_state('hat0y', 0.0)*self._delta_x_vel
-            self._command.angular_velocity = 0.0
+            self._target_angular_velocity = 0.0
 
             self._target_speed = np.clip(
                 self._target_speed + inc_vel,
@@ -175,12 +178,12 @@ class SteeringSenderJoystick:
             # hat0x -1 is left dpad
             # hat0x +1 is right dpad
             angular_vel = -self.joystick.get_axis_state('hat0x', 0.0)*self._delta_angular_vel
-            self._command.angular_velocity = angular_vel
+            self._target_angular_velocity = angular_vel
 
         elif self._executing_motion_primitive:
             # angular velocity resets if left or right dpad is not pressed,
             # so its like a nudge rather than cruise control.
-            self._command.angular_velocity = 0.0
+            self._target_angular_velocity = 0.0
 
         if self._executing_motion_primitive and self._indexing:
             if self._indexing_state == 'starting':
@@ -209,10 +212,13 @@ class SteeringSenderJoystick:
                 if abs(velocity) >= 0.5:
                     velocity = np.sign(velocity) * (0.5/4 + (abs(velocity) - 0.5)*2)
                 self._target_speed = velocity
-                angular_velocity = np.clip(-self.joystick.get_axis_state('z', 0), -1.0, 1.0)*np.pi/3.0
-                self._command.angular_velocity = angular_velocity
+                self._target_angular_velocity = np.clip(-self.joystick.get_axis_state('z', 0), -1.0, 1.0)*np.pi/3.0
 
         self._command.velocity += np.clip((self._target_speed - self._command.velocity), -self._max_acc, self._max_acc)
+        self._command.angular_velocity += np.clip(
+            (self._target_angular_velocity - self._command.angular_velocity), -
+            self._max_angular_acc, self._max_angular_acc,
+        )
         get_event_bus('steering').send(make_event(_g_message_name, self._command))
 
 

@@ -114,6 +114,10 @@ def vesc_parse_status_msg_5(state, data):
     # according to docs https://github.com/vedderb/bldc/blob/master/mcpwm_foc.c
     # RPM must be divided by 0.5*number of poles
     # and tachometer must be divided by 3*number of poles
+    # rpm = erpm/(0.5*n_poles)
+    # rotations = tach/(3*n_poles)
+    # erpm = tach*(0.5*n_poles)/(3.0*n_poles)
+
     state.tachometer.value = tachometer / (6.0)  # get it in eRPM units
     state.input_voltage.value = input_voltage
     return state
@@ -143,11 +147,9 @@ class HubMotor:
         self._latest_state = motor_pb2.MotorControllerState()
         self._latest_stamp = Timestamp()
         self.can_socket.add_reader(self._handle_can_message)
-        self._last_tachometer = 0
         self._last_tachometer_stamp = None
-        self._delta_rads = 0.0
         self._delta_time_seconds = 0.0
-        self._avg_velocity_rads = 0.0
+        self._average_delta_time = 0.0
 
     def _handle_can_message(self, cob_id, data, stamp):
         can_node_id = (cob_id & 0xff)
@@ -166,25 +168,12 @@ class HubMotor:
 
         if command == VESC_STATUS_MSG_5:
             if self._last_tachometer_stamp is not None:
-                # likely don't need to deal with roll over from
-                # tachometer given its a signed 32 bit integer, this
-                # will allow us to drive approximately 1200 miles
-                # before it resets computer/vesc will reboot before
-                # this happens
-                # max revolutions
-                # revs=(2**31)/(6*8*29.9)
-                # meters=revs * 2*math.pi*radius
-                # miles=meters/1609
-                # with radius of 0.215 meters, we get 1261 miles
-                self._delta_rads = self._er_to_rads(self._latest_state.tachometer.value - self._last_tachometer)
                 self._delta_time_seconds = (self._latest_stamp.ToMicroseconds() - self._last_tachometer_stamp.ToMicroseconds())*1e-6
-                self._avg_velocity_rads = self._delta_rads / self._delta_time_seconds
-
+                self._average_delta_time = self._average_delta_time*(0.9) + self._delta_time_seconds * 0.1
             else:
                 self._last_tachometer_stamp = Timestamp()
 
             self._last_tachometer_stamp.CopyFrom(self._latest_stamp)
-            self._last_tachometer = self._latest_state.tachometer.value
 
             # only log on the 5th vesc message, as we have complete state at that point.
             event = make_event('%s/state' % self.name, self._latest_state, stamp=self._latest_stamp)
@@ -198,23 +187,25 @@ class HubMotor:
         eff_flag = 0x80000000
         self.can_socket.send(cob_id, data, flags=eff_flag)
 
-    def _er_to_rads(self, er):
-        '''compute meters from electric revs'''
+    def _tach_to_rads(self, er):
+        '''compute radians from electric revs'''
         rotations = er/(self.poll_pairs*self.gear_ratio)
         return rotations*2*math.pi
 
-    def odometry_meters(self):
-        return self._er_to_meters(self._latest_state.tachometer.value)
+    def average_update_rate(self):
+        return 1.0/max(self._average_delta_time, 1e-6)
 
-    def average_velocity(self):
-        return self._avg_velocity_rads*self.wheel_radius
+    def tachometer_rads(self):
+        return self._tach_to_rads(self._latest_state.tachometer.value)
 
-    def average_velocity_rads(self):
-        return self._avg_velocity_rads
+    def velocity_rads(self):
+        return self._tach_to_rads(self._latest_state.rpm.value)/60.0
 
     def send_rpm_command(self, rpm):
         RPM_FORMAT = '>i'  # big endian, int32
         erpm = rpm * self.poll_pairs*self.gear_ratio
+        self._latest_state.commanded_rpm.value = int(erpm)
+        self._latest_state.ClearField('commanded_brake_current')
         data = struct.pack(RPM_FORMAT, int(erpm))
         self._send_can_command(VESC_SET_RPM, data)
 
@@ -240,6 +231,10 @@ class HubMotor:
 
     def send_current_brake_command(self, current_amps):
         CURRENT_BRAKE_FORMAT = '>i'  # big endian, int32
+
+        self._latest_state.ClearField('commanded_rpm')
+        self._latest_state.commanded_brake_current.value = current_amps
+
         data = struct.pack(
             CURRENT_BRAKE_FORMAT, int(
                 1000*np.clip(current_amps, 0, self.max_current),
