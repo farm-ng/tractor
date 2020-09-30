@@ -319,15 +319,22 @@ int main(int argc, char** argv) {
   if (with_initialization) {
     model.set_wheel_radius((17.0 / 2.0) * 0.0254);
     model.set_wheel_baseline(42 * 0.0254);
-    farm_ng::SophusToProto(Sophus::SE3d::rotZ(-M_PI / 2.0) *
-                               Sophus::SE3d::rotX(M_PI / 2.0) *
-                               Sophus::SE3d::rotY(M_PI),
-                           "tractor/base", rig_model.camera_frame_name(),
+    farm_ng::SophusToProto(Sophus::SE3d(), "tractor/base",
+                           rig_model.camera_frame_name(),
                            model.mutable_base_pose_camera());
+
+    // farm_ng::SophusToProto(Sophus::SE3d::rotZ(-M_PI / 2.0) *
+    //                            Sophus::SE3d::rotX(M_PI / 2.0) *
+    //                            Sophus::SE3d::rotY(M_PI),
+    //                        "tractor/base", rig_model.camera_frame_name(),
+    //                        model.mutable_base_pose_camera());
   } else {
     // this works, but takes a long time, and is scary!
     model.set_wheel_radius(1);
     model.set_wheel_baseline(1);
+    farm_ng::SophusToProto(Sophus::SE3d(), "tractor/base",
+                           rig_model.camera_frame_name(),
+                           model.mutable_base_pose_camera());
   }
 
   BaseToCameraModel::Sample sample;
@@ -418,20 +425,21 @@ int main(int argc, char** argv) {
   }
   auto initial_resource_pb =
       farm_ng::WriteProtobufToBinaryResource("base_to_camera/initial", model);
-  auto solved_model = farm_ng::SolveBasePoseCamera(model, false);
+  BaseToCameraModel solved_model;
+  if (true) {
+    // NOTE if you have a good initial guess of the wheel radius and baseline
+    // but not the camera, it works reasonably well to first solve for just
+    // base_pose_camera, with the base params held constant, then solve for both
+    // jointly.
+    solved_model = farm_ng::SolveBasePoseCamera(model, true);
+  }
+  solved_model = farm_ng::SolveBasePoseCamera(model, false);
+
   auto solved_resource_pb = farm_ng::WriteProtobufToBinaryResource(
       "base_to_camera/solved", solved_model);
 
   LOG(INFO) << "Wrote results to:\n"
             << initial_resource_pb.ShortDebugString() << "\n"
             << solved_resource_pb.ShortDebugString();
-  if (false) {
-    // NOTE if you have a good initial guess of the wheel radius and baseline
-    // but not the camera, it works reasonably well to first solve for just
-    // base_pose_camera, with the base params held constant, then solve for both
-    // jointly.
-    solved_model = farm_ng::SolveBasePoseCamera(model, true);
-    solved_model = farm_ng::SolveBasePoseCamera(solved_model, false);
-  }
   return 0;
 }
