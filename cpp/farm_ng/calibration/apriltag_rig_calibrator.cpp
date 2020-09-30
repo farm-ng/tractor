@@ -460,6 +460,11 @@ Sophus::optional<NamedSE3Pose> EstimateCameraPoseRig(
   }
 
   for (const auto& detection : detections.detections()) {
+    auto id_tag_pose_root = id_tag_poses_root.find(detection.id());
+    if (id_tag_pose_root == id_tag_poses_root.end()) {
+      LOG(WARNING) << "Tag id not in rig: " << detection.id();
+      continue;
+    }
     ceres::CostFunction* cost_function1 =
         new ceres::AutoDiffCostFunction<CameraApriltagRigCostFunctor, 8,
                                         Sophus::SE3d::num_parameters,
@@ -468,7 +473,7 @@ Sophus::optional<NamedSE3Pose> EstimateCameraPoseRig(
                                              PointsImage(detection)));
     problem.AddResidualBlock(cost_function1, new ceres::HuberLoss(1.0),
                              o_camera_pose_root->data(),
-                             id_tag_poses_root.at(detection.id()).data());
+                             id_tag_pose_root->second.data());
   }
 
   // Set solver options (precision / method)
