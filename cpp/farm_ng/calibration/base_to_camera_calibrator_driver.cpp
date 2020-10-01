@@ -29,6 +29,13 @@ DEFINE_string(
 DEFINE_string(out_archive, "default",
               "When running from a log, what archive name should we write to?");
 
+DEFINE_string(camera_direction, "front-upside-down",
+              "Which direction is camera facing?  Choose one of: front, "
+              "front-upside-down");
+
+DEFINE_double(wheel_radius, 8.5, "Wheel radius in inches.");
+DEFINE_double(wheel_baseline, 42, "Wheel baseline in inches.");
+
 typedef farm_ng_proto::tractor::v1::Event EventPb;
 using farm_ng_proto::tractor::v1::ApriltagDetections;
 using farm_ng_proto::tractor::v1::BaseToCameraModel;
@@ -157,10 +164,9 @@ class BaseToCameraIterationCallback : public ceres::IterationCallback {
 
   ceres::CallbackReturnType operator()(
       const ceres::IterationSummary& summary = ceres::IterationSummary()) {
-    SE3Pose pose_pb;
-    SophusToProto(*base_pose_camera_, &pose_pb);
-    LOG(INFO) << "base_pose_camera: " << pose_pb.ShortDebugString()
-              << " wheel_radius (inches): " << (*base_parameters_)[0] / 0.0254
+    LOG(INFO) << "base_pose_camera:\n"
+              << base_pose_camera_->matrix3x4()
+              << "\nwheel_radius (inches): " << (*base_parameters_)[0] / 0.0254
               << " wheel_baseline (inches): "
               << (*base_parameters_)[1] / 0.0254;
     return ceres::SOLVER_CONTINUE;
@@ -315,26 +321,28 @@ int main(int argc, char** argv) {
 
   farm_ng::EventLogReader log_reader(FLAGS_log);
   BaseToCameraModel model;
-  bool with_initialization = true;
-  if (with_initialization) {
-    model.set_wheel_radius((17.0 / 2.0) * 0.0254);
-    model.set_wheel_baseline(42 * 0.0254);
-    farm_ng::SophusToProto(Sophus::SE3d(), "tractor/base",
-                           rig_model.camera_frame_name(),
+  model.set_wheel_radius(FLAGS_wheel_radius * 0.0254);
+  model.set_wheel_baseline(FLAGS_wheel_baseline * 0.0254);
+  farm_ng::SophusToProto(Sophus::SE3d(), "tractor/base",
+                         rig_model.camera_frame_name(),
+                         model.mutable_base_pose_camera());
+
+  if (FLAGS_camera_direction == "front") {
+    farm_ng::SophusToProto(
+        Sophus::SE3d::rotZ(-M_PI / 2.0) * Sophus::SE3d::rotX(M_PI / 2.0) *
+            Sophus::SE3d::rotY(M_PI) * Sophus::SE3d::rotZ(M_PI),
+        "tractor/base", rig_model.camera_frame_name(),
+        model.mutable_base_pose_camera());
+  } else if (FLAGS_camera_direction == "front-upside-down") {
+    farm_ng::SophusToProto(Sophus::SE3d::rotZ(-M_PI / 2.0) *
+                               Sophus::SE3d::rotX(M_PI / 2.0) *
+                               Sophus::SE3d::rotY(M_PI),
+                           "tractor/base", rig_model.camera_frame_name(),
                            model.mutable_base_pose_camera());
 
-    // farm_ng::SophusToProto(Sophus::SE3d::rotZ(-M_PI / 2.0) *
-    //                            Sophus::SE3d::rotX(M_PI / 2.0) *
-    //                            Sophus::SE3d::rotY(M_PI),
-    //                        "tractor/base", rig_model.camera_frame_name(),
-    //                        model.mutable_base_pose_camera());
   } else {
-    // this works, but takes a long time, and is scary!
-    model.set_wheel_radius(1);
-    model.set_wheel_baseline(1);
-    farm_ng::SophusToProto(Sophus::SE3d(), "tractor/base",
-                           rig_model.camera_frame_name(),
-                           model.mutable_base_pose_camera());
+    LOG(INFO) << "Unknown --camera_direction=" << FLAGS_camera_direction;
+    return -1;
   }
 
   BaseToCameraModel::Sample sample;
