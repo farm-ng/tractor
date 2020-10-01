@@ -22,3 +22,6 @@ target_link_libraries(farm-ng-tracking_camera farm-ng-ipc farm-ng-protobuf april
 
 add_executable(farm-ng-calibrator calibrator.cpp)
 target_link_libraries(farm-ng-calibrator farm-ng-ipc farm-ng-protobuf farm-ng-calibration gflags)
+
+add_executable(servo_controller servo_controller.cpp)
+target_link_libraries(servo_controller farm-ng-ipc farm-ng-protobuf farm-ng-calibration gflags)
