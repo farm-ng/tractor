@@ -8,6 +8,7 @@ import (
 	"path"
 	"time"
 
+	"github.com/gorilla/mux"
 	"github.com/rs/cors"
 
 	"github.com/farm-ng/tractor/genproto"
@@ -16,7 +17,6 @@ import (
 	"github.com/farm-ng/tractor/webrtc/internal/eventbus"
 	"github.com/farm-ng/tractor/webrtc/internal/proxy"
 	"github.com/farm-ng/tractor/webrtc/internal/spa"
-	"github.com/gorilla/mux"
 )
 
 const (
@@ -67,6 +67,15 @@ func main() {
 	}
 	spa := spa.Handler{StaticPath: path.Join(farmNgRoot, "build/frontend"), IndexPath: "index.html"}
 
+	// Create blobstore handler
+	blobstoreCorsWrapper := cors.New(cors.Options{
+		AllowedOrigins: []string{"*"},
+		AllowedMethods: []string{"GET"},
+		AllowedHeaders: []string{"Content-Type"},
+	})
+	blobstore := blobstoreCorsWrapper.Handler(
+		http.FileServer(http.Dir(path.Join(farmNgRoot, "..", "tractor-data"))))
+
 	// Serve the API and frontend
 	serverAddr := defaultServerAddr
 	port := os.Getenv("PORT")
@@ -75,6 +84,7 @@ func main() {
 	}
 	router := mux.NewRouter()
 	router.PathPrefix("/twirp/").Handler(api)
+	router.PathPrefix("/resources/").Handler(http.StripPrefix("/resources", blobstore))
 	router.PathPrefix("/").Handler(spa)
 	srv := &http.Server{
 		Handler:      router,

@@ -4,6 +4,12 @@
   min-height: 0;
 }
 
-.overlaySlider {
+.overlayControls {
   margin-bottom: 1em;
+  display: flex;
+  flex-direction: horizontal;
+}
+
+.overlaySlider {
+  margin-right: 1em;
 }

@@ -2,9 +2,10 @@ import { TimeSkewVisualizer } from "../components/scope/visualizers/TimeSkewVisu
 import { JSONVisualizer } from "../components/scope/visualizers/JSONVisualizer";
 import { SteeringCommandVisualizer } from "../components/scope/visualizers/SteeringCommandVisualizer";
 import { TimestampedEvent, TimestampedEventVector } from "../types/common";
-import { EventType, EventTypeId } from "./events";
+import { EventType, EventTypeId, eventTypeIds } from "./events";
 import { ResourceArchive } from "../models/ResourceArchive";
 import { ImageVisualizer } from "../components/scope/visualizers/ImageVisualizer";
+import { CalibratorStatusVisualizer } from "../components/scope/visualizers/CalibratorStatusVisualizer";
 import { ApriltagDetectionsVisualizer } from "../components/scope/visualizers/ApriltagDetectionsVisualizer";
 import { NamedSE3PoseVisualizer } from "../components/scope/visualizers/NamedSE3PoseVisualizer";
 import { TrackingCameraPoseFrameVisualizer } from "../components/scope/visualizers/TrackingCameraPoseFrameVisualizer";
@@ -34,6 +35,7 @@ export interface Visualizer<T extends EventType = EventType> {
 }
 
 export const visualizerRegistry: { [k: string]: Visualizer } = {
+  [CalibratorStatusVisualizer.id]: new CalibratorStatusVisualizer() as Visualizer,
   [TrackingCameraPoseFrameVisualizer.id]: new TrackingCameraPoseFrameVisualizer() as Visualizer,
   [NamedSE3PoseVisualizer.id]: new NamedSE3PoseVisualizer() as Visualizer,
   [ImageVisualizer.id]: new ImageVisualizer() as Visualizer,
@@ -44,3 +46,25 @@ export const visualizerRegistry: { [k: string]: Visualizer } = {
 };
 export const visualizerIds = Object.keys(visualizerRegistry);
 export type VisualizerId = typeof visualizerIds[number];
+
+export function visualizersForEventType(
+  eventType: EventTypeId | null
+): Visualizer[] {
+  return Object.entries(visualizerRegistry)
+    .filter(([k, v]) => {
+      // This visualizer explicitly supports this event type
+      if (eventType && v.types.includes(eventType)) {
+        return true;
+      }
+      // This visualizer supports all known event types
+      if (eventType && v.types === "*" && eventTypeIds.includes(eventType)) {
+        return true;
+      }
+      // This is an unknown event type, but at least we can visualize its timestamp
+      if (k === TimeSkewVisualizer.id) {
+        return true;
+      }
+      return false;
+    })
+    .map(([_, v]) => v);
+}

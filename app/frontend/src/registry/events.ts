@@ -1,4 +1,7 @@
-import { ApriltagDetections } from "../../genproto/farm_ng_proto/tractor/v1/apriltag";
+import {
+  ApriltagDetections,
+  ApriltagRig
+} from "../../genproto/farm_ng_proto/tractor/v1/apriltag";
 import {
   NamedSE3Pose,
   Vec2
@@ -22,6 +25,11 @@ import {
 } from "../../genproto/farm_ng_proto/tractor/v1/tracking_camera";
 import { TractorState } from "../../genproto/farm_ng_proto/tractor/v1/tractor";
 import { Message } from "../types/common";
+import {
+  ProgramSupervisorStatus,
+  StartProgramRequest,
+  StopProgramRequest
+} from "../../genproto/farm_ng_proto/tractor/v1/program_supervisor";
 
 export type EventType =
   | SteeringCommand
@@ -38,7 +46,11 @@ export type EventType =
   | TrackingCameraCommand
   | CalibratorCommand
   | CalibratorStatus
-  | LoggingStatus;
+  | LoggingStatus
+  | ProgramSupervisorStatus
+  | StartProgramRequest
+  | ApriltagRig
+  | StopProgramRequest;
 
 // Infer the keys, but restrict values to Message<EventType>
 // https://stackoverflow.com/a/54598743
@@ -53,6 +65,7 @@ export const eventRegistry = inferKeys({
   "type.googleapis.com/farm_ng_proto.tractor.v1.NamedSE3Pose": NamedSE3Pose,
   "type.googleapis.com/farm_ng_proto.tractor.v1.MotorControllerState": MotorControllerState,
   "type.googleapis.com/farm_ng_proto.tractor.v1.ApriltagDetections": ApriltagDetections,
+  "type.googleapis.com/farm_ng_proto.tractor.v1.ApriltagRig": ApriltagRig,
   "type.googleapis.com/farm_ng_proto.tractor.v1.TractorState": TractorState,
   "type.googleapis.com/farm_ng_proto.tractor.v1.Announce": Announce,
   "type.googleapis.com/farm_ng_proto.tractor.v1.Vec2": Vec2,
@@ -61,7 +74,10 @@ export const eventRegistry = inferKeys({
   "type.googleapis.com/farm_ng_proto.tractor.v1.TrackingCameraCommand": TrackingCameraCommand,
   "type.googleapis.com/farm_ng_proto.tractor.v1.CalibratorCommand": CalibratorCommand,
   "type.googleapis.com/farm_ng_proto.tractor.v1.CalibratorStatus": CalibratorStatus,
-  "type.googleapis.com/farm_ng_proto.tractor.v1.LoggingStatus": LoggingStatus
+  "type.googleapis.com/farm_ng_proto.tractor.v1.LoggingStatus": LoggingStatus,
+  "type.googleapis.com/farm_ng_proto.tractor.v1.ProgramSupervisorStatus": ProgramSupervisorStatus,
+  "type.googleapis.com/farm_ng_proto.tractor.v1.StartProgramRequest": StartProgramRequest,
+  "type.googleapis.com/farm_ng_proto.tractor.v1.StopProgramRequest": StopProgramRequest
 });
 
 export const eventTypeIds = Object.keys(

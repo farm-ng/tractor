@@ -131,20 +131,25 @@ func (bus *EventBus) Start() {
 	select {}
 }
 
-func (bus *EventBus) SendEvent(e *pb.Event) {
-	event_bytes, err := proto.Marshal(e)
-	if err != nil {
-		log.Fatalln("Could not marshal event: ", e)
-	}
-
+// SendBytes sends a serialized event on the eventbus
+func (bus *EventBus) SendBytes(bytes []byte) {
 	bus.announcementsMutex.Lock()
 	for _, a := range bus.Announcements {
-		bus.sendConn.WriteTo(event_bytes, &net.UDPAddr{
-			IP:   []byte(a.Host),
+		bus.sendConn.WriteToUDP(bytes, &net.UDPAddr{
+			IP:   net.ParseIP(a.Host),
 			Port: int(a.Port),
 		})
 	}
 	bus.announcementsMutex.Unlock()
+}
+
+// SendEvent serializes an event, then sends it on the eventbus
+func (bus *EventBus) SendEvent(e *pb.Event) {
+	bytes, err := proto.Marshal(e)
+	if err != nil {
+		log.Fatalln("Could not marshal event: ", e)
+	}
+	bus.SendBytes(bytes)
 }
 
 func (bus *EventBus) announce() {

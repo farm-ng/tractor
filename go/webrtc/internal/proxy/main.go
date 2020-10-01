@@ -202,8 +202,8 @@ func (p *EventBusProxy) start() {
 	}
 }
 
-func (p *EventBusProxy) sendEvent(e *pb.Event) {
-	p.config.EventBus.SendEvent(e)
+func (p *EventBusProxy) sendBytes(bytes []byte) {
+	p.config.EventBus.SendBytes(bytes)
 }
 
 // Proxy proxies EventBus events to/from a webRTC data channel and RTP packets to a webRTC video channel.
@@ -321,14 +321,8 @@ func (p *Proxy) AddPeer(offer webrtc.SessionDescription) (*webrtc.SessionDescrip
 						log.Printf("[%s] Datachannel closed: %s\n", peerID, err)
 						break
 					}
-
-					event := &pb.Event{}
-					err = proto.Unmarshal(buffer[:n], event)
-					if err != nil {
-						log.Printf("[%s] Received invalid event on the data channel: %s\n", peerID, err)
-						continue
-					}
-					p.eventBusProxy.sendEvent(event)
+					// TODO: A major security hole
+					p.eventBusProxy.sendBytes(buffer[:n])
 				}
 				log.Printf("[%s] Ending datachannel->eventbus forwarding", peerID)
 

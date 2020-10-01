@@ -1,6 +1,6 @@
 /* eslint-disable no-console */
 import * as React from "react";
-import { Card, ListGroup } from "react-bootstrap";
+import { Card } from "react-bootstrap";
 import {
   SingleElementVisualizerProps,
   Visualizer,
@@ -13,8 +13,10 @@ import { formatValue } from "../../../utils/formatValue";
 import { EventTypeId } from "../../../registry/events";
 import { useEffect, useState } from "react";
 import { Layout } from "./Layout";
+import { JsonPopover } from "../../JsonPopover";
+import styles from "./ImageVisualizer.module.scss";
 
-const ImageElement: React.FC<SingleElementVisualizerProps<Image>> = ({
+export const ImageElement: React.FC<SingleElementVisualizerProps<Image>> = ({
   value: [timestamp, value],
   resources
 }) => {
@@ -35,16 +37,14 @@ const ImageElement: React.FC<SingleElementVisualizerProps<Image>> = ({
   }, [value, resources]);
 
   return (
-    <Card bg={"light"} className={"shadow-sm"}>
+    <Card bg={"light"} className={[styles.card, "shadow-sm"].join(" ")}>
       <Card.Body>
-        <ListGroup>
-          <ListGroup.Item>
-            <img src={imgSrc || undefined} />
-          </ListGroup.Item>
-          <ListGroup.Item>{formatValue(new Date(timestamp))}</ListGroup.Item>
-          <ListGroup.Item>{JSON.stringify(value)}</ListGroup.Item>
-        </ListGroup>
+        <img src={imgSrc || undefined} className={styles.image} />
       </Card.Body>
+      <Card.Footer className={styles.footer}>
+        <span className="text-muted">{formatValue(new Date(timestamp))}</span>
+        <JsonPopover json={value} />
+      </Card.Footer>
     </Card>
   );
 };

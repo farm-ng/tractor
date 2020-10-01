@@ -1,0 +1,15 @@
+.rigCalibration {
+  display: flex;
+  flex-direction: horizontal;
+  height: 600px;
+}
+
+.programLog {
+  font-family: monospace;
+  color: white;
+  background: #555555;
+}
+
+.selectedEntry {
+  background: #777777;
+}

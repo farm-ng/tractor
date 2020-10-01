@@ -18,7 +18,7 @@ import { drawAprilTagDetections } from "../../../utils/drawApriltagDetections";
 import { JsonPopover } from "../../JsonPopover";
 import { Layout } from "./Layout";
 
-const ApriltagDetectionsElement: React.FC<SingleElementVisualizerProps<
+export const ApriltagDetectionsElement: React.FC<SingleElementVisualizerProps<
   ApriltagDetections
 >> = ({ value: [timestamp, value], resources }) => {
   const [imgSrc, setImgSrc] = useState<string | null>(null);

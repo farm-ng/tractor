@@ -1,10 +1,11 @@
+/* eslint-disable no-console */
 import * as React from "react";
 import styles from "./Header.module.scss";
 import { Button, Col, Container, Form } from "react-bootstrap";
 import { useObserver } from "mobx-react-lite";
 import RangeSlider from "react-bootstrap-range-slider";
 import { useStores } from "../../hooks/useStores";
-import { ResourceArchive } from "../../models/ResourceArchive";
+import { TarResourceArchive } from "../../models/ResourceArchive";
 import { StreamingBuffer } from "../../models/StreamingBuffer";
 import { formatValue } from "../../utils/formatValue";
 import { Icon } from "../Icon";
@@ -23,9 +24,14 @@ export const Header: React.FC = () => {
     const eventTarget = e.target;
     const file = eventTarget.files?.[0];
     if (file) {
-      const resourceArchive = new ResourceArchive(file);
+      const resourceArchive = new TarResourceArchive(file);
       const fileInfo = await resourceArchive.getFileInfo();
-      const logFilePath = fileInfo.find((_) => _.endsWith(".log"));
+      // As a heuristic, find the shortest filename ending in .log
+      const logFilePath = fileInfo
+        .filter((_) => _.endsWith(".log"))
+        .sort((a, b) => a.length - b.length)[0];
+      console.log("Log file path: ", logFilePath);
+      console.log("Tarball contents: ", fileInfo);
       if (!logFilePath) {
         throw Error("No .log file in archive");
       }

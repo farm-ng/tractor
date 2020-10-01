@@ -3,7 +3,7 @@ import { decodeAnyEvent } from "./decodeAnyEvent";
 import { Event as BusAnyEvent } from "../../genproto/farm_ng_proto/tractor/v1/io";
 import { Buffer } from "../types/common";
 import { EventTypeId } from "../registry/events";
-import { ResourceArchive } from "./ResourceArchive";
+import { TarResourceArchive } from "./ResourceArchive";
 
 export class StreamingBuffer {
   public bufferStart: Date | null = null;
@@ -11,7 +11,7 @@ export class StreamingBuffer {
   public data: Buffer = {};
 
   public async loadFromLog(
-    resourceArchive: ResourceArchive,
+    resourceArchive: TarResourceArchive,
     logFilePath: string
   ): Promise<void> {
     const blob = await resourceArchive.getBlob(logFilePath);

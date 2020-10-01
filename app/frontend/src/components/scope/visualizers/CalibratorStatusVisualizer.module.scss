@@ -1,0 +1,15 @@
+.card {
+  min-height: 0;
+  flex-grow: 1;
+}
+
+.detailRow {
+  display: flex;
+  flex-direction: horizontal;
+}
+
+.footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}

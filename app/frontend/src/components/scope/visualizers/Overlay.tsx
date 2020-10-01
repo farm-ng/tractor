@@ -7,6 +7,8 @@ import {
   SingleElementVisualizerProps,
   VisualizerProps
 } from "../../../registry/visualization";
+import { Icon } from "../../Icon";
+import { Button } from "react-bootstrap";
 
 export interface IProps<T extends EventType> {
   element: React.FC<SingleElementVisualizerProps<T>>;
@@ -19,25 +21,46 @@ export const Overlay = <T extends EventType>(
   const { element: Component, values } = props;
 
   const [index, setIndex] = useState(0);
-  const value = values[index];
+  const [pinned, setPinned] = useState(true);
 
-  // An external change (e.g. to the throttle) made the current index invalid.
-  if (!value && values?.[0]) {
-    setIndex(0);
+  const value = pinned ? values[values.length - 1] : values[index];
+  if (!value) {
+    // An external change (e.g. to the throttle) made the current index invalid.
+    if (values[0]) {
+      setIndex(0);
+    }
     return null;
   }
 
+  const togglePinned = (): void => {
+    setPinned((prev) => {
+      if (prev) {
+        setIndex(values.length - 1);
+      }
+      return !prev;
+    });
+  };
+
   return (
     <div className={styles.overlay}>
-      <RangeSlider
-        className={styles.overlaySlider}
-        value={index}
-        onChange={(_, v) => setIndex(v)}
-        min={0}
-        max={values.length - 1}
-        step={1}
-        tooltip={"off"}
-      />
+      <div className={styles.overlayControls}>
+        <RangeSlider
+          className={styles.overlaySlider}
+          value={pinned ? values.length - 1 : index}
+          disabled={pinned}
+          onChange={(_, v) => setIndex(v)}
+          min={0}
+          max={values.length - 1}
+          step={1}
+          tooltip={"off"}
+        />
+        <Button
+          onClick={togglePinned}
+          variant={pinned ? "light" : "outline-light"}
+        >
+          <Icon id="chevronBarRight" />
+        </Button>
+      </div>
       <Component value={value} {...props} />
     </div>
   );

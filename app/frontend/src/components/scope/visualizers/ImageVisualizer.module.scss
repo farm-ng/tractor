@@ -1,0 +1,15 @@
+.card {
+  min-height: 0;
+  flex-grow: 1;
+
+  .footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+}
+
+.image {
+  max-height: 100%;
+  max-width: 100%;
+}

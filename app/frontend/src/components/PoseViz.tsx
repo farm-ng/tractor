@@ -13,6 +13,7 @@ type ReferenceFrameNode = {
   pose: NamedSE3Pose;
   children: ReferenceFrameNode[];
   parent?: ReferenceFrameNode;
+  textScale?: number;
 };
 
 const findFrameB = function (
@@ -32,9 +33,9 @@ const findFrameB = function (
   return undefined;
 };
 
-export const ReferenceFrameViz: React.FC<ReferenceFrameNode> = (state) => {
-  const position = toVector3(state.pose.aPoseB?.position);
-  const rotation = toQuaternion(state.pose.aPoseB?.rotation);
+export const ReferenceFrameViz: React.FC<ReferenceFrameNode> = (props) => {
+  const position = toVector3(props.pose.aPoseB?.position);
+  const rotation = toQuaternion(props.pose.aPoseB?.rotation);
   return (
     <group>
       <line>
@@ -47,12 +48,12 @@ export const ReferenceFrameViz: React.FC<ReferenceFrameNode> = (state) => {
       </line>
       <group position={position} quaternion={rotation}>
         <axesHelper>
-          <Html scaleFactor={10}>
-            <div>{state.pose.frameB}</div>
+          <Html scaleFactor={props.textScale || 1}>
+            <div>{props.pose.frameB}</div>
           </Html>
         </axesHelper>
-        {state.children.map((x: ReferenceFrameNode, item: number) => (
-          <ReferenceFrameViz {...x} key={item} />
+        {props.children.map((x: ReferenceFrameNode, item: number) => (
+          <ReferenceFrameViz {...x} textScale={10} key={item} />
         ))}
       </group>
     </group>
@@ -94,5 +95,5 @@ export const PoseViz: React.FC = () => {
     };
   }, [busEventEmitter]);
 
-  return <ReferenceFrameViz {...root} />;
+  return <ReferenceFrameViz {...root} textScale={10} />;
 };

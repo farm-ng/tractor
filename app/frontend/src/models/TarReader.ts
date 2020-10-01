@@ -1,3 +1,5 @@
+// TODO: Support common tarball extensions: UStar, PaxHeaders, etc.
+
 const filenameMaxLength = 1024;
 const fileSizeOffset = 124;
 const fileTypeOffset = 156;
@@ -115,7 +117,6 @@ export class TarReader {
     const { buffer, fileInfo } = await this.data;
     const info = fileInfo.find((_) => fileName === normalizeTarPath(_.name));
     if (!info) {
-      console.log(fileName, fileInfo);
       return Promise.reject(`${fileName} not found in tar directory`);
     }
     return readFileBlob(

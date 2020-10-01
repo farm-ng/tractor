@@ -1,11 +1,12 @@
 /* eslint-disable no-console */
 import { Event as BusEvent } from "../../genproto/farm_ng_proto/tractor/v1/io";
+import { BusClient } from "./BusClient";
 import { BusEventEmitter } from "./BusEventEmitter";
 import { MediaStreamEmitter } from "./MediaStreamEmitter";
 
 export function getWebRTCEmitters(
   endpoint: string
-): [BusEventEmitter, MediaStreamEmitter] {
+): [BusEventEmitter, MediaStreamEmitter, BusClient] {
   const busEventEmitter = new BusEventEmitter();
   const mediaStreamEmitter = new MediaStreamEmitter();
   const pc = new RTCPeerConnection({
@@ -60,10 +61,11 @@ export function getWebRTCEmitters(
     const event = BusEvent.decode(new Uint8Array(msg.data));
     busEventEmitter.emit(event);
   };
+  const busClient = new BusClient(dataChannel);
 
   pc.createOffer()
     .then((d) => pc.setLocalDescription(d))
     .catch((e) => console.error(e));
 
-  return [busEventEmitter, mediaStreamEmitter];
+  return [busEventEmitter, mediaStreamEmitter, busClient];
 }
