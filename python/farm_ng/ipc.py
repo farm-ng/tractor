@@ -7,12 +7,12 @@ import struct
 import sys
 import time
 
-import farm_ng.proto_utils  # noqa: F401
-from farm_ng.periodic import Periodic
-from farm_ng_proto.tractor.v1.io_pb2 import Announce
-from farm_ng_proto.tractor.v1.io_pb2 import Event
+from farm_ng_proto.tractor.v1.io_pb2 import Announce, Event
 from google.protobuf.text_format import MessageToString
 from google.protobuf.timestamp_pb2 import Timestamp
+
+import farm_ng.proto_utils  # noqa: F401
+from farm_ng.periodic import Periodic
 
 # loads all the protos for pretty print of any
 
@@ -71,6 +71,13 @@ class AnnounceQueue:
         self._event_bus._remove_announce_queue(self._queue)
 
 
+async def _event_bus_recver(event_bus, callback):
+    with EventBusQueue(event_bus) as event_queue:
+        while True:
+            event = await event_queue.get()
+            callback(event)
+
+
 class EventBus:
     def __init__(self, name, recv_raw=False):
         if name is None:
@@ -85,6 +92,7 @@ class EventBus:
         self._connect_recv_sock()
         self._connect_send_sock()
         loop = asyncio.get_event_loop()
+        self._loop = loop
         self._periodic_listen = Periodic(2, loop, self._listen_for_services)
         self._periodic_announce = Periodic(1, loop, self._announce_service)
         self._services = dict()
@@ -116,6 +124,12 @@ class EventBus:
         queue = asyncio.Queue()
         self._announce_subscribers.add(queue)
         return queue
+
+    def event_loop(self):
+        return self._loop
+
+    def add_event_callback(self, callback):
+        return self._loop.create_task(_event_bus_recver(self, callback))
 
     def _remove_announce_queue(self, queue):
         self._announce_subscribers.remove(queue)

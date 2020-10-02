@@ -4,11 +4,11 @@ import sys
 import time
 
 import numpy as np
-from farm_ng.ipc import get_event_bus
-from farm_ng.ipc import make_event
+from farm_ng_proto.tractor.v1.steering_pb2 import SteeringCommand
+
+from farm_ng.ipc import get_event_bus, make_event
 from farm_ng.joystick import MaybeJoystick
 from farm_ng.periodic import Periodic
-from farm_ng_proto.tractor.v1.steering_pb2 import SteeringCommand
 
 logger = logging.getLogger('steering')
 logger.setLevel(logging.INFO)
@@ -18,7 +18,7 @@ _g_message_name = 'steering'
 
 
 class SteeringClient:
-    def __init__(self):
+    def __init__(self, event_bus):
         self._latest_command = SteeringCommand()
         self._stop_command = SteeringCommand()
         self._stop_command.deadman = 0.0
@@ -26,9 +26,10 @@ class SteeringClient:
         self._stop_command.velocity = 0.0
         self._stop_command.angular_velocity = 0.0
         self.lockout = True
+        self._event_bus = event_bus
 
     def get_steering_command(self):
-        event = get_event_bus('farm_ng.steering').get_last_event(_g_message_name)
+        event = self._event_bus.get_last_event(_g_message_name)
         if event is None:
             self.lockout = True
             return self._stop_command
@@ -63,9 +64,15 @@ class SteeringSenderJoystick:
         # rate of angular velocity that occurs when nudging the tractor left/right with dpad left/right arrows
         self._delta_angular_vel = np.pi/8
 
+        self._speed_gamma = 2.5
+        self._angular_speed_gamma = 2.5
+
+        self._velocity_max = 1.5  # meters/second
+        self._angular_velocity_max = np.pi/2.0  # radians/second
+
         # maximum acceleration for manual steering and motion primitives
-        self._max_acc = 1.5/self.rate_hz  # m/s^2
-        self._max_angular_acc = np.pi/(4*self.rate_hz)
+        self._max_acc = 2.5/self.rate_hz  # m/s^2
+        self._max_angular_acc = np.pi/self.rate_hz
         # The target speed, used for smoothing out the commanded velocity to respect the max_acc limit
         self._target_speed = 0.0
         self._target_angular_velocity = 0.0
@@ -74,6 +81,7 @@ class SteeringSenderJoystick:
         self.joystick.set_button_callback(self.on_button)
         self._periodic = Periodic(self.period, loop, self.send)
         self._command = SteeringCommand()
+        self.stop()
 
         # indexing state machine variables
         # ammount of time spent moving during indexing, if None, will move forever
@@ -91,10 +99,16 @@ class SteeringSenderJoystick:
         # When stopping started
         self._stopping_start_time = None
 
+    def _start_servo(self):
+        self._command.mode = SteeringCommand.MODE_SERVO
+        self._command.brake = 0.0
+        self._command.deadman = 0.0
+
     def start_motion_primitive(self):
         self._executing_motion_primitive = True
         self._command.brake = 0.0
         self._command.deadman = 0.0
+        self._command.mode = SteeringCommand.MODE_JOYSTICK_CRUISE_CONTROL
 
     def stop(self):
         self._command.velocity = 0.0
@@ -103,12 +117,16 @@ class SteeringSenderJoystick:
         self._target_speed = 0.0
         self._target_angular_velocity = 0.0
         self._command.deadman = 0.0
+        self._command.mode = SteeringCommand.MODE_JOYSTICK_MANUAL
         self._indexing = False
         self._executing_motion_primitive = False
 
     def on_button(self, button, value):
         if button == 'touch' and value:
             self.stop()
+
+        if button == 'options' and value:
+            self._start_servo()
 
         if button == 'cross' and value:
             # Pressing cross causes the indexing behavor to toggle on/off.
@@ -199,7 +217,7 @@ class SteeringSenderJoystick:
                 if self._stopping_duration is not None and (time.time() - self._stopping_start_time) > self._stopping_duration:
                     self.enter_indexing_state('moving')
 
-        if not self._executing_motion_primitive:
+        if self._command.mode == SteeringCommand.MODE_JOYSTICK_MANUAL:
             if not self.joystick.get_button_state('L2', False) or not self.joystick.is_connected() or n_periods > self.rate_hz/4:
                 self.stop()
             else:
@@ -207,12 +225,9 @@ class SteeringSenderJoystick:
                 self._command.brake = 0.0
 
                 velocity = np.clip(-self.joystick.get_axis_state('y', 0), -1.0, 1.0)
-                if abs(velocity) < 0.5:
-                    velocity = velocity/4.0
-                if abs(velocity) >= 0.5:
-                    velocity = np.sign(velocity) * (0.5/4 + (abs(velocity) - 0.5)*2)
-                self._target_speed = velocity
-                self._target_angular_velocity = np.clip(-self.joystick.get_axis_state('z', 0), -1.0, 1.0)*np.pi/3.0
+                self._target_speed = np.sign(velocity)*abs(velocity)**(self._speed_gamma)*self._velocity_max
+                angular_velocity = np.clip(-self.joystick.get_axis_state('z', 0), -1.0, 1.0)
+                self._target_angular_velocity = (np.sign(angular_velocity)*abs(angular_velocity)**(self._angular_speed_gamma))*self._angular_velocity_max
 
         self._command.velocity += np.clip((self._target_speed - self._command.velocity), -self._max_acc, self._max_acc)
         self._command.angular_velocity += np.clip(

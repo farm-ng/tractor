@@ -351,24 +351,6 @@ Sophus::SE3d ApriltagPoseToSE3d(const apriltag_pose_t& pose) {
       Map33RowMajor(pose.R->data),
       Eigen::Vector3d(pose.t->data[0], pose.t->data[1], pose.t->data[2]));
 }
-EventPb GenerateExtrinsicPoseEvent() {
-  NamedSE3Pose base_pose_t265;
-  base_pose_t265.set_frame_a("odometry/wheel");
-  base_pose_t265.set_frame_b("tracking_camera/front/left");
-  Sophus::SE3d se3(Sophus::SE3d::rotZ(-M_PI / 2.0));
-  se3 = se3 * Sophus::SE3d::rotX(M_PI / 2.0);
-  se3 = se3 * Sophus::SE3d::rotY(M_PI);
-  // se3 = se3 * Sophus::SE3d::rotZ(M_PI);
-  se3.translation().x() = -1.0;
-  se3.translation().z() = 1.0;
-  // for good diagram of t265:
-  // https://github.com/IntelRealSense/librealsense/blob/development/doc/t265.md
-
-  SophusToProto(se3, base_pose_t265.mutable_a_pose_b());
-  EventPb event =
-      farm_ng::MakeEvent("pose/extrinsic_calibrator", base_pose_t265);
-  return event;
-}
 
 // https://github.com/IntelRealSense/librealsense/blob/master/examples/pose-apriltag/rs-pose-apriltag.cpp
 // Note this function mutates detection, by undistorting the points and
@@ -418,7 +400,7 @@ class ApriltagDetector {
     tag36h11_destroy(tag_family_);
   }
 
-  ApriltagDetections Detect(cv::Mat gray) {
+  ApriltagDetections Detect(cv::Mat gray, google::protobuf::Timestamp stamp) {
     CHECK_EQ(gray.channels(), 1);
     CHECK_EQ(gray.type(), CV_8UC1);
 
@@ -459,12 +441,13 @@ class ApriltagDetector {
       if (pose) {
         auto* named_pose = detection->mutable_pose();
         SophusToProto(*pose, named_pose->mutable_a_pose_b());
+        named_pose->mutable_a_pose_b()->mutable_stamp()->CopyFrom(stamp);
         named_pose->set_frame_a("tracking_camera/front/left");
         named_pose->set_frame_b("tag/" + std::to_string(det->id));
         if (event_bus_) {
           event_bus_->Send(MakeEvent(
               "pose/tracking_camera/front/left/tag/" + std::to_string(det->id),
-              *named_pose));
+              *named_pose, stamp));
         }
       }
     }
@@ -695,7 +678,7 @@ class TrackingCameraClient {
             // io_service_.run();
             cv::Mat frame_0 = RS2FrameToMat(fisheye_frame);
 
-            auto apriltags = detector_->Detect(frame_0);
+            auto apriltags = detector_->Detect(frame_0, stamp);
 
             if (latest_command_.has_record_start() &&
                 latest_command_.record_start().mode() ==
@@ -717,7 +700,6 @@ class TrackingCameraClient {
 
             event_bus_.Send(farm_ng::MakeEvent(
                 "tracking_camera/front/apriltags", apriltags, stamp));
-            event_bus_.Send(GenerateExtrinsicPoseEvent());
             // signal that we're done detecting, so can post another frame for
             // detection.
             std::lock_guard<std::mutex> lock(mtx_realsense_state_);
