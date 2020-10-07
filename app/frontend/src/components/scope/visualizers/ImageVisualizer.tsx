@@ -29,7 +29,6 @@ export const ImageElement: React.FC<SingleElementVisualizerProps<Image>> = ({
   useEffect(() => {
     if (value && videoRef.current) {
       const currentTime = (value.frameNumber || 0) / (value.fps || 1);
-      console.log({ currentTime });
       videoRef.current.currentTime = currentTime;
     }
   }, [value, videoRef]);
