@@ -603,6 +603,8 @@ class VideoFileWriter {
     }
   }
 
+  void Close() { writer_.reset(); }
+
  private:
   EventBus& bus_;
   Image image_pb_;
@@ -709,6 +711,7 @@ class TrackingCameraClient {
 
   void record_every_frame(cv::Mat image, google::protobuf::Timestamp stamp) {
     if (!latest_command_.has_record_start()) {
+      frame_video_writer_->Close();
       return;
     }
     if (latest_command_.record_start().mode() !=
