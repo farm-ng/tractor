@@ -17,8 +17,7 @@ import { CaptureCalibrationDatasetResult } from "../../../../genproto/farm_ng_pr
 import { CalibrateApriltagRigResult } from "../../../../genproto/farm_ng_proto/tractor/v1/calibrate_apriltag_rig";
 import { CaptureCalibrationDatasetResultElement } from "./CaptureCalibrationDatasetResult";
 import { CalibrateApriltagRigResultElement } from "./CalibrateApriltagRigResult";
-import { ViewInitializationTable } from "./ViewInitializationTable";
-import { CalibrationParameterTable } from "./CalibrationParameterTable";
+import { BaseToCameraInitializationTable } from "./BaseToCameraInitializationTable";
 
 export const CalibrateBaseToCameraConfigurationElement: React.FC<SingleElementVisualizerProps<
   CalibrateBaseToCameraConfiguration
@@ -36,29 +35,16 @@ export const CalibrateBaseToCameraConfigurationElement: React.FC<SingleElementVi
     value.apriltagRigResult,
     resources || undefined
   );
-  const {
-    wheelBaseline,
-    wheelRadius,
-    basePoseCameraInitialization,
-    name
-  } = value;
+  const { initialization, name } = value;
 
   return (
     <Card timestamp={timestamp} json={value}>
       <Card title="Summary">
         <KeyValueTable records={[["Name", name]]} />
       </Card>
-      {basePoseCameraInitialization && (
+      {initialization && (
         <Card title="base_pose_camera Initialization">
-          <ViewInitializationTable view={basePoseCameraInitialization} />
-        </Card>
-      )}
-      {wheelBaseline && wheelRadius && (
-        <Card title="Other Calibration Parameters">
-          <CalibrationParameterTable
-            labels={["Wheel Baseline", "Wheel Radius"]}
-            parameters={[wheelBaseline, wheelRadius]}
-          />
+          <BaseToCameraInitializationTable value={initialization} />
         </Card>
       )}
       {calibrationDataset && (
