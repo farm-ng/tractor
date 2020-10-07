@@ -1,6 +1,7 @@
 import { CaptureCalibrationDataset } from "../components/programs/CaptureCalibrationDataset";
 import { CalibrateApriltagRig } from "../components/programs/CalibrateApriltagRig";
 import { CalibrateBaseToCamera } from "../components/programs/CalibrateBaseToCamera";
+import { CaptureVideoDataset } from "../components/programs/CaptureVideoDataset";
 
 export interface ProgramUI {
   programIds: readonly string[];
@@ -8,6 +9,7 @@ export interface ProgramUI {
 }
 
 export const programRegistry: { [k: string]: ProgramUI } = {
+  [CaptureVideoDataset.id]: new CaptureVideoDataset() as ProgramUI,
   [CaptureCalibrationDataset.id]: new CaptureCalibrationDataset() as ProgramUI,
   [CalibrateApriltagRig.id]: new CalibrateApriltagRig() as ProgramUI,
   [CalibrateBaseToCamera.id]: new CalibrateBaseToCamera() as ProgramUI
