@@ -61,8 +61,6 @@ class CaptureVideoDatasetProgram {
     try {
       bus_.get_io_service().run();
     } catch (std::exception& e) {
-      Cleanup(bus_);
-
       CaptureVideoDatasetResult result;
       result.mutable_configuration()->CopyFrom(configuration_);
       result.set_num_frames(status_.num_frames());
@@ -78,8 +76,6 @@ class CaptureVideoDatasetProgram {
       LOG(INFO) << "Complete:\n" << status_.DebugString();
       send_status();
       return 0;
-    } catch (...) {
-      throw;
     }
     return 1;
   }
