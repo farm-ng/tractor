@@ -104,7 +104,6 @@ class CaptureVideoDatasetProgram {
 
     status_.set_num_frames(status_.num_frames() + 1);
 
-    send_status();
     return true;
   }
 
