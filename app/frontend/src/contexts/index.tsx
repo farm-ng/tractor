@@ -7,11 +7,11 @@ import { ProgramsStore } from "../stores/ProgramsStore";
 import { HttpResourceArchive } from "../models/ResourceArchive";
 
 const [busEventEmitter, mediaStreamEmitter, busClient] = getWebRTCEmitters(
-  `http://${window.location.hostname}:8081/twirp/farm_ng_proto.tractor.v1.WebRTCProxyService/InitiatePeerConnection`
+  `http://${window.location.host}/twirp/farm_ng_proto.tractor.v1.WebRTCProxyService/InitiatePeerConnection`
 );
 
 const httpResourceArchive = new HttpResourceArchive(
-  `http://${window.location.hostname}:8081/blobstore`
+  `http://${window.location.host}/blobstore`
 );
 
 export const storesContext = React.createContext({
