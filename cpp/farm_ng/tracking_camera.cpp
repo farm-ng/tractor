@@ -710,25 +710,10 @@ class TrackingCameraClient {
   }
 
   void record_every_frame(cv::Mat image, google::protobuf::Timestamp stamp) {
-    if (!latest_command_.has_record_start()) {
-      frame_video_writer_->Close();
-      return;
-    }
-    if (latest_command_.record_start().mode() !=
-        TrackingCameraCommand::RecordStart::MODE_EVERY_FRAME) {
-      return;
-    }
     frame_video_writer_->AddFrame(image, stamp);
   }
 
   void detect_apriltags(cv::Mat image, google::protobuf::Timestamp stamp) {
-    if (!latest_command_.has_record_start()) {
-      return;
-    }
-    if (latest_command_.record_start().mode() !=
-        TrackingCameraCommand::RecordStart::MODE_APRILTAG_STABLE) {
-      return;
-    }
     auto apriltags = detector_->Detect(image);
 
     if (tag_filter_.AddApriltags(apriltags)) {
@@ -775,11 +760,27 @@ class TrackingCameraClient {
 
         // schedule april tag detection, do it as frequently as possible.
         io_service_.post([this, fisheye_frame, stamp] {
+          if (!latest_command_.has_record_start()) {
+            // Close may be called regardless of state.  If we were recording,
+            // it closes the video file on the last chunk.
+            frame_video_writer_->Close();
+            return;
+          }
+
           // note this function is called later, in main thread, via
           // io_service_.run();
           cv::Mat frame_0 = RS2FrameToMat(fisheye_frame);
-          record_every_frame(frame_0, stamp);
-          detect_apriltags(frame_0, stamp);
+          switch (latest_command_.record_start().mode()) {
+            case TrackingCameraCommand::RecordStart::MODE_EVERY_FRAME:
+              record_every_frame(frame_0, stamp);
+              break;
+            case TrackingCameraCommand::RecordStart::MODE_APRILTAG_STABLE:
+              detect_apriltags(frame_0, stamp);
+              break;
+            default:
+              break;
+          }
+
           // signal that we're done detecting, so can post another frame for
           // detection.
           std::lock_guard<std::mutex> lock(mtx_realsense_state_);
@@ -801,7 +802,7 @@ class TrackingCameraClient {
                                          ToPoseFrame(pose_frame)));
       event_bus_.Send(ToNamedPoseEvent(pose_frame));
      }*/
-  }
+  }  // namespace farm_ng
   boost::asio::io_service& io_service_;
   EventBus& event_bus_;
   std::unique_ptr<cv::VideoWriter> writer_;
