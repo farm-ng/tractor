@@ -42,3 +42,7 @@ systemctl enable tractor-camera.service
 systemctl enable tractor-camera.path
 systemctl enable tractor-webservices.service
 systemctl enable tractor-webservices.path
+systemctl enable tractor-logger.service
+systemctl enable tractor-logger.path
+systemctl enable tractor-programd.service
+systemctl enable tractor-programd.path
