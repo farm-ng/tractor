@@ -26,6 +26,9 @@ target_link_libraries(tracking_camera farm-ng-ipc farm-ng-protobuf apriltag::apr
 add_executable(capture_calibration_dataset capture_calibration_dataset.cpp)
 target_link_libraries(capture_calibration_dataset farm-ng-ipc farm-ng-protobuf gflags)
 
+add_executable(capture_video_dataset capture_video_dataset.cpp)
+target_link_libraries(capture_video_dataset farm-ng-ipc farm-ng-protobuf gflags)
+
 add_executable(calibrate_apriltag_rig calibrate_apriltag_rig.cpp)
 target_link_libraries(calibrate_apriltag_rig farm-ng-ipc farm-ng-calibration farm-ng-protobuf gflags)
 

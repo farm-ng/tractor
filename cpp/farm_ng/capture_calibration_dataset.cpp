@@ -11,6 +11,7 @@
 
 #include "farm_ng_proto/tractor/v1/apriltag.pb.h"
 #include "farm_ng_proto/tractor/v1/capture_calibration_dataset.pb.h"
+#include "farm_ng_proto/tractor/v1/tracking_camera.pb.h"
 
 DEFINE_bool(interactive, false, "receive program args via eventbus");
 DEFINE_string(name, "default",
@@ -22,6 +23,7 @@ using farm_ng_proto::tractor::v1::ApriltagDetections;
 using farm_ng_proto::tractor::v1::CaptureCalibrationDatasetConfiguration;
 using farm_ng_proto::tractor::v1::CaptureCalibrationDatasetResult;
 using farm_ng_proto::tractor::v1::CaptureCalibrationDatasetStatus;
+using farm_ng_proto::tractor::v1::TrackingCameraCommand;
 
 namespace farm_ng {
 class CaptureCalibrationDatasetProgram {
@@ -48,7 +50,8 @@ class CaptureCalibrationDatasetProgram {
 
     WaitForServices(bus_, {"ipc_logger", "tracking_camera"});
     LoggingStatus log = StartLogging(bus_, configuration_.name());
-    RequestStartCapturing(bus_);
+    RequestStartCapturing(
+        bus_, TrackingCameraCommand::RecordStart::MODE_APRILTAG_STABLE);
 
     while (status_.num_frames() < configuration_.num_frames()) {
       bus_.get_io_service().run_one();

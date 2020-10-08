@@ -28,6 +28,7 @@ sudo apt-get install -y \
      apt-transport-https \
      build-essential \
      ca-certificates \
+     clang \
      cmake \
      curl \
      dirmngr \

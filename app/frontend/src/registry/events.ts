@@ -41,6 +41,11 @@ import {
   CaptureCalibrationDatasetStatus
 } from "../../genproto/farm_ng_proto/tractor/v1/capture_calibration_dataset";
 import {
+  CaptureVideoDatasetConfiguration,
+  CaptureVideoDatasetResult,
+  CaptureVideoDatasetStatus
+} from "../../genproto/farm_ng_proto/tractor/v1/capture_video_dataset";
+import {
   CalibrateApriltagRigConfiguration,
   CalibrateApriltagRigResult,
   CalibrateApriltagRigStatus
@@ -79,6 +84,9 @@ export type EventType =
   | CaptureCalibrationDatasetConfiguration
   | CaptureCalibrationDatasetStatus
   | CaptureCalibrationDatasetResult
+  | CaptureVideoDatasetConfiguration
+  | CaptureVideoDatasetStatus
+  | CaptureVideoDatasetResult
   | CalibrateApriltagRigConfiguration
   | CalibrateApriltagRigStatus
   | CalibrateApriltagRigResult
@@ -120,6 +128,10 @@ export const eventRegistry = inferKeys({
   "type.googleapis.com/farm_ng_proto.tractor.v1.CaptureCalibrationDatasetConfiguration": CaptureCalibrationDatasetConfiguration,
   "type.googleapis.com/farm_ng_proto.tractor.v1.CaptureCalibrationDatasetStatus": CaptureCalibrationDatasetStatus,
   "type.googleapis.com/farm_ng_proto.tractor.v1.CaptureCalibrationDatasetResult": CaptureCalibrationDatasetResult,
+  "type.googleapis.com/farm_ng_proto.tractor.v1.CaptureVideoDatasetConfiguration": CaptureVideoDatasetConfiguration,
+  "type.googleapis.com/farm_ng_proto.tractor.v1.CaptureVideoDatasetStatus": CaptureVideoDatasetStatus,
+  "type.googleapis.com/farm_ng_proto.tractor.v1.CaptureVideoDatasetResult": CaptureVideoDatasetResult,
+
   "type.googleapis.com/farm_ng_proto.tractor.v1.CalibrateApriltagRigConfiguration": CalibrateApriltagRigConfiguration,
   "type.googleapis.com/farm_ng_proto.tractor.v1.CalibrateApriltagRigStatus": CalibrateApriltagRigStatus,
   "type.googleapis.com/farm_ng_proto.tractor.v1.CalibrateApriltagRigResult": CalibrateApriltagRigResult,

@@ -17,7 +17,7 @@ bootstrap:
 cpp:
 	make protos
 	mkdir -p build
-	cd build && rm -rf ./* && cmake -DCMAKE_PREFIX_PATH=$(pwd)/../env -DCMAKE_BUILD_TYPE=Release .. && make -j$(nproc --ignore=1)
+	cd build && rm -rf ./* && cmake -DCMAKE_PREFIX_PATH=`pwd`/../env -DCMAKE_BUILD_TYPE=Release .. && make -j`nproc --ignore=1`
 
 frontend:
 	cd app/frontend && yarn && yarn build

@@ -7,6 +7,7 @@ set(PROTO_FILES
   ./farm_ng_proto/tractor/v1/calibrator.proto
   ./farm_ng_proto/tractor/v1/camera_model.proto
   ./farm_ng_proto/tractor/v1/capture_calibration_dataset.proto
+  ./farm_ng_proto/tractor/v1/capture_video_dataset.proto
   ./farm_ng_proto/tractor/v1/calibrate_apriltag_rig.proto
 
   ./farm_ng_proto/tractor/v1/geometry.proto

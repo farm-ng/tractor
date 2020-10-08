@@ -26,6 +26,7 @@
 
 typedef farm_ng_proto::tractor::v1::Event EventPb;
 
+using farm_ng_proto::tractor::v1::Image;
 using farm_ng_proto::tractor::v1::NamedSE3Pose;
 using farm_ng_proto::tractor::v1::Vec2;
 
@@ -39,6 +40,12 @@ using farm_ng_proto::tractor::v1::TrackingCameraPoseFrame;
 DEFINE_bool(jetson, false, "Use jetson hardware encoding.");
 
 namespace farm_ng {
+
+struct ScopeGuard {
+  ScopeGuard(std::function<void()> function) : function_(std::move(function)) {}
+  ~ScopeGuard() { function_(); }
+  std::function<void()> function_;
+};
 
 // Convert rs2::frame to cv::Mat
 // https://raw.githubusercontent.com/IntelRealSense/librealsense/master/wrappers/opencv/cv-helpers.hpp
@@ -402,11 +409,8 @@ class ApriltagDetector {
   // see
   // https://github.com/AprilRobotics/apriltag/blob/master/example/opencv_demo.cc
  public:
-  ApriltagDetector(rs2_intrinsics intrinsics, EventBus* event_bus = nullptr)
-      : event_bus_(event_bus), intrinsics_(intrinsics) {
-    SetCameraModelFromRs(&camera_model_, intrinsics_);
-    camera_model_.set_frame_name(
-        "tracking_camera/front/left");  // TODO Pass in constructor.
+  ApriltagDetector(CameraModel camera_model, EventBus* event_bus = nullptr)
+      : event_bus_(event_bus), camera_model_(camera_model) {
     tag_family_ = tag36h11_create();
     tag_detector_ = apriltag_detector_create();
     apriltag_detector_add_family(tag_detector_, tag_family_);
@@ -563,6 +567,57 @@ class ApriltagsFilter {
   bool once_;
 };
 
+class VideoFileWriter {
+ public:
+  VideoFileWriter(EventBus& bus, CameraModel camera_model) : bus_(bus) {
+    image_pb_.mutable_camera_model()->CopyFrom(camera_model);
+    image_pb_.mutable_fps()->set_value(30);
+    image_pb_.mutable_frame_number()->set_value(0);
+  }
+
+  void ResetVideoWriter() {
+    std::string encoder_x264(" x264enc ! ");
+    std::string encoder_omxh264(" omxh264enc bitrate=10000000 ! ");
+
+    auto resource_path = GetUniqueArchiveResource(
+        image_pb_.camera_model().frame_name(), "mp4", "video/mp4");
+    writer_ = std::make_shared<cv::VideoWriter>(
+        std::string("appsrc !") + " videoconvert ! " +
+            (FLAGS_jetson ? encoder_omxh264 : encoder_x264) +
+            " mp4mux ! filesink location=" + resource_path.second.string(),
+        0,                        // fourcc
+        image_pb_.fps().value(),  // fps
+        cv::Size(image_pb_.camera_model().image_width(),
+                 image_pb_.camera_model().image_height()),
+        false  // isColor
+    );
+    image_pb_.mutable_resource()->CopyFrom(resource_path.first);
+    image_pb_.mutable_frame_number()->set_value(0);
+  }
+  void AddFrame(cv::Mat image, google::protobuf::Timestamp stamp) {
+    if (!writer_) {
+      ResetVideoWriter();
+    }
+    writer_->write(image);
+    image_pb_.mutable_frame_number()->set_value(
+        image_pb_.frame_number().value() + 1);
+    bus_.Send(MakeEvent(image_pb_.camera_model().frame_name() + "/image",
+                        image_pb_, stamp));
+
+    if (image_pb_.frame_number().value() >= k_max_frames_) {
+      writer_.reset();
+    }
+  }
+
+  void Close() { writer_.reset(); }
+
+ private:
+  EventBus& bus_;
+  Image image_pb_;
+  std::shared_ptr<cv::VideoWriter> writer_;
+  const uint k_max_frames_ = 300;
+};
+
 class TrackingCameraClient {
  public:
   TrackingCameraClient(EventBus& bus)
@@ -622,21 +677,13 @@ class TrackingCameraClient {
     auto fisheye_intrinsics =
         fisheye_stream.as<rs2::video_stream_profile>().get_intrinsics();
 
-    detector_.reset(new ApriltagDetector(fisheye_intrinsics, &event_bus_));
-    LOG(INFO) << " intrinsics model: "
-              << rs2_distortion_to_string(fisheye_intrinsics.model)
-              << " width=" << fisheye_intrinsics.width
-              << " height=" << fisheye_intrinsics.height
-              << " ppx=" << fisheye_intrinsics.ppx
-              << " ppx=" << fisheye_intrinsics.ppy
-              << " fx=" << fisheye_intrinsics.fx
-              << " fy=" << fisheye_intrinsics.fy
-              << " coeffs=" << fisheye_intrinsics.coeffs[0] << ", "
-              << fisheye_intrinsics.coeffs[1] << ", "
-              << fisheye_intrinsics.coeffs[2] << ", "
-              << fisheye_intrinsics.coeffs[3] << ", "
-              << fisheye_intrinsics.coeffs[4];
-
+    SetCameraModelFromRs(&left_camera_model_, fisheye_intrinsics);
+    left_camera_model_.set_frame_name(
+        "tracking_camera/front/left");  // TODO Pass in constructor.
+    detector_.reset(new ApriltagDetector(left_camera_model_, &event_bus_));
+    LOG(INFO) << " intrinsics model: " << left_camera_model_.ShortDebugString();
+    frame_video_writer_ =
+        std::make_unique<VideoFileWriter>(event_bus_, left_camera_model_);
     // setting options for slam:
     // https://github.com/IntelRealSense/librealsense/issues/1011
     // and what to set:
@@ -668,6 +715,31 @@ class TrackingCameraClient {
     }
   }
 
+  void record_every_frame(cv::Mat image, google::protobuf::Timestamp stamp) {
+    frame_video_writer_->AddFrame(image, stamp);
+  }
+
+  void detect_apriltags(cv::Mat image, google::protobuf::Timestamp stamp) {
+    auto apriltags = detector_->Detect(image);
+
+    if (tag_filter_.AddApriltags(apriltags)) {
+      auto resource_path = GetUniqueArchiveResource(
+          "tracking_camera_left_apriltag", "png", "image/png");
+      apriltags.mutable_image()->mutable_resource()->CopyFrom(
+          resource_path.first);
+
+      LOG(INFO) << "Writing to : " << resource_path.second;
+      CHECK(cv::imwrite(resource_path.second.string(), image))
+          << "Failed to write image to: " << resource_path.second;
+
+      event_bus_.Send(farm_ng::MakeEvent(
+          "calibrator/tracking_camera/front/apriltags", apriltags, stamp));
+    }
+
+    event_bus_.Send(farm_ng::MakeEvent("tracking_camera/front/apriltags",
+                                       apriltags, stamp));
+  }
+
   // The callback is executed on a sensor thread and can be called
   // simultaneously from multiple sensors Therefore any modification to common
   // memory should be done under lock
@@ -684,49 +756,42 @@ class TrackingCameraClient {
       count_ = (count_ + 1) % 3;
       if (count_ == 0) {
         writer_->write(frame_0);
-        // we only want to schedule detection if we're not currently
-        // detecting.  Apriltag detection takes >30ms on the nano.
-        if (!detection_in_progress_) {
-          detection_in_progress_ = true;
-          auto stamp =
-              google::protobuf::util::TimeUtil::MillisecondsToTimestamp(
-                  fisheye_frame.get_timestamp());
+      }
+      // we only want to schedule detection if we're not currently
+      // detecting.  Apriltag detection takes >30ms on the nano.
+      if (!detection_in_progress_) {
+        detection_in_progress_ = true;
+        auto guard = std::make_shared<ScopeGuard>([this] {
+          // signal that we're done detecting, so can post another frame for
+          // detection.
+          std::lock_guard<std::mutex> lock(mtx_realsense_state_);
+          detection_in_progress_ = false;
+        });
+        auto stamp = google::protobuf::util::TimeUtil::MillisecondsToTimestamp(
+            fisheye_frame.get_timestamp());
 
-          // schedule april tag detection, do it as frequently as possible.
-          io_service_.post([this, fisheye_frame, stamp] {
-            // note this function is called later, in main thread, via
-            // io_service_.run();
-            cv::Mat frame_0 = RS2FrameToMat(fisheye_frame);
-
-            auto apriltags = detector_->Detect(frame_0);
-
-            if (latest_command_.has_record_start() &&
-                latest_command_.record_start().mode() ==
-                    TrackingCameraCommand::RecordStart::MODE_APRILTAG_STABLE &&
-                tag_filter_.AddApriltags(apriltags)) {
-              auto resource_path = GetUniqueArchiveResource(
-                  "tracking_camera_left_apriltag", "png", "image/png");
-              apriltags.mutable_image()->mutable_resource()->CopyFrom(
-                  resource_path.first);
-
-              LOG(INFO) << "Writing to : " << resource_path.second;
-              CHECK(cv::imwrite(resource_path.second.string(), frame_0))
-                  << "Failed to write image to: " << resource_path.second;
-
-              event_bus_.Send(farm_ng::MakeEvent(
-                  "calibrator/tracking_camera/front/apriltags", apriltags,
-                  stamp));
-            }
-
-            event_bus_.Send(farm_ng::MakeEvent(
-                "tracking_camera/front/apriltags", apriltags, stamp));
-            event_bus_.Send(GenerateExtrinsicPoseEvent());
-            // signal that we're done detecting, so can post another frame for
-            // detection.
-            std::lock_guard<std::mutex> lock(mtx_realsense_state_);
-            detection_in_progress_ = false;
-          });
-        }
+        // schedule april tag detection, do it as frequently as possible.
+        io_service_.post([this, fisheye_frame, stamp, guard] {
+          if (!latest_command_.has_record_start()) {
+            // Close may be called regardless of state.  If we were recording,
+            // it closes the video file on the last chunk.
+            frame_video_writer_->Close();
+            return;
+          }
+          // note this function is called later, in main thread, via
+          // io_service_.run();
+          cv::Mat frame_0 = RS2FrameToMat(fisheye_frame);
+          switch (latest_command_.record_start().mode()) {
+            case TrackingCameraCommand::RecordStart::MODE_EVERY_FRAME:
+              record_every_frame(frame_0, stamp);
+              break;
+            case TrackingCameraCommand::RecordStart::MODE_APRILTAG_STABLE:
+              detect_apriltags(frame_0, stamp);
+              break;
+            default:
+              break;
+          }
+        });
       }
     }
     /*else if (rs2::pose_frame pose_frame = frame.as<rs2::pose_frame>()) {
@@ -743,7 +808,7 @@ class TrackingCameraClient {
                                          ToPoseFrame(pose_frame)));
       event_bus_.Send(ToNamedPoseEvent(pose_frame));
      }*/
-  }
+  }  // namespace farm_ng
   boost::asio::io_service& io_service_;
   EventBus& event_bus_;
   std::unique_ptr<cv::VideoWriter> writer_;
@@ -755,6 +820,8 @@ class TrackingCameraClient {
   std::unique_ptr<ApriltagDetector> detector_;
   TrackingCameraCommand latest_command_;
   ApriltagsFilter tag_filter_;
+  std::unique_ptr<VideoFileWriter> frame_video_writer_;
+  CameraModel left_camera_model_;
 };
 }  // namespace farm_ng
 

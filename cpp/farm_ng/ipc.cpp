@@ -24,6 +24,7 @@ namespace farm_ng {
 using farm_ng_proto::tractor::v1::LoggingCommand;
 using farm_ng_proto::tractor::v1::LoggingStatus;
 using farm_ng_proto::tractor::v1::TrackingCameraCommand;
+using farm_ng_proto::tractor::v1::TrackingCameraCommand_RecordStart_Mode;
 namespace {
 
 class ArchiveManager {
@@ -432,10 +433,10 @@ void RequestStopLogging(EventBus& bus) {
   bus.Send(farm_ng::MakeEvent("logger/command", command));
 }
 
-void RequestStartCapturing(EventBus& bus) {
+void RequestStartCapturing(EventBus& bus,
+                           TrackingCameraCommand_RecordStart_Mode mode) {
   TrackingCameraCommand command;
-  command.mutable_record_start()->set_mode(
-      TrackingCameraCommand::RecordStart::MODE_APRILTAG_STABLE);
+  command.mutable_record_start()->set_mode(mode);
   LOG(INFO) << "RequestStartCapturing: "
             << farm_ng::MakeEvent("tracking_camera/command", command)
                    .ShortDebugString();

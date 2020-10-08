@@ -19,6 +19,9 @@ import { CaptureCalibrationDatasetConfigurationVisualizer } from "../components/
 import { CaptureCalibrationDatasetStatusVisualizer } from "../components/scope/visualizers/CaptureCalibrationDatasetStatus";
 import { CaptureCalibrationDatasetResultVisualizer } from "../components/scope/visualizers/CaptureCalibrationDatasetResult";
 import { MonocularApriltagRigModelVisualizer } from "../components/scope/visualizers/MonocularApriltagRigModel";
+import { CaptureVideoDatasetConfigurationVisualizer } from "../components/scope/visualizers/CaptureVideoDatasetConfiguration";
+import { CaptureVideoDatasetResultVisualizer } from "../components/scope/visualizers/CaptureVideoDatasetResult";
+import { CaptureVideoDatasetStatusVisualizer } from "../components/scope/visualizers/CaptureVideoDatasetStatus";
 
 export interface VisualizerOptionConfig {
   label: string;
@@ -56,6 +59,9 @@ export const visualizerRegistry: { [k: string]: Visualizer } = {
   [CaptureCalibrationDatasetConfigurationVisualizer.id]: new CaptureCalibrationDatasetConfigurationVisualizer() as Visualizer,
   [CaptureCalibrationDatasetResultVisualizer.id]: new CaptureCalibrationDatasetResultVisualizer() as Visualizer,
   [CaptureCalibrationDatasetStatusVisualizer.id]: new CaptureCalibrationDatasetStatusVisualizer() as Visualizer,
+  [CaptureVideoDatasetConfigurationVisualizer.id]: new CaptureVideoDatasetConfigurationVisualizer() as Visualizer,
+  [CaptureVideoDatasetResultVisualizer.id]: new CaptureVideoDatasetResultVisualizer() as Visualizer,
+  [CaptureVideoDatasetStatusVisualizer.id]: new CaptureVideoDatasetStatusVisualizer() as Visualizer,
   [ImageVisualizer.id]: new ImageVisualizer() as Visualizer,
   [TrackingCameraPoseFrameVisualizer.id]: new TrackingCameraPoseFrameVisualizer() as Visualizer,
   [MonocularApriltagRigModelVisualizer.id]: new MonocularApriltagRigModelVisualizer() as Visualizer,

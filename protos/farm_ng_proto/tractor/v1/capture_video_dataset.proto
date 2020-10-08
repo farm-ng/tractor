@@ -1,0 +1,36 @@
+syntax = "proto3";
+
+import "farm_ng_proto/tractor/v1/resource.proto";
+import "google/protobuf/timestamp.proto";
+package farm_ng_proto.tractor.v1;
+option go_package = "github.com/farm_ng/genproto";
+
+message CaptureVideoDatasetConfiguration {
+  string name = 1;
+}
+
+message CaptureVideoDatasetStatus {
+  // Number of frames captured
+  int32 num_frames = 1;
+
+  // Serialized CaptureVideoDatasetResult
+  Resource result = 2;
+
+  oneof input_required {
+    CaptureVideoDatasetConfiguration input_required_configuration = 3;
+  }
+}
+
+message CaptureVideoDatasetResult {
+  // Configuration which initiated the capture
+  CaptureVideoDatasetConfiguration configuration = 1;
+
+  // Number of frames captured
+  int32 num_frames = 2;
+
+  // The time the capture completed
+  google.protobuf.Timestamp stamp_end = 3;
+
+  // An IPC log of the capture, saved to disk in protobuf binary format.
+  Resource dataset = 4;
+}
