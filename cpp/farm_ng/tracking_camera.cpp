@@ -41,6 +41,12 @@ DEFINE_bool(jetson, false, "Use jetson hardware encoding.");
 
 namespace farm_ng {
 
+struct ScopeGuard {
+  ScopeGuard(std::function<void()> function) : function_(std::move(function)) {}
+  ~ScopeGuard() { function_(); }
+  std::function<void()> function_;
+};
+
 // Convert rs2::frame to cv::Mat
 // https://raw.githubusercontent.com/IntelRealSense/librealsense/master/wrappers/opencv/cv-helpers.hpp
 cv::Mat RS2FrameToMat(const rs2::frame& f) {
@@ -755,18 +761,23 @@ class TrackingCameraClient {
       // detecting.  Apriltag detection takes >30ms on the nano.
       if (!detection_in_progress_) {
         detection_in_progress_ = true;
+        auto guard = std::make_shared<ScopeGuard>([this] {
+          // signal that we're done detecting, so can post another frame for
+          // detection.
+          std::lock_guard<std::mutex> lock(mtx_realsense_state_);
+          detection_in_progress_ = false;
+        });
         auto stamp = google::protobuf::util::TimeUtil::MillisecondsToTimestamp(
             fisheye_frame.get_timestamp());
 
         // schedule april tag detection, do it as frequently as possible.
-        io_service_.post([this, fisheye_frame, stamp] {
+        io_service_.post([this, fisheye_frame, stamp, guard] {
           if (!latest_command_.has_record_start()) {
             // Close may be called regardless of state.  If we were recording,
             // it closes the video file on the last chunk.
             frame_video_writer_->Close();
             return;
           }
-
           // note this function is called later, in main thread, via
           // io_service_.run();
           cv::Mat frame_0 = RS2FrameToMat(fisheye_frame);
@@ -780,11 +791,6 @@ class TrackingCameraClient {
             default:
               break;
           }
-
-          // signal that we're done detecting, so can post another frame for
-          // detection.
-          std::lock_guard<std::mutex> lock(mtx_realsense_state_);
-          detection_in_progress_ = false;
         });
       }
     }
