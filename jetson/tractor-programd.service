@@ -1,0 +1,14 @@
+[Unit]
+Description=tractor programd service
+ConditionPathExists=/tmp/tractor-ready.touch
+
+[Service]
+ExecStart=/home/farmer/tractor/jetson/programd.sh
+WorkingDirectory=/home/farmer/tractor
+StandardOutput=inherit
+StandardError=inherit
+Restart=always
+User=farmer
+
+[Install]
+WantedBy=multi-user.target

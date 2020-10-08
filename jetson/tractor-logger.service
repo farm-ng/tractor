@@ -1,0 +1,14 @@
+[Unit]
+Description=tractor logger service
+ConditionPathExists=/tmp/tractor-ready.touch
+
+[Service]
+ExecStart=/home/farmer/tractor/jetson/logger.sh
+WorkingDirectory=/home/farmer/tractor
+StandardOutput=inherit
+StandardError=inherit
+Restart=always
+User=farmer
+
+[Install]
+WantedBy=multi-user.target

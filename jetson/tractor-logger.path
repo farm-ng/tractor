@@ -1,0 +1,9 @@
+[Unit]
+Description=Monitor /bin/tractor-ready.touch and start tractor-logger
+
+[Path]
+PathExists=/tmp/tractor-ready.touch
+Unit=tractor-logger.service
+
+[Install]
+WantedBy=multi-user.target
