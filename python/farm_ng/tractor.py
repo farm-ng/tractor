@@ -8,7 +8,7 @@ import numpy as np
 from farm_ng.canbus import CANSocket
 from farm_ng.config import default_config
 from farm_ng.controller import TractorMoveToGoalController
-from farm_ng.ipc import get_event_bus
+from farm_ng.ipc import get_event_bus, EventBus
 from farm_ng.ipc import make_event
 from farm_ng.kinematics import TractorKinematics
 from farm_ng.motor import HubMotor
@@ -197,8 +197,7 @@ class TractorController:
 
 def main():
     logging.basicConfig(stream=sys.stdout, level=logging.INFO)
-
-    event_bus = get_event_bus('farm_ng.tractor')
+    event_bus = EventBus('farm_ng.tractor', subscribe_service_names=['steering'])
     controller = TractorController(event_bus)
     logger.info('Created controller %s', controller)
     event_bus.event_loop().run_forever()

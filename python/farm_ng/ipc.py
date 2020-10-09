@@ -28,6 +28,9 @@ _g_datagram_size = 65507
 
 
 def host_is_local(hostname, port):
+    #logger.info(hostname)
+    return True
+
     # https://gist.github.com/bennr01/7043a460155e8e763b3a9061c95faaa0
     """returns True if the hostname points to the localhost, otherwise False."""
     hostname = socket.getfqdn(hostname)
@@ -79,10 +82,11 @@ async def _event_bus_recver(event_bus, callback):
 
 
 class EventBus:
-    def __init__(self, name, recv_raw=False):
+    def __init__(self, name, recv_raw=False, subscribe_service_names=[]):
         if name is None:
             name = 'python-ipc'
         # forward raw packets, don't track state
+        self._subscribe_service_names = set(subscribe_service_names)
         self._recv_raw = recv_raw
         self._multicast_group = _g_multicast_group
         self._name = name
@@ -93,7 +97,7 @@ class EventBus:
         self._connect_send_sock()
         loop = asyncio.get_event_loop()
         self._loop = loop
-        self._periodic_listen = Periodic(1.5, loop, self._listen_for_services)
+        self._periodic_listen = Periodic(2, loop, self._listen_for_services)
         self._periodic_announce = Periodic(1, loop, self._announce_service)
         self._services = dict()
         self._state = dict()
@@ -179,11 +183,23 @@ class EventBus:
     def send(self, event: Event):
         self._state[event.name] = event
         buff = event.SerializeToString()
+
         for service in self._services.values():
-            self._mc_send_sock.sendto(buff, (service.host, service.port))
+             self._mc_send_sock.sendto(buff, (service.host, service.port))
 
     def _send_recv(self):
         data, server = self._mc_send_sock.recvfrom(_g_datagram_size)
+        if len(self._subscribe_service_names) > 0:
+            key='127.0.0.1:%d'%server[1]
+            # logger.info('checking service: %s', key)
+            service = self._services.get(key,None)
+            if service is None:
+                # logger.info('No known service %s', key)
+                return
+            if service.service not in self._subscribe_service_names:
+                # logger.info('Service name=%s is not subscribed: %s', service.service, key)
+                return
+            # logger.info('Service name=%s is subscribed: %s', service.service, key)            
         if self._recv_raw:
             for q in self._subscribers:
                 q.put_nowait(data)
@@ -220,7 +236,7 @@ class EventBus:
 
         # Store the announcement
         announce.recv_stamp.GetCurrentTime()
-        self._services['%s:%d' % (announce.host, announce.port)] = announce
+        self._services['%s:%d' % ('127.0.0.1', announce.port)] = announce
         for q in self._announce_subscribers:
             q.put_nowait(announce)
 
