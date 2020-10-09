@@ -4,11 +4,11 @@ import sys
 import time
 
 import numpy as np
-from farm_ng_proto.tractor.v1.steering_pb2 import SteeringCommand
-
-from farm_ng.ipc import get_event_bus, make_event
+from farm_ng.ipc import get_event_bus
+from farm_ng.ipc import make_event
 from farm_ng.joystick import MaybeJoystick
 from farm_ng.periodic import Periodic
+from farm_ng_proto.tractor.v1.steering_pb2 import SteeringCommand
 
 logger = logging.getLogger('steering')
 logger.setLevel(logging.INFO)
@@ -92,7 +92,7 @@ class JoystickManualSteering(BaseSteering):
         self.target_steering = 0.0
 
     def stop(self):
-        super(JoystickManualSteering, self).stop()
+        super().stop()
         self.target_gas = 0.0
         self.target_steering = 0.0
 
@@ -115,7 +115,7 @@ class JoystickManualSteering(BaseSteering):
 
 class CruiseControlSteering(BaseSteering):
     def __init__(self, rate_hz, joystick):
-        super(CruiseControlSteering, self).__init__(rate_hz, SteeringCommand.MODE_JOYSTICK_CRUISE_CONTROL)
+        super().__init__(rate_hz, SteeringCommand.MODE_JOYSTICK_CRUISE_CONTROL)
         self.joystick = joystick
         # rate that the speed of the tractor changes when pressing the dpad up/down arrows
         self.delta_x_vel = 0.25/self.rate_hz
@@ -129,7 +129,7 @@ class CruiseControlSteering(BaseSteering):
     def stop(self):
         self.target_speed = 0.0
         self.target_angular_velocity = 0.0
-        super(CruiseControlSteering, self).stop()
+        super().stop()
 
     def cruise_control_axis_active(self):
         return self.joystick.get_axis_state('hat0y', 0.0) != 0 or self.joystick.get_axis_state('hat0x', 0.0) != 0
