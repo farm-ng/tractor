@@ -77,6 +77,16 @@ const Component: React.FC = () => {
                     A name for the dataset, used to name the output archive.
                   </Form.Text>
                 </Form.Group>
+                <Form.Group controlId="detectApriltags">
+                  <Form.Label>Detect Apriltags?</Form.Label>
+                  <Form.Control
+                    type="checkbox"
+                    name="detectApriltags"
+                    checked={configuration?.detectApriltags || ""}
+                    onChange={handleConfigurationChange}
+                  />
+                </Form.Group>
+
                 <Button variant="primary" type="submit">
                   Submit
                 </Button>
