@@ -4,11 +4,11 @@ import sys
 import time
 
 import numpy as np
-from farm_ng.ipc import get_event_bus
-from farm_ng.ipc import make_event
+from farm_ng_proto.tractor.v1.steering_pb2 import SteeringCommand
+
+from farm_ng.ipc import get_event_bus, make_event
 from farm_ng.joystick import MaybeJoystick
 from farm_ng.periodic import Periodic
-from farm_ng_proto.tractor.v1.steering_pb2 import SteeringCommand
 
 logger = logging.getLogger('steering')
 logger.setLevel(logging.INFO)
@@ -59,9 +59,9 @@ class BaseSteering:
         self.rate_hz = rate_hz
         self.v = 0
         self.v_acc = 2.0/self.rate_hz
-        self.v_max = 1.5
+        self.v_max = 2.0
         self.w = 0
-        self.w_acc = (np.pi)/self.rate_hz
+        self.w_acc = (2*np.pi)/self.rate_hz
         self.w_max = np.pi/2
         self.gamma = 2.5
         self.command = SteeringCommand()
@@ -79,14 +79,22 @@ class BaseSteering:
 
         self.w += np.clip(w - self.w, -self.w_acc, self.w_acc)
         self.w = np.clip(self.w, -self.w_max, self.w_max)
-        self.command.velocity = v
-        self.command.angular_velocity = w
+        self.command.velocity = self.v
+        self.command.angular_velocity = self.w
 
 
 class JoystickManualSteering(BaseSteering):
     def __init__(self, rate_hz, joystick):
         super().__init__(rate_hz, SteeringCommand.MODE_JOYSTICK_MANUAL)
+        self.joystick = joystick
         self.gamma = 2.5
+        self.target_gas = 0.0
+        self.target_steering = 0.0
+
+    def stop(self):
+        super(JoystickManualSteering, self).stop()
+        self.target_gas = 0.0
+        self.target_steering = 0.0
 
     def update(self):
         if not self.joystick.get_button_state('L2', False) or not self.joystick.is_connected():
@@ -96,16 +104,19 @@ class JoystickManualSteering(BaseSteering):
             self.command.brake = 0.0
             gas = np.clip(-self.joystick.get_axis_state('y', 0), -1.0, 1.0)
             gas = np.sign(gas)*abs(gas)**(self.gamma)
+            alpha = 0.5
+            self.target_gas = (1.0-alpha)*self.target_gas + alpha*gas
             steering = np.clip(-self.joystick.get_axis_state('z', 0), -1.0, 1.0)
             steering = np.sign(steering)*abs(steering)**(self.gamma)
-            self.update_vw(self.v_max*gas, self.w_max*steering)
+            self.target_steering = (1.0-alpha)*self.target_steering + alpha*steering
+            self.update_vw(self.v_max*self.target_gas, self.w_max*self.target_steering)
         return self.command
 
 
 class CruiseControlSteering(BaseSteering):
     def __init__(self, rate_hz, joystick):
-        super(BaseSteering, self).__init__(rate_hz, SteeringCommand.MODE_CRUISE_CONTROL)
-
+        super(CruiseControlSteering, self).__init__(rate_hz, SteeringCommand.MODE_JOYSTICK_CRUISE_CONTROL)
+        self.joystick = joystick
         # rate that the speed of the tractor changes when pressing the dpad up/down arrows
         self.delta_x_vel = 0.25/self.rate_hz
         # rate of angular velocity that occurs when nudging the tractor left/right with dpad left/right arrows
@@ -114,6 +125,14 @@ class CruiseControlSteering(BaseSteering):
         # The target speed for cruise control
         self.target_speed = 0.0
         self.target_angular_velocity = 0.0
+
+    def stop(self):
+        self.target_speed = 0.0
+        self.target_angular_velocity = 0.0
+        super(CruiseControlSteering, self).stop()
+
+    def cruise_control_axis_active(self):
+        return self.joystick.get_axis_state('hat0y', 0.0) != 0 or self.joystick.get_axis_state('hat0x', 0.0) != 0
 
     def update(self):
         self.command.brake = 0.0
@@ -184,7 +203,11 @@ class SteeringSenderJoystick:
         if n_periods > self.rate_hz:
             self.stop()
             command = self.joystick_manual_steer.command
-        elif self.cruise_control_active:
+
+        if self.cruise_control_steer.cruise_control_axis_active():
+            self._start_cruise_control()
+
+        if self.cruise_control_active:
             command = self.cruise_control_steer.update()
         else:
             command = self.joystick_manual_steer.update()
