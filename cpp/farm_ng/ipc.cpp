@@ -437,6 +437,9 @@ void RequestStartCapturing(EventBus& bus,
                            TrackingCameraCommand_RecordStart_Mode mode) {
   TrackingCameraCommand command;
   command.mutable_record_start()->set_mode(mode);
+  RequestStartCapturing(bus, command);
+}
+void RequestStartCapturing(EventBus& bus, TrackingCameraCommand command) {
   LOG(INFO) << "RequestStartCapturing: "
             << farm_ng::MakeEvent("tracking_camera/command", command)
                    .ShortDebugString();

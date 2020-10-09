@@ -317,7 +317,15 @@ bool ComputeHomography(const double c[4][4], matd_t* H) {
 
 class TagLibrary {
  public:
-  double TagSize(int tag_id) const { return 0.16; }
+  double TagSize(int tag_id) const {
+    if (tag_id >= 200 && tag_id < 300) {
+      return 0.2;
+    }
+    if (tag_id >= 300 && tag_id < 400) {
+      return 0.4;
+    }
+    return 0.1;
+  }
 };
 
 void deproject(double pt[2], const rs2_intrinsics& intr, const double px[2]) {
@@ -580,7 +588,7 @@ class VideoFileWriter {
     image_pb_.mutable_resource()->CopyFrom(resource_path.first);
     image_pb_.mutable_frame_number()->set_value(0);
   }
-  void AddFrame(cv::Mat image, google::protobuf::Timestamp stamp) {
+  Image AddFrame(cv::Mat image, google::protobuf::Timestamp stamp) {
     if (!writer_) {
       ResetVideoWriter();
     }
@@ -593,6 +601,7 @@ class VideoFileWriter {
     if (image_pb_.frame_number().value() >= k_max_frames_) {
       writer_.reset();
     }
+    return image_pb_;
   }
 
   void Close() { writer_.reset(); }
@@ -615,7 +624,8 @@ class TrackingCameraClient {
     std::string encoder_x264 =
         std::string(
             " x264enc bitrate=600 speed-preset=ultrafast tune=zerolatency ") +
-        "key-int-max=15 ! video/x-h264,profile=constrained-baseline ! queue " +
+        "key-int-max=15 ! video/x-h264,profile=constrained-baseline ! "
+        "queue " +
         "max-size-time=100000000 ! h264parse ! ";
 
     std::string encoder_omxh264 =
@@ -706,6 +716,8 @@ class TrackingCameraClient {
   }
 
   void detect_apriltags(cv::Mat image, google::protobuf::Timestamp stamp) {
+    auto image_pb = frame_video_writer_->AddFrame(image, stamp);
+
     auto apriltags = detector_->Detect(image, stamp);
 
     if (tag_filter_.AddApriltags(apriltags)) {
@@ -722,6 +734,18 @@ class TrackingCameraClient {
           "calibrator/tracking_camera/front/apriltags", apriltags, stamp));
     }
 
+    event_bus_.Send(farm_ng::MakeEvent("tracking_camera/front/apriltags",
+                                       apriltags, stamp));
+  }
+
+  void RecordEveryApriltagFrame(cv::Mat image,
+                                google::protobuf::Timestamp stamp) {
+    auto apriltags = detector_->Detect(image, stamp);
+    auto image_pb = frame_video_writer_->AddFrame(image, stamp);
+
+    apriltags.mutable_image()->CopyFrom(image_pb);
+    event_bus_.Send(farm_ng::MakeEvent(
+        "calibrator/tracking_camera/front/apriltags", apriltags, stamp));
     event_bus_.Send(farm_ng::MakeEvent("tracking_camera/front/apriltags",
                                        apriltags, stamp));
   }
@@ -775,6 +799,10 @@ class TrackingCameraClient {
               break;
             case TrackingCameraCommand::RecordStart::MODE_APRILTAG_STABLE:
               detect_apriltags(frame_0, stamp);
+              break;
+
+            case TrackingCameraCommand::RecordStart::MODE_EVERY_APRILTAG_FRAME:
+              RecordEveryApriltagFrame(frame_0, stamp);
               break;
             default:
               break;

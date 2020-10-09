@@ -1,4 +1,3 @@
 #include "gtest/gtest.h"
 
-TEST(solver, smoke) {
-}
+TEST(solver, smoke) {}

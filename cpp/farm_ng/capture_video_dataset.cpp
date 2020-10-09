@@ -16,6 +16,7 @@
 DEFINE_bool(interactive, false, "receive program args via eventbus");
 DEFINE_string(name, "default",
               "a dataset name, used in the output archive name");
+DEFINE_bool(detect_apriltags, false, "Detect apriltags.");
 
 typedef farm_ng_proto::tractor::v1::Event EventPb;
 using farm_ng_proto::tractor::v1::CaptureVideoDatasetConfiguration;
@@ -55,8 +56,15 @@ class CaptureVideoDatasetProgram {
 
     WaitForServices(bus_, {"ipc_logger", "tracking_camera"});
     LoggingStatus log = StartLogging(bus_, configuration_.name());
-    RequestStartCapturing(bus_,
-                          TrackingCameraCommand::RecordStart::MODE_EVERY_FRAME);
+    TrackingCameraCommand tracking_camera_command;
+    if (configuration_.detect_apriltags()) {
+      tracking_camera_command.mutable_record_start()->set_mode(
+          TrackingCameraCommand::RecordStart::MODE_EVERY_APRILTAG_FRAME);
+    } else {
+      tracking_camera_command.mutable_record_start()->set_mode(
+          TrackingCameraCommand::RecordStart::MODE_EVERY_FRAME);
+    }
+    RequestStartCapturing(bus_, tracking_camera_command);
 
     try {
       bus_.get_io_service().run();
@@ -146,6 +154,7 @@ class CaptureVideoDatasetProgram {
 int Main(farm_ng::EventBus& bus) {
   CaptureVideoDatasetConfiguration config;
   config.set_name(FLAGS_name);
+  config.set_detect_apriltags(FLAGS_detect_apriltags);
   farm_ng::CaptureVideoDatasetProgram program(bus, config, FLAGS_interactive);
   return program.run();
 }

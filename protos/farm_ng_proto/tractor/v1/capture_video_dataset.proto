@@ -7,6 +7,7 @@ option go_package = "github.com/farm_ng/genproto";
 
 message CaptureVideoDatasetConfiguration {
   string name = 1;
+  bool detect_apriltags = 2;
 }
 
 message CaptureVideoDatasetStatus {

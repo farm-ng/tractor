@@ -17,6 +17,7 @@
 
 namespace farm_ng {
 using farm_ng_proto::tractor::v1::LoggingStatus;
+using farm_ng_proto::tractor::v1::TrackingCameraCommand;
 using farm_ng_proto::tractor::v1::TrackingCameraCommand_RecordStart_Mode;
 
 typedef boost::signals2::signal<void(const farm_ng_proto::tractor::v1::Event&)>
@@ -120,6 +121,7 @@ LoggingStatus StopLogging(EventBus& bus);
 void RequestStopLogging(EventBus& bus);
 void RequestStartCapturing(EventBus& bus,
                            TrackingCameraCommand_RecordStart_Mode mode);
+void RequestStartCapturing(EventBus& bus, TrackingCameraCommand command);
 void RequestStopCapturing(EventBus& bus);
 
 }  // namespace farm_ng
