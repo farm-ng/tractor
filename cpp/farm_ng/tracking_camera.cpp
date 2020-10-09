@@ -564,10 +564,13 @@ class VideoFileWriter {
 
     auto resource_path = GetUniqueArchiveResource(
         image_pb_.camera_model().frame_name(), "mp4", "video/mp4");
-    writer_ = std::make_shared<cv::VideoWriter>(
+    std::string video_writer_dev =
         std::string("appsrc !") + " videoconvert ! " +
-            (FLAGS_jetson ? encoder_omxh264 : encoder_x264) +
-            " mp4mux ! filesink location=" + resource_path.second.string(),
+        (FLAGS_jetson ? encoder_omxh264 : encoder_x264) +
+        " mp4mux ! filesink location=" + resource_path.second.string();
+    LOG(INFO) << "writing video with: " << video_writer_dev;
+    writer_ = std::make_shared<cv::VideoWriter>(
+        video_writer_dev,
         0,                        // fourcc
         image_pb_.fps().value(),  // fps
         cv::Size(image_pb_.camera_model().image_width(),
@@ -744,17 +747,19 @@ class TrackingCameraClient {
       // detecting.  Apriltag detection takes >30ms on the nano.
       if (!detection_in_progress_) {
         detection_in_progress_ = true;
-        auto guard = std::make_shared<ScopeGuard>([this] {
-          // signal that we're done detecting, so can post another frame for
-          // detection.
-          std::lock_guard<std::mutex> lock(mtx_realsense_state_);
-          detection_in_progress_ = false;
-        });
+
         auto stamp = google::protobuf::util::TimeUtil::MillisecondsToTimestamp(
             fisheye_frame.get_timestamp());
 
         // schedule april tag detection, do it as frequently as possible.
-        io_service_.post([this, fisheye_frame, stamp, guard] {
+        io_service_.post([this, fisheye_frame, stamp] {
+          ScopeGuard guard([this] {
+            // signal that we're done detecting, so can post another frame for
+            // detection.
+            std::lock_guard<std::mutex> lock(mtx_realsense_state_);
+            detection_in_progress_ = false;
+          });
+
           if (!latest_command_.has_record_start()) {
             // Close may be called regardless of state.  If we were recording,
             // it closes the video file on the last chunk.
