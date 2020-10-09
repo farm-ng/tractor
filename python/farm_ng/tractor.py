@@ -53,7 +53,7 @@ class TimeSeries:
 
 class TractorController:
     def __init__(self, event_bus):
-        self.event_loop = asyncio.get_event_loop()
+        self.event_loop = event_bus.event_loop()
         self.command_rate_hz = 50
         self.command_period_seconds = 1.0 / self.command_rate_hz
         self.n_cycle = 0
