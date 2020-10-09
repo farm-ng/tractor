@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import os
+import sys
 from collections import namedtuple
 
 from farm_ng.ipc import EventBus
@@ -78,6 +79,7 @@ class ProgramSupervisor:
     async def handle_stop(self):
         with EventBusQueue(event_bus) as event_queue:
             while not self.shutdown:
+                logger.info('stop waiting for request')
                 stop_request: StopProgramRequest = await get_message(
                     event_queue,
                     'program_supervisor/request',
@@ -94,8 +96,10 @@ class ProgramSupervisor:
                 self.child_process.terminate()
 
     async def handle_start(self):
+        logger.info('handle start')
         with EventBusQueue(event_bus) as event_queue:
             while not self.shutdown:
+                logger.info('waiting for start request')
                 start_request: StartProgramRequest = await get_message(event_queue, 'program_supervisor/request', StartProgramRequest)
                 if self.status.WhichOneof('status') != 'stopped':
                     logger.info(f"StartProgramRequest received while program status was {self.status.WhichOneof('status')}")
@@ -124,5 +128,6 @@ class ProgramSupervisor:
 
 
 if __name__ == '__main__':
+    logging.basicConfig(stream=sys.stdout, level=logging.INFO)
     supervisor = ProgramSupervisor()
-    asyncio.get_event_loop().run_until_complete(supervisor.run())
+    event_bus.event_loop().run_until_complete(supervisor.run())
