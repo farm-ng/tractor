@@ -81,10 +81,12 @@ class TractorController:
         gear_ratio = self.config.hub_motor_gear_ratio.value
         poll_pairs = self.config.hub_motor_poll_pairs.value
         self.right_motor = HubMotor(
+            self.event_bus,
             'right_motor',
             radius, gear_ratio, poll_pairs, 7, self.can_socket,
         )
         self.left_motor = HubMotor(
+            self.event_bus,
             'left_motor',
             radius, gear_ratio, poll_pairs, 9, self.can_socket,
         )

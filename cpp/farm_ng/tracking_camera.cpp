@@ -321,7 +321,7 @@ class TagLibrary {
     if (tag_id >= 200 && tag_id < 300) {
       return 0.2;
     }
-    if (tag_id >= 300 && tag_id < 400) {
+    if (tag_id >= 400 && tag_id < 500) {
       return 0.4;
     }
     return 0.1;

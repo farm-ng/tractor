@@ -8,7 +8,7 @@ import linuxfd
 import numpy as np
 from farm_ng.canbus import CANSocket
 from farm_ng.config import default_config
-from farm_ng.ipc import get_event_bus
+from farm_ng.ipc import EventBus, get_event_bus
 from farm_ng.ipc import make_event
 from farm_ng_proto.tractor.v1 import motor_pb2
 from google.protobuf.text_format import MessageToString
@@ -134,9 +134,10 @@ g_vesc_msg_parsers = {
 
 class HubMotor:
     def __init__(
-            self, name, wheel_radius, gear_ratio, poll_pairs,
+            self, event_bus : EventBus, name, wheel_radius, gear_ratio, poll_pairs,
             can_node_id, can_socket,
     ):
+        self._bus = event_bus
         self.name = name
         self.can_node_id = can_node_id
         self.can_socket = can_socket
@@ -177,7 +178,7 @@ class HubMotor:
 
             # only log on the 5th vesc message, as we have complete state at that point.
             event = make_event('%s/state' % self.name, self._latest_state, stamp=self._latest_stamp)
-            get_event_bus(self.name).send(event)
+            self._bus.send(event)
 
     def _send_can_command(self, command, data):
         cob_id = int(self.can_node_id) | (command << 8)
@@ -267,16 +268,19 @@ def main():
         sys.exit(e.errno)
 
     print(f'Listening on can0')
-    loop = asyncio.get_event_loop()
+    event_bus = get_event_bus('motor')
+    loop = event_bus.event_loop()
 
     config = default_config()
     right_motor = HubMotor(
+        event_bus,
         'right_motor',
         config.wheel_radius.value,
         config.hub_motor_gear_ratio.value,
         config.hub_motor_poll_pairs.value, 7, can_socket,
     )
     left_motor = HubMotor(
+        event_bus,
         'left_motor',
         config.wheel_radius.value,
         config.hub_motor_gear_ratio.value,
