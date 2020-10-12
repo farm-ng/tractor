@@ -1,5 +1,8 @@
 import argparse
+import os
 
+from farm_ng.blobstore import Blobstore
+from farm_ng_proto.tractor.v1.resource_pb2 import BUCKET_CONFIGURATIONS
 from farm_ng_proto.tractor.v1.tractor_pb2 import TractorConfig
 from google.protobuf.json_format import MessageToJson
 
@@ -8,7 +11,14 @@ def _in2m(inches: float) -> float:
     return 0.0254*inches
 
 
-def default_config() -> TractorConfig:
+def saved_config() -> TractorConfig:
+    blobstore = Blobstore()
+    config = TractorConfig()
+    blobstore.read_protobuf_from_json_file(os.path.join(BUCKET_CONFIGURATIONS, 'tractor.config'), config)
+    return config
+
+
+def _default_config() -> TractorConfig:
     config = TractorConfig()
     config.wheel_baseline.value = _in2m(42.0)
     config.wheel_radius.value = _in2m(17/2.0)
@@ -18,7 +28,7 @@ def default_config() -> TractorConfig:
 
 
 def main_gen(args):
-    config = default_config()
+    config = _default_config()
     config.wheel_baseline.value = args.wheel_baseline
     config.wheel_radius.value = args.wheel_radius
     config.hub_motor_gear_ratio.value = args.hub_motor_gear_ratio
@@ -27,10 +37,10 @@ def main_gen(args):
 
 
 def main():
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(epilog='e.g. python -m farm_ng.config gen > $BLOBSTORE_ROOT/configurations/tractor.json')
     subparsers = parser.add_subparsers()
     parser_gen = subparsers.add_parser('gen')
-    cfg = default_config()
+    cfg = _default_config()
     parser_gen.add_argument('--wheel_baseline', help='Distance between wheels in meters', default=cfg.wheel_baseline.value, type=float)
     parser_gen.add_argument('--wheel_radius', help='Radius of drive wheels in meters', default=cfg.wheel_radius.value, type=float)
     parser_gen.add_argument('--hub_motor_gear_ratio', help='Gear ratio of drive motor', default=cfg.hub_motor_gear_ratio.value, type=float)

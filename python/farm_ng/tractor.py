@@ -6,7 +6,7 @@ from collections import deque
 
 import numpy as np
 from farm_ng.canbus import CANSocket
-from farm_ng.config import default_config
+from farm_ng.config import saved_config
 from farm_ng.controller import TractorMoveToGoalController
 from farm_ng.ipc import get_event_bus
 from farm_ng.ipc import make_event
@@ -71,8 +71,7 @@ class TractorController:
         self.odom_poses_tractor = TimeSeries(1.0)
         self.odom_pose_tractor = SE3.identity()
 
-        # TODO(ethanrublee|isherman) load from disk somehow.
-        self.config = default_config()
+        self.config = saved_config()
 
         self.kinematics = TractorKinematics(tractor_config=self.config)
         self.move_to_goal_controller = TractorMoveToGoalController()

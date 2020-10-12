@@ -2,7 +2,7 @@ import logging
 import os
 import pathlib
 
-import google.protobuf.json_format.Parse as ParseFromJson
+import google.protobuf.json_format as json_format
 from farm_ng_proto.tractor.v1.resource_pb2 import Bucket
 
 logger = logging.getLogger('blobstore')
@@ -29,12 +29,12 @@ class Blobstore:
 
     def read_protobuf_from_json_file(self, path, message):
         check_valid_path(path)
-        with open(path.join(self.root, path)) as f:
-            ParseFromJson(f.read(), message)
+        with open(os.path.join(self.root, path)) as f:
+            json_format.Parse(f.read(), message)
 
     def read_protobuf_from_binary_file(self, path, message):
         check_valid_path(path)
-        with open(path.join(self.root, path)) as f:
+        with open(os.path.join(self.root, path)) as f:
             message.ParseFromString(f.read())
 
     def _write_protobuf_to_json_file(self, path, message):
