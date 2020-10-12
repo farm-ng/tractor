@@ -6,17 +6,41 @@ package farm_ng_proto.tractor.v1;
 option go_package = "github.com/farm_ng/genproto";
 
 message Resource {
-  // The normalized relative path of the resource within a (local or remote)
-  // resource archive.
-  // Paths must be in the form "foo/bar/baz.jpg", with no leading slash, no
-  // relative path segments ("foo/../bar"), and no duplicate separators
-  // ("foo//bar").
+  // The normalized path of this resource within a resource archive.
+  //
+  // Paths are relative to the root of the resource archive.
+  // The first path segment should be the string representation of a
+  // `Bucket` key.
+  //
+  // Paths must be in the form "foo/bar/baz.jpg", with no leading
+  // slash, no relative path segments ("foo/../bar"), and no duplicate
+  // separators ("foo//bar").
   string path = 1;
 
-  // (Optional) The content-type (aka MIME-type) of the file.
+  // The content-type (aka MIME-type) of the file.
   // See https://www.iana.org/assignments/media-types/media-types.xhtml.
+  //
+  // For protobufs, we expect a `content_type` in one of the following formats:
+  //
+  // JSON encoding: `application/json; type=<typeUrl>`
+  // Binary encoding: `application/protobuf; type=<typeUrl>`
+  // Text encoding: `text/protobuf; type=<typeUrl>`
+  //
+  // where `<typeUrl>` looks like
+  // `type.googleapis.com/type.googleapis.com/farm_ng_proto.tractor.v1.Vec2`
   string content_type = 3;
 
   // (Optional) The uncompressed size of the resource in bytes.
   google.protobuf.Int64Value length = 4;
+}
+
+// Resource Archive root-level directories
+enum Bucket {
+  BUCKET_UNSPECIFIED = 0;
+  BUCKET_LOGS = 1;
+  BUCKET_CALIBRATION_DATASETS = 2;
+  BUCKET_APRILTAG_RIG_MODELS = 3;
+  BUCKET_BASE_TO_CAMERA_MODELS = 4;
+  BUCKET_VIDEO_DATASETS = 5;
+  BUCKET_CONFIGURATIONS = 6;
 }
