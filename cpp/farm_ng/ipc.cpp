@@ -21,6 +21,7 @@
 #include "farm_ng_proto/tractor/v1/tracking_camera.pb.h"
 
 namespace farm_ng {
+using farm_ng_proto::tractor::v1::BUCKET_LOGS;
 using farm_ng_proto::tractor::v1::LoggingCommand;
 using farm_ng_proto::tractor::v1::LoggingStatus;
 using farm_ng_proto::tractor::v1::TrackingCameraCommand;
@@ -413,7 +414,7 @@ LoggingStatus WaitForLoggerStop(EventBus& bus) {
 LoggingStatus StartLogging(EventBus& bus, const std::string& archive_path) {
   WaitForLoggerStop(bus);
   LoggingCommand command;
-  std::string full_archive_path = (GetBucketRelativePath(BucketId::kLogs) /
+  std::string full_archive_path = (GetBucketRelativePath(BUCKET_LOGS) /
                                    boost::filesystem::path(archive_path))
                                       .string();
   command.mutable_record_start()->set_archive_path(full_archive_path);

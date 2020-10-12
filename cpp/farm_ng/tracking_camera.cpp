@@ -33,6 +33,7 @@ using farm_ng_proto::tractor::v1::Vec2;
 using farm_ng_proto::tractor::v1::ApriltagConfig;
 using farm_ng_proto::tractor::v1::ApriltagDetection;
 using farm_ng_proto::tractor::v1::ApriltagDetections;
+using farm_ng_proto::tractor::v1::BUCKET_CONFIGURATIONS;
 using farm_ng_proto::tractor::v1::TagConfig;
 using farm_ng_proto::tractor::v1::TagLibrary;
 
@@ -629,7 +630,7 @@ class TrackingCameraClient {
     // TODO(ethanrublee) look up image size from realsense profile.
 
     ApriltagConfig apriltag_config = ReadProtobufFromJsonFile<ApriltagConfig>(
-        GetBucketAbsolutePath(BucketId::kConfigurations) / "apriltag.config");
+        GetBucketAbsolutePath(BUCKET_CONFIGURATIONS) / "apriltag.config");
 
     std::string encoder_x264 =
         std::string(

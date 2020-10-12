@@ -2,16 +2,6 @@
 
 namespace farm_ng {
 
-// TODO construct this from lower case of enum name?
-const std::map<BucketId, std::string> kBucketPaths{
-    {BucketId::kLogs, "logs"},
-    {BucketId::kCalibrationDatasets, "calibration-datasets"},
-    {BucketId::kApriltagRigModels, "apriltag_rig_models"},
-    {BucketId::kBaseToCameraModels, "base_to_camera_models"},
-    {BucketId::kVideoDatasets, "video_datasets"},
-    {BucketId::kConfigurations, "configurations"},
-};
-
 boost::filesystem::path GetBlobstoreRoot() {
   boost::filesystem::path root;
   if (const char* env_root = std::getenv("BLOBSTORE_ROOT")) {
@@ -22,11 +12,14 @@ boost::filesystem::path GetBlobstoreRoot() {
   return root;
 }
 
-boost::filesystem::path GetBucketRelativePath(BucketId id) {
-  return kBucketPaths.at(id);
+boost::filesystem::path GetBucketRelativePath(Bucket id) {
+  std::string path =
+      Bucket_Name(id).substr(std::strlen("BUCKET_"), std::string::npos);
+  std::transform(path.begin(), path.end(), path.begin(),
+                 [](unsigned char c) { return std::tolower(c); });
 }
 
-boost::filesystem::path GetBucketAbsolutePath(BucketId id) {
+boost::filesystem::path GetBucketAbsolutePath(Bucket id) {
   return GetBlobstoreRoot() / GetBucketRelativePath(id);
 }
 
