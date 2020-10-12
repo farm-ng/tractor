@@ -34,3 +34,6 @@ target_link_libraries(calibrate_apriltag_rig farm-ng-ipc farm-ng-calibration far
 
 add_executable(calibrate_base_to_camera calibrate_base_to_camera.cpp)
 target_link_libraries(calibrate_base_to_camera farm-ng-ipc farm-ng-calibration farm-ng-protobuf gflags)
+
+add_executable(tracking_study tracking_study.cpp)
+target_link_libraries(tracking_study farm-ng-ipc farm-ng-calibration farm-ng-protobuf gflags ${OpenCV_LIBS})

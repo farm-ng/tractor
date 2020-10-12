@@ -16,18 +16,30 @@ static Sophus::SE3<T> TractorPoseDelta(
   x << v * dt, T(0), T(0), T(0), T(0), w * dt;
   return Sophus::SE3<T>::exp(x);
 }
+template <typename T, typename IteratorT>
+Sophus::SE3<T> TractorStartPoseTractorEnd(const T& wheel_radius,
+                                          const T& wheel_baseline,
+                                          IteratorT begin_wheel_measurement,
+                                          IteratorT end_wheel_measurement) {
+  Sophus::SE3<T> tractor_start_pose_tractor_end =
+      Sophus::SE3d::rotZ(0).cast<T>();
+  while (begin_wheel_measurement != end_wheel_measurement) {
+    const auto& wheel_measurement = *(begin_wheel_measurement++);
+    tractor_start_pose_tractor_end =
+        tractor_start_pose_tractor_end *
+        TractorPoseDelta<T>(wheel_radius, wheel_baseline, wheel_measurement);
+  }
+  return tractor_start_pose_tractor_end;
+}
+
 template <typename T>
 Sophus::SE3<T> TractorStartPoseTractorEnd(
     const T& wheel_radius, const T& wheel_baseline,
     const BaseToCameraModel::Sample& sample) {
-  Sophus::SE3<T> tractor_start_pose_tractor_end =
-      Sophus::SE3d::rotZ(0).cast<T>();
-  for (const auto& wheel_state : sample.wheel_measurements()) {
-    tractor_start_pose_tractor_end =
-        tractor_start_pose_tractor_end *
-        TractorPoseDelta<T>(wheel_radius, wheel_baseline, wheel_state);
-  }
-  return tractor_start_pose_tractor_end;
+  return TractorStartPoseTractorEnd(wheel_radius, wheel_baseline,
+                                    sample.wheel_measurements().begin(),
+                                    sample.wheel_measurements().end());
 }
+
 }  // namespace farm_ng
 #endif

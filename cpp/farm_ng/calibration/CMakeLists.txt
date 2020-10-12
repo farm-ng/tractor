@@ -16,6 +16,7 @@ endforeach()
 add_library(farm-ng-calibration
   ${cpp_files}
   ${h_files}
+  time_series.h
 )
 
 target_link_libraries(farm-ng-calibration

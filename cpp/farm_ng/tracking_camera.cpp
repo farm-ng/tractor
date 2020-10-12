@@ -399,8 +399,11 @@ class ApriltagDetector {
   // see
   // https://github.com/AprilRobotics/apriltag/blob/master/example/opencv_demo.cc
  public:
-  ApriltagDetector(rs2_intrinsics intrinsics, CameraModel camera_model, EventBus* event_bus = nullptr)
-    : event_bus_(event_bus), intrinsics_(intrinsics), camera_model_(camera_model) {
+  ApriltagDetector(rs2_intrinsics intrinsics, CameraModel camera_model,
+                   EventBus* event_bus = nullptr)
+      : event_bus_(event_bus),
+        intrinsics_(intrinsics),
+        camera_model_(camera_model) {
     tag_family_ = tag36h11_create();
     tag_detector_ = apriltag_detector_create();
     apriltag_detector_add_family(tag_detector_, tag_family_);
@@ -676,7 +679,8 @@ class TrackingCameraClient {
     SetCameraModelFromRs(&left_camera_model_, fisheye_intrinsics);
     left_camera_model_.set_frame_name(
         "tracking_camera/front/left");  // TODO Pass in constructor.
-    detector_.reset(new ApriltagDetector(fisheye_intrinsics, left_camera_model_, &event_bus_));
+    detector_.reset(new ApriltagDetector(fisheye_intrinsics, left_camera_model_,
+                                         &event_bus_));
     LOG(INFO) << " intrinsics model: " << left_camera_model_.ShortDebugString();
     frame_video_writer_ =
         std::make_unique<VideoFileWriter>(event_bus_, left_camera_model_);

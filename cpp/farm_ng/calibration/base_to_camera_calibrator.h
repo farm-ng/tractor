@@ -3,12 +3,18 @@
 
 #include "farm_ng_proto/tractor/v1/calibrator.pb.h"
 #include "farm_ng_proto/tractor/v1/resource.pb.h"
+#include "farm_ng_proto/tractor/v1/tractor.pb.h"
 
 namespace farm_ng {
 using farm_ng_proto::tractor::v1::BaseToCameraInitialization;
 using farm_ng_proto::tractor::v1::BaseToCameraModel;
+using farm_ng_proto::tractor::v1::TractorState;
 
 using farm_ng_proto::tractor::v1::Resource;
+
+void CopyTractorStateToWheelState(
+    const TractorState& tractor_state,
+    BaseToCameraModel::WheelMeasurement* wheel_measurement);
 
 struct BasePoseCameraSolverOptions {
   bool hold_base_pose_camera_constant = false;
