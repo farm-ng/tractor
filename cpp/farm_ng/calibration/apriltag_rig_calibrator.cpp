@@ -343,6 +343,7 @@ void ApriltagRigCalibrator::AddFrame(ApriltagDetections detections) {
   for (auto it = detections.mutable_detections()->begin();
        it != detections.mutable_detections()->end();) {
     if (it->tag_size() == 0.0) {
+      // TODO: What's the correct behavior here?
       it->set_tag_size(0.16);
     }
     if (ids_.count(it->id()) == 0) {

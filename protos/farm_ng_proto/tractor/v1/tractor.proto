@@ -59,4 +59,14 @@ message TractorConfig {
 
   // Extrinsic relationships to sensors.
   repeated NamedSE3Pose base_poses_sensor = 7;
+
+  message DiffDrive {
+  }
+  message SkidSteer {
+  }
+
+  oneof configuration {
+    DiffDrive diff_drive = 8;
+    SkidSteer skid_steer = 9;
+  }
 }

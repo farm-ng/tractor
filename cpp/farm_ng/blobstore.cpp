@@ -9,6 +9,7 @@ const std::map<BucketId, std::string> kBucketPaths{
     {BucketId::kApriltagRigModels, "apriltag_rig_models"},
     {BucketId::kBaseToCameraModels, "base_to_camera_models"},
     {BucketId::kVideoDatasets, "video_datasets"},
+    {BucketId::kConfigurations, "configurations"},
 };
 
 boost::filesystem::path GetBlobstoreRoot() {
