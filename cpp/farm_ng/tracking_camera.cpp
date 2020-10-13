@@ -371,7 +371,7 @@ double TagSize(const TagLibrary& tag_library, int tag_id) {
   if (it != tag_library.tags().end()) {
     return it->size();
   }
-  return 0;
+  return 1;
 }
 
 // https://github.com/IntelRealSense/librealsense/blob/master/examples/pose-apriltag/rs-pose-apriltag.cpp
@@ -446,7 +446,6 @@ class ApriltagDetector {
     for (int i = 0; i < zarray_size(detections.get()); i++) {
       apriltag_detection_t* det;
       zarray_get(detections.get(), i, &det);
-      int tag_size = TagSize(tag_library_, det->id);
 
       ApriltagDetection* detection = pb_out.add_detections();
       for (int j = 0; j < 4; j++) {
@@ -454,7 +453,7 @@ class ApriltagDetector {
         p_j->set_x(det->p[j][0]);
         p_j->set_y(det->p[j][1]);
       }
-      detection->set_tag_size(tag_size);
+      detection->set_tag_size(TagSize(tag_library_, det->id));
       detection->mutable_c()->set_x(det->c[0]);
       detection->mutable_c()->set_y(det->c[1]);
       detection->set_id(det->id);
