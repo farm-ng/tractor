@@ -1,0 +1,16 @@
+.container {
+  display: flex;
+  flex-direction: row;
+  flex-grow: 1;
+}
+
+.browser {
+  flex-grow: 1;
+  min-width: 50%;
+}
+
+.detail {
+  min-width: 50%;
+  display: flex;
+  flex-direction: column;
+}

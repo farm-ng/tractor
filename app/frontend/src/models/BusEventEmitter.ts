@@ -1,6 +1,6 @@
-import { Event as BusAnyEvent } from "../../genproto/farm_ng_proto/tractor/v1/io";
+import { Event as BusEvent } from "../../genproto/farm_ng_proto/tractor/v1/io";
 
-type ICallback = (event: BusAnyEvent) => void;
+type ICallback = (event: BusEvent) => void;
 
 type ICallbackMap = {
   [event: string]: ICallback[];
@@ -34,7 +34,7 @@ export class BusEventEmitter {
     );
   }
 
-  public emit(event: BusAnyEvent): void {
+  public emit(event: BusEvent): void {
     (this.callbacks["*"] || []).forEach((cb) => cb(event));
     if (event.data) {
       (this.callbacks[event.data.typeUrl] || []).forEach((cb) => cb(event));

@@ -1,19 +1,51 @@
 /* eslint-disable no-console */
 import * as React from "react";
 import {
-  SingleElementVisualizerProps,
-  Visualizer,
-  VisualizerId,
-  VisualizerOptionConfig,
-  VisualizerProps
+  FormProps,
+  SingleElementVisualizerProps
 } from "../../../registry/visualization";
-import { EventTypeId } from "../../../registry/events";
-import { Layout } from "./Layout";
+import {
+  StandardComponentOptions,
+  StandardComponent
+} from "./StandardComponent";
 import { KeyValueTable } from "./KeyValueTable";
 import { Card } from "./Card";
 import { CaptureCalibrationDatasetConfiguration } from "../../../../genproto/farm_ng_proto/tractor/v1/capture_calibration_dataset";
+import { useFormState } from "../../../hooks/useFormState";
+import Form from "./Form";
 
-export const CaptureCalibrationDatasetConfigurationElement: React.FC<SingleElementVisualizerProps<
+const CaptureCalibrationDatasetConfigurationForm: React.FC<FormProps<
+  CaptureCalibrationDatasetConfiguration
+>> = (props) => {
+  const [value, setValue] = useFormState(props);
+
+  return (
+    <>
+      <Form.Group
+        label="Number of Frames"
+        value={value.numFrames}
+        type="number"
+        onChange={(e) => {
+          const numFrames = parseInt(e.target.value);
+          setValue((v) => ({ ...v, numFrames }));
+        }}
+      />
+
+      <Form.Group
+        label="Name"
+        value={value.name}
+        description="A name for the dataset, used to name the output archive."
+        type="text"
+        onChange={(e) => {
+          const name = e.target.value;
+          setValue((v) => ({ ...v, name }));
+        }}
+      />
+    </>
+  );
+};
+
+const CaptureCalibrationDatasetConfigurationElement: React.FC<SingleElementVisualizerProps<
   CaptureCalibrationDatasetConfiguration
 >> = (props) => {
   const {
@@ -36,27 +68,13 @@ export const CaptureCalibrationDatasetConfigurationElement: React.FC<SingleEleme
   );
 };
 
-export class CaptureCalibrationDatasetConfigurationVisualizer
-  implements Visualizer<CaptureCalibrationDatasetConfiguration> {
-  static id: VisualizerId = "captureCalibrationDatasetConfiguration";
-  types: EventTypeId[] = [
+export const CaptureCalibrationDatasetConfigurationVisualizer = {
+  id: "CaptureCalibrationDatasetConfiguration",
+  types: [
     "type.googleapis.com/farm_ng_proto.tractor.v1.CaptureCalibrationDatasetConfiguration"
-  ];
-
-  options: VisualizerOptionConfig[] = [
-    { label: "view", options: ["overlay", "grid"] }
-  ];
-
-  component: React.FC<
-    VisualizerProps<CaptureCalibrationDatasetConfiguration>
-  > = (props) => {
-    const view = props.options[0].value as "overlay" | "grid";
-    return (
-      <Layout
-        view={view}
-        element={CaptureCalibrationDatasetConfigurationElement}
-        {...props}
-      />
-    );
-  };
-}
+  ],
+  options: StandardComponentOptions,
+  Component: StandardComponent(CaptureCalibrationDatasetConfigurationElement),
+  Element: CaptureCalibrationDatasetConfigurationElement,
+  Form: CaptureCalibrationDatasetConfigurationForm
+};

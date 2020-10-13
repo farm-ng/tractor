@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { decodeAnyEvent } from "./decodeAnyEvent";
-import { Event as BusAnyEvent } from "../../genproto/farm_ng_proto/tractor/v1/io";
+import { Event as BusEvent } from "../../genproto/farm_ng_proto/tractor/v1/io";
 import { Buffer } from "../types/common";
 import { EventTypeId } from "../registry/events";
 import { TarResourceArchive } from "./ResourceArchive";
@@ -23,11 +23,11 @@ export class StreamingBuffer {
       offset += 2;
       const record = fileBuffer.slice(offset, offset + length);
       offset += length;
-      this.add(BusAnyEvent.decode(new Uint8Array(record)));
+      this.add(BusEvent.decode(new Uint8Array(record)));
     }
   }
 
-  public add(event: BusAnyEvent): void {
+  public add(event: BusEvent): void {
     if (!event || !event.data || !event.stamp) {
       return;
     }

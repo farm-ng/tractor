@@ -1,16 +1,11 @@
 /* eslint-disable no-console */
 import * as React from "react";
+import { SingleElementVisualizerProps } from "../../../registry/visualization";
 import {
-  SingleElementVisualizerProps,
-  Visualizer,
-  VisualizerId,
-  VisualizerOptionConfig,
-  VisualizerProps
-} from "../../../registry/visualization";
-import { EventTypeId } from "../../../registry/events";
-import { Layout } from "./Layout";
+  StandardComponentOptions,
+  StandardComponent
+} from "./StandardComponent";
 import { CalibrateApriltagRigResult } from "../../../../genproto/farm_ng_proto/tractor/v1/calibrate_apriltag_rig";
-import { MonocularApriltagRigModelElement } from "./MonocularApriltagRigModel";
 import {
   MonocularApriltagRigModel,
   solverStatusToJSON
@@ -18,9 +13,10 @@ import {
 import { useFetchResource } from "../../../hooks/useFetchResource";
 import { KeyValueTable } from "./KeyValueTable";
 import { Card } from "./Card";
-import { CalibrateApriltagRigConfigurationElement } from "./CalibrateApriltagRigConfiguration";
+import { MonocularApriltagRigModelVisualizer } from "./MonocularApriltagRigModel";
+import { CalibrateApriltagRigConfigurationVisualizer } from "./CalibrateApriltagRigConfiguration";
 
-export const CalibrateApriltagRigResultElement: React.FC<SingleElementVisualizerProps<
+const CalibrateApriltagRigResultElement: React.FC<SingleElementVisualizerProps<
   CalibrateApriltagRigResult
 >> = (props) => {
   const {
@@ -51,28 +47,25 @@ export const CalibrateApriltagRigResultElement: React.FC<SingleElementVisualizer
       </Card>
       {configuration && (
         <Card title="Configuration">
-          <CalibrateApriltagRigConfigurationElement
+          <CalibrateApriltagRigConfigurationVisualizer.Element
+            {...props}
             value={[0, configuration]}
-            options={[]}
-            resources={resources}
           />
         </Card>
       )}
       {initial && (
         <Card title="Initial">
-          <MonocularApriltagRigModelElement
+          <MonocularApriltagRigModelVisualizer.Element
+            {...props}
             value={[0, initial]}
-            options={[]}
-            resources={resources}
           />
         </Card>
       )}
       {solved && (
         <Card title="Solved">
-          <MonocularApriltagRigModelElement
+          <MonocularApriltagRigModelVisualizer.Element
+            {...props}
             value={[0, solved]}
-            options={[]}
-            resources={resources}
           />
         </Card>
       )}
@@ -80,27 +73,12 @@ export const CalibrateApriltagRigResultElement: React.FC<SingleElementVisualizer
   );
 };
 
-export class CalibrateApriltagRigResultVisualizer
-  implements Visualizer<CalibrateApriltagRigResult> {
-  static id: VisualizerId = "calibrateApriltagRigResult";
-  types: EventTypeId[] = [
+export const CalibrateApriltagRigResultVisualizer = {
+  id: "CalibrateApriltagRigResult",
+  types: [
     "type.googleapis.com/farm_ng_proto.tractor.v1.CalibrateApriltagRigResult"
-  ];
-
-  options: VisualizerOptionConfig[] = [
-    { label: "view", options: ["overlay", "grid"] }
-  ];
-
-  component: React.FC<VisualizerProps<CalibrateApriltagRigResult>> = (
-    props
-  ) => {
-    const view = props.options[0].value as "overlay" | "grid";
-    return (
-      <Layout
-        view={view}
-        element={CalibrateApriltagRigResultElement}
-        {...props}
-      />
-    );
-  };
-}
+  ],
+  options: StandardComponentOptions,
+  Component: StandardComponent(CalibrateApriltagRigResultElement),
+  Element: CalibrateApriltagRigResultElement
+};

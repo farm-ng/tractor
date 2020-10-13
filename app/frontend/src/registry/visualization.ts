@@ -1,13 +1,13 @@
 import { TimeSkewVisualizer } from "../components/scope/visualizers/TimeSkewVisualizer";
 import { JSONVisualizer } from "../components/scope/visualizers/JSONVisualizer";
-import { SteeringCommandVisualizer } from "../components/scope/visualizers/SteeringCommandVisualizer";
+import { SteeringCommandVisualizer } from "../components/scope/visualizers/SteeringCommand";
 import { TimestampedEvent, TimestampedEventVector } from "../types/common";
 import { EventType, EventTypeId, eventTypeIds } from "./events";
 import { ResourceArchive } from "../models/ResourceArchive";
-import { ImageVisualizer } from "../components/scope/visualizers/ImageVisualizer";
-import { ApriltagDetectionsVisualizer } from "../components/scope/visualizers/ApriltagDetectionsVisualizer";
-import { NamedSE3PoseVisualizer } from "../components/scope/visualizers/NamedSE3PoseVisualizer";
-import { TrackingCameraPoseFrameVisualizer } from "../components/scope/visualizers/TrackingCameraPoseFrameVisualizer";
+import { ImageVisualizer } from "../components/scope/visualizers/Image";
+import { ApriltagDetectionsVisualizer } from "../components/scope/visualizers/ApriltagDetections";
+import { NamedSE3PoseVisualizer } from "../components/scope/visualizers/NamedSE3Pose";
+import { TrackingCameraPoseFrameVisualizer } from "../components/scope/visualizers/TrackingCameraPoseFrame";
 import { CalibrateApriltagRigStatusVisualizer } from "../components/scope/visualizers/CalibrateApriltagRigStatus";
 import { CalibrateBaseToCameraStatusVisualizer } from "../components/scope/visualizers/CalibrateBaseToCameraStatus";
 import { BaseToCameraModelVisualizer } from "../components/scope/visualizers/BaseToCameraModel";
@@ -19,9 +19,10 @@ import { CaptureCalibrationDatasetConfigurationVisualizer } from "../components/
 import { CaptureCalibrationDatasetStatusVisualizer } from "../components/scope/visualizers/CaptureCalibrationDatasetStatus";
 import { CaptureCalibrationDatasetResultVisualizer } from "../components/scope/visualizers/CaptureCalibrationDatasetResult";
 import { MonocularApriltagRigModelVisualizer } from "../components/scope/visualizers/MonocularApriltagRigModel";
+import { TractorConfigVisualizer } from "../components/scope/visualizers/TractorConfig";
 import { CaptureVideoDatasetConfigurationVisualizer } from "../components/scope/visualizers/CaptureVideoDatasetConfiguration";
-import { CaptureVideoDatasetResultVisualizer } from "../components/scope/visualizers/CaptureVideoDatasetResult";
 import { CaptureVideoDatasetStatusVisualizer } from "../components/scope/visualizers/CaptureVideoDatasetStatus";
+import { CaptureVideoDatasetResultVisualizer } from "../components/scope/visualizers/CaptureVideoDatasetResult";
 
 export interface VisualizerOptionConfig {
   label: string;
@@ -31,46 +32,56 @@ export type VisualizerOption = VisualizerOptionConfig & { value: string };
 
 export interface SingleElementVisualizerProps<T extends EventType = EventType> {
   value: TimestampedEvent<T>;
-  options: VisualizerOption[];
-  resources: ResourceArchive | null;
+  options?: VisualizerOption[];
+  resources?: ResourceArchive;
 }
 
 export interface VisualizerProps<T extends EventType = EventType> {
   values: TimestampedEventVector<T>;
   options: VisualizerOption[];
-  resources: ResourceArchive | null;
+  resources?: ResourceArchive;
+}
+
+export interface FormProps<T extends EventType = EventType> {
+  initialValue: T;
+  onChange: (updated: T) => void;
 }
 
 export interface Visualizer<T extends EventType = EventType> {
-  component: React.FC<VisualizerProps<T>>;
+  id: VisualizerId;
+  Component: React.FC<VisualizerProps<T>>;
   options: VisualizerOptionConfig[];
   types: EventTypeId[] | "*";
+  Element?: React.FC<SingleElementVisualizerProps<T>>;
+  Form?: React.FC<FormProps<T>>;
 }
 
-export const visualizerRegistry: { [k: string]: Visualizer } = {
-  [ApriltagDetectionsVisualizer.id]: new ApriltagDetectionsVisualizer() as Visualizer,
-  [BaseToCameraModelVisualizer.id]: new BaseToCameraModelVisualizer() as Visualizer,
-  [CalibrateApriltagRigConfigurationVisualizer.id]: new CalibrateApriltagRigConfigurationVisualizer() as Visualizer,
-  [CalibrateApriltagRigResultVisualizer.id]: new CalibrateApriltagRigResultVisualizer() as Visualizer,
-  [CalibrateApriltagRigStatusVisualizer.id]: new CalibrateApriltagRigStatusVisualizer() as Visualizer,
-  [CalibrateBaseToCameraConfigurationVisualizer.id]: new CalibrateBaseToCameraConfigurationVisualizer() as Visualizer,
-  [CalibrateBaseToCameraResultVisualizer.id]: new CalibrateBaseToCameraResultVisualizer() as Visualizer,
-  [CalibrateBaseToCameraStatusVisualizer.id]: new CalibrateBaseToCameraStatusVisualizer() as Visualizer,
-  [CaptureCalibrationDatasetConfigurationVisualizer.id]: new CaptureCalibrationDatasetConfigurationVisualizer() as Visualizer,
-  [CaptureCalibrationDatasetResultVisualizer.id]: new CaptureCalibrationDatasetResultVisualizer() as Visualizer,
-  [CaptureCalibrationDatasetStatusVisualizer.id]: new CaptureCalibrationDatasetStatusVisualizer() as Visualizer,
-  [CaptureVideoDatasetConfigurationVisualizer.id]: new CaptureVideoDatasetConfigurationVisualizer() as Visualizer,
-  [CaptureVideoDatasetResultVisualizer.id]: new CaptureVideoDatasetResultVisualizer() as Visualizer,
-  [CaptureVideoDatasetStatusVisualizer.id]: new CaptureVideoDatasetStatusVisualizer() as Visualizer,
-  [ImageVisualizer.id]: new ImageVisualizer() as Visualizer,
-  [TrackingCameraPoseFrameVisualizer.id]: new TrackingCameraPoseFrameVisualizer() as Visualizer,
-  [MonocularApriltagRigModelVisualizer.id]: new MonocularApriltagRigModelVisualizer() as Visualizer,
-  [NamedSE3PoseVisualizer.id]: new NamedSE3PoseVisualizer() as Visualizer,
-  [SteeringCommandVisualizer.id]: new SteeringCommandVisualizer() as Visualizer,
-  [TrackingCameraPoseFrameVisualizer.id]: new TrackingCameraPoseFrameVisualizer() as Visualizer,
-  [JSONVisualizer.id]: new JSONVisualizer() as Visualizer,
-  [TimeSkewVisualizer.id]: new TimeSkewVisualizer() as Visualizer
-};
+export const visualizerRegistry: { [k: string]: Visualizer } = [
+  ApriltagDetectionsVisualizer,
+  BaseToCameraModelVisualizer,
+  CalibrateApriltagRigConfigurationVisualizer,
+  CalibrateApriltagRigResultVisualizer,
+  CalibrateApriltagRigStatusVisualizer,
+  CalibrateBaseToCameraConfigurationVisualizer,
+  CalibrateBaseToCameraResultVisualizer,
+  CalibrateBaseToCameraStatusVisualizer,
+  CaptureCalibrationDatasetConfigurationVisualizer,
+  CaptureCalibrationDatasetResultVisualizer,
+  CaptureCalibrationDatasetStatusVisualizer,
+  CaptureVideoDatasetConfigurationVisualizer,
+  CaptureVideoDatasetResultVisualizer,
+  CaptureVideoDatasetStatusVisualizer,
+  ImageVisualizer,
+  MonocularApriltagRigModelVisualizer,
+  NamedSE3PoseVisualizer,
+  SteeringCommandVisualizer,
+  TrackingCameraPoseFrameVisualizer,
+  TractorConfigVisualizer,
+  // Low priority, should stay at the end of the list
+  JSONVisualizer,
+  TimeSkewVisualizer
+].reduce((acc, visualizer) => ({ ...acc, [visualizer.id]: visualizer }), {});
+
 export const visualizerIds = Object.keys(visualizerRegistry);
 export type VisualizerId = typeof visualizerIds[number];
 

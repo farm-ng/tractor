@@ -94,6 +94,8 @@ module.exports = function (env, argv) {
       path: path.resolve(__dirname, "dist/"),
       // Add /* filename */ comments to generated require()s in the output.
       pathinfo: isEnvDevelopment,
+      // Required so that /bundle.js is served even at non-root paths
+      publicPath: "/",
       // Use the future version of asset emitting logic,
       // which allows freeing memory of assets after emitting
       futureEmitAssets: true
@@ -240,6 +242,8 @@ module.exports = function (env, argv) {
     plugins: [
       // Clears the output directory before each build
       new CleanWebpackPlugin(),
+      // Allows us to forward build-time environment variables
+      new webpack.EnvironmentPlugin(["BASE_URL"]),
       // Generates an `index.html` file with the <script> injected.
       new HtmlWebpackPlugin({
         inject: true,

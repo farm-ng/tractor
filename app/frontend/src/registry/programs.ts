@@ -1,26 +1,31 @@
-import { CaptureCalibrationDataset } from "../components/programs/CaptureCalibrationDataset";
-import { CalibrateApriltagRig } from "../components/programs/CalibrateApriltagRig";
-import { CalibrateBaseToCamera } from "../components/programs/CalibrateBaseToCamera";
-import { CaptureVideoDataset } from "../components/programs/CaptureVideoDataset";
+import { CaptureCalibrationDatasetProgram } from "../components/programs/CaptureCalibrationDataset";
+import { CalibrateApriltagRigProgram } from "../components/programs/CalibrateApriltagRig";
+import { CalibrateBaseToCameraProgram } from "../components/programs/CalibrateBaseToCamera";
+import { CaptureVideoDatasetProgram } from "../components/programs/CaptureVideoDataset";
+import { EventType } from "./events";
+import { Event as BusEvent } from "../../genproto/farm_ng_proto/tractor/v1/io";
 
-export interface ProgramUI {
+export interface Program<T extends EventType = EventType> {
   programIds: readonly string[];
-  component: React.FC;
+  inputRequired: (e: BusEvent) => T | null;
+  eventLogPredicate: (e: BusEvent) => boolean;
+  Component: React.FC<ProgramProps<T>>;
 }
 
-export const programRegistry: { [k: string]: ProgramUI } = {
-  [CaptureVideoDataset.id]: new CaptureVideoDataset() as ProgramUI,
-  [CaptureCalibrationDataset.id]: new CaptureCalibrationDataset() as ProgramUI,
-  [CalibrateApriltagRig.id]: new CalibrateApriltagRig() as ProgramUI,
-  [CalibrateBaseToCamera.id]: new CalibrateBaseToCamera() as ProgramUI
-};
-export const programIds = Object.keys(programRegistry);
-export type ProgramId = typeof programIds[number];
+export interface ProgramProps<T extends EventType = EventType> {
+  inputRequired: T;
+}
 
-export function programUIForProgramId(programId: string): ProgramUI | null {
+export const programRegistry: Program[] = [
+  CaptureVideoDatasetProgram as Program,
+  CaptureCalibrationDatasetProgram as Program,
+  CalibrateApriltagRigProgram as Program,
+  CalibrateBaseToCameraProgram as Program
+];
+
+export function programForProgramId(programId: string): Program | null {
   return (
-    Object.values(programRegistry).find((programUI) =>
-      programUI.programIds.includes(programId)
-    ) || null
+    programRegistry.find((program) => program.programIds.includes(programId)) ||
+    null
   );
 }

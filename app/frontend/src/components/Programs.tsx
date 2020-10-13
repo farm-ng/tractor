@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Button, Table } from "react-bootstrap";
+import { Alert, Button, Collapse, Table } from "react-bootstrap";
 import { useStores } from "../hooks/useStores";
 import {
   StartProgramRequest,
@@ -9,9 +9,10 @@ import { useObserver } from "mobx-react-lite";
 import { useEffect } from "react";
 import { formatValue } from "../utils/formatValue";
 import styles from "./Programs.module.scss";
+import { EventVisualizer } from "./scope/visualizers/Event";
 
 export const Programs: React.FC = () => {
-  const { programsStore: store } = useStores();
+  const { busClient, httpResourceArchive, programsStore: store } = useStores();
 
   useEffect(() => {
     store.startStreaming();
@@ -19,7 +20,7 @@ export const Programs: React.FC = () => {
   }, []);
 
   const handleStart = (id: string): void => {
-    store.busClient.send(
+    busClient.send(
       "type.googleapis.com/farm_ng_proto.tractor.v1.StartProgramRequest",
       "program_supervisor/request",
       StartProgramRequest.encode(StartProgramRequest.fromJSON({ id })).finish()
@@ -27,7 +28,7 @@ export const Programs: React.FC = () => {
   };
 
   const handleStop = (id: string): void => {
-    store.busClient.send(
+    busClient.send(
       "type.googleapis.com/farm_ng_proto.tractor.v1.StopProgramRequest",
       "program_supervisor/request",
       StopProgramRequest.encode(StopProgramRequest.fromJSON({ id })).finish()
@@ -35,8 +36,6 @@ export const Programs: React.FC = () => {
   };
 
   return useObserver(() => {
-    const programUI = store.programUI?.component;
-
     const rows = store.supervisorStatus?.library.map(
       ({ id, name, description }) => (
         <tr key={id}>
@@ -108,7 +107,25 @@ export const Programs: React.FC = () => {
           </thead>
           <tbody>{rows}</tbody>
         </Table>
-        {programUI && React.createElement(programUI, {})}
+        <div className={styles.programDetail}>
+          <Collapse in={Boolean(store.inputRequired)}>
+            <div>
+              <div className={styles.programForm}>
+                <Alert variant="warning">User Input Requested</Alert>
+                {store.program &&
+                  store.inputRequired &&
+                  React.createElement(store.program.Component, {
+                    inputRequired: store.inputRequired
+                  })}
+              </div>
+            </div>
+          </Collapse>
+          <EventVisualizer.Component
+            values={store.eventLog}
+            options={[{ label: "", options: [], value: "overlay" }]}
+            resources={httpResourceArchive}
+          />
+        </div>
       </div>
     );
   });

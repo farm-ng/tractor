@@ -10,8 +10,8 @@ import type { Message } from "../types/common";
 export function useFetchResource<T extends EventType>(
   resource?: Resource,
   resourceArchive?: ResourceArchive
-): T | null {
-  const [value, setValue] = useState<T | null>(null);
+): T | undefined {
+  const [value, setValue] = useState<T>();
   useEffect(() => {
     const fetchResult = async (): Promise<void> => {
       if (!resource || !resourceArchive) {

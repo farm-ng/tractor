@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import * as React from "react";
 import { Vector3 } from "three";
-import { Event as BusAnyEvent } from "../../genproto/farm_ng_proto/tractor/v1/io";
+import { Event as BusEvent } from "../../genproto/farm_ng_proto/tractor/v1/io";
 import { NamedSE3Pose } from "../../genproto/farm_ng_proto/tractor/v1/geometry";
 import { Html } from "drei";
 import { useFrame } from "react-three-fiber";
@@ -76,7 +76,7 @@ export const PoseViz: React.FC = () => {
   useEffect(() => {
     const handle = busEventEmitter.on(
       "type.googleapis.com/farm_ng_proto.tractor.v1.NamedSE3Pose",
-      (event: BusAnyEvent) => {
+      (event: BusEvent) => {
         const pose = decodeAnyEvent(event) as NamedSE3Pose;
 
         if (!pose) return;

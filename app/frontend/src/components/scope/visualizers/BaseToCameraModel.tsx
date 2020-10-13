@@ -1,23 +1,19 @@
 /* eslint-disable no-console */
 import * as React from "react";
-import {
-  SingleElementVisualizerProps,
-  Visualizer,
-  VisualizerId,
-  VisualizerOptionConfig,
-  VisualizerProps
-} from "../../../registry/visualization";
+import { SingleElementVisualizerProps } from "../../../registry/visualization";
 import {
   BaseToCameraModel,
   solverStatusToJSON
 } from "../../../../genproto/farm_ng_proto/tractor/v1/calibrator";
-import { Layout } from "./Layout";
+import {
+  StandardComponentOptions,
+  StandardComponent
+} from "./StandardComponent";
 import { Card } from "./Card";
 import { KeyValueTable } from "./KeyValueTable";
-import { EventTypeId } from "../../../registry/events";
-import { BaseToCameraInitializationTable } from "./BaseToCameraInitializationTable";
+import { BaseToCameraInitializationVisualizer } from "./BaseToCameraInitialization";
 
-export const BaseToCameraModelElement: React.FC<SingleElementVisualizerProps<
+const BaseToCameraModelElement: React.FC<SingleElementVisualizerProps<
   BaseToCameraModel
 >> = (props) => {
   const {
@@ -51,26 +47,19 @@ export const BaseToCameraModelElement: React.FC<SingleElementVisualizerProps<
       </Card>
       {initialization && (
         <Card title="Initialization">
-          <BaseToCameraInitializationTable value={initialization} />
+          <BaseToCameraInitializationVisualizer.Element
+            value={[0, initialization]}
+          />
         </Card>
       )}
     </Card>
   );
 };
 
-export class BaseToCameraModelVisualizer
-  implements Visualizer<BaseToCameraModel> {
-  static id: VisualizerId = "baseToCameraModel";
-  types: EventTypeId[] = [
-    "type.googleapis.com/farm_ng_proto.tractor.v1.BaseToCameraModel"
-  ];
-
-  options: VisualizerOptionConfig[] = [
-    { label: "view", options: ["overlay", "grid"] }
-  ];
-
-  component: React.FC<VisualizerProps<BaseToCameraModel>> = (props) => {
-    const view = props.options[0].value as "overlay" | "grid";
-    return <Layout view={view} element={BaseToCameraModelElement} {...props} />;
-  };
-}
+export const BaseToCameraModelVisualizer = {
+  id: "BaseToCameraModel",
+  types: ["type.googleapis.com/farm_ng_proto.tractor.v1.BaseToCameraModel"],
+  options: StandardComponentOptions,
+  Component: StandardComponent(BaseToCameraModelElement),
+  Element: BaseToCameraModelElement
+};

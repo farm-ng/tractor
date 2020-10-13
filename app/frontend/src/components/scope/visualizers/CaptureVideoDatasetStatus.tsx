@@ -1,14 +1,6 @@
 /* eslint-disable no-console */
 import * as React from "react";
-import {
-  SingleElementVisualizerProps,
-  Visualizer,
-  VisualizerId,
-  VisualizerOptionConfig,
-  VisualizerProps
-} from "../../../registry/visualization";
-import { EventTypeId } from "../../../registry/events";
-import { Layout } from "./Layout";
+import { SingleElementVisualizerProps } from "../../../registry/visualization";
 import { KeyValueTable } from "./KeyValueTable";
 import { Card } from "./Card";
 import {
@@ -16,9 +8,13 @@ import {
   CaptureVideoDatasetStatus
 } from "../../../../genproto/farm_ng_proto/tractor/v1/capture_video_dataset";
 import { useFetchResource } from "../../../hooks/useFetchResource";
-import { CaptureVideoDatasetResultElement } from "./CaptureVideoDatasetResult";
+import {
+  StandardComponent,
+  StandardComponentOptions
+} from "./StandardComponent";
+import { CaptureVideoDatasetResultVisualizer } from "./CaptureVideoDatasetResult";
 
-export const CaptureVideoDatasetStatusElement: React.FC<SingleElementVisualizerProps<
+const CaptureVideoDatasetStatusElement: React.FC<SingleElementVisualizerProps<
   CaptureVideoDatasetStatus
 >> = (props) => {
   const {
@@ -28,7 +24,7 @@ export const CaptureVideoDatasetStatusElement: React.FC<SingleElementVisualizerP
 
   const result = useFetchResource<CaptureVideoDatasetResult>(
     value.result,
-    resources || undefined
+    resources
   );
   const { numFrames } = value;
 
@@ -40,10 +36,9 @@ export const CaptureVideoDatasetStatusElement: React.FC<SingleElementVisualizerP
       {result && (
         <Card title="Result">
           {
-            <CaptureVideoDatasetResultElement
+            <CaptureVideoDatasetResultVisualizer.Element
+              {...props}
               value={[0, result]}
-              options={[]}
-              resources={resources}
             />
           }
         </Card>
@@ -52,25 +47,12 @@ export const CaptureVideoDatasetStatusElement: React.FC<SingleElementVisualizerP
   );
 };
 
-export class CaptureVideoDatasetStatusVisualizer
-  implements Visualizer<CaptureVideoDatasetStatus> {
-  static id: VisualizerId = "captureVideoDatasetStatus";
-  types: EventTypeId[] = [
+export const CaptureVideoDatasetStatusVisualizer = {
+  id: "CaptureVideoDatasetStatus",
+  types: [
     "type.googleapis.com/farm_ng_proto.tractor.v1.CaptureVideoDatasetStatus"
-  ];
-
-  options: VisualizerOptionConfig[] = [
-    { label: "view", options: ["overlay", "grid"] }
-  ];
-
-  component: React.FC<VisualizerProps<CaptureVideoDatasetStatus>> = (props) => {
-    const view = props.options[0].value as "overlay" | "grid";
-    return (
-      <Layout
-        view={view}
-        element={CaptureVideoDatasetStatusElement}
-        {...props}
-      />
-    );
-  };
-}
+  ],
+  options: StandardComponentOptions,
+  Component: StandardComponent(CaptureVideoDatasetStatusElement),
+  Element: CaptureVideoDatasetStatusElement
+};

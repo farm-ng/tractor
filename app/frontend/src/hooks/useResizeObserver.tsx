@@ -4,13 +4,11 @@ import ResizeObserver from "resize-observer-polyfill";
 export const useResizeObserver = (): [
   HTMLDivElement | null,
   React.Dispatch<React.SetStateAction<HTMLDivElement | null>>,
-  ResizeObserverEntry | null
+  ResizeObserverEntry | undefined
 ] => {
   const [observed, setObserved] = useState<HTMLDivElement | null>(null);
   const observer = useRef<ResizeObserver | null>(null);
-  const [observation, setObservation] = useState<ResizeObserverEntry | null>(
-    null
-  );
+  const [observation, setObservation] = useState<ResizeObserverEntry>();
 
   const disconnect = useCallback(() => observer.current?.disconnect(), []);
 

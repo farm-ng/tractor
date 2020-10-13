@@ -1,25 +1,20 @@
 /* eslint-disable no-console */
 import * as React from "react";
+import { SingleElementVisualizerProps } from "../../../registry/visualization";
 import {
-  SingleElementVisualizerProps,
-  Visualizer,
-  VisualizerId,
-  VisualizerOptionConfig,
-  VisualizerProps
-} from "../../../registry/visualization";
-import { EventTypeId } from "../../../registry/events";
-import { Layout } from "./Layout";
+  StandardComponentOptions,
+  StandardComponent
+} from "./StandardComponent";
 import { KeyValueTable } from "./KeyValueTable";
 import { Card } from "./Card";
 import { CaptureCalibrationDatasetResult } from "../../../../genproto/farm_ng_proto/tractor/v1/capture_calibration_dataset";
-import { CaptureCalibrationDatasetConfigurationElement } from "./CaptureCalibrationDatasetConfiguration";
+import { CaptureCalibrationDatasetConfigurationVisualizer } from "./CaptureCalibrationDatasetConfiguration";
 
-export const CaptureCalibrationDatasetResultElement: React.FC<SingleElementVisualizerProps<
+const CaptureCalibrationDatasetResultElement: React.FC<SingleElementVisualizerProps<
   CaptureCalibrationDatasetResult
 >> = (props) => {
   const {
-    value: [timestamp, value],
-    resources
+    value: [timestamp, value]
   } = props;
 
   const { configuration, numFrames, tagIds, stampEnd, dataset } = value;
@@ -30,7 +25,7 @@ export const CaptureCalibrationDatasetResultElement: React.FC<SingleElementVisua
         <KeyValueTable
           records={[
             ["Num Frames", numFrames],
-            ["Tag IDs", tagIds.join(", ")],
+            ["Tag IDs", (tagIds || []).join(", ")],
             ["Stamp End", stampEnd],
             ["Dataset URL", dataset?.path]
           ]}
@@ -39,10 +34,9 @@ export const CaptureCalibrationDatasetResultElement: React.FC<SingleElementVisua
       {configuration && (
         <Card title="Configuration">
           {
-            <CaptureCalibrationDatasetConfigurationElement
+            <CaptureCalibrationDatasetConfigurationVisualizer.Element
+              {...props}
               value={[0, configuration]}
-              options={[]}
-              resources={resources}
             />
           }
         </Card>
@@ -51,27 +45,12 @@ export const CaptureCalibrationDatasetResultElement: React.FC<SingleElementVisua
   );
 };
 
-export class CaptureCalibrationDatasetResultVisualizer
-  implements Visualizer<CaptureCalibrationDatasetResult> {
-  static id: VisualizerId = "captureCalibrationDatasetResult";
-  types: EventTypeId[] = [
+export const CaptureCalibrationDatasetResultVisualizer = {
+  id: "CaptureCalibrationDatasetResult",
+  types: [
     "type.googleapis.com/farm_ng_proto.tractor.v1.CaptureCalibrationDatasetResult"
-  ];
-
-  options: VisualizerOptionConfig[] = [
-    { label: "view", options: ["overlay", "grid"] }
-  ];
-
-  component: React.FC<VisualizerProps<CaptureCalibrationDatasetResult>> = (
-    props
-  ) => {
-    const view = props.options[0].value as "overlay" | "grid";
-    return (
-      <Layout
-        view={view}
-        element={CaptureCalibrationDatasetResultElement}
-        {...props}
-      />
-    );
-  };
-}
+  ],
+  options: StandardComponentOptions,
+  Component: StandardComponent(CaptureCalibrationDatasetResultElement),
+  Element: CaptureCalibrationDatasetResultElement
+};

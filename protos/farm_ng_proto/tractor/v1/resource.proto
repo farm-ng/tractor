@@ -1,5 +1,6 @@
 syntax = "proto3";
 
+import "google/protobuf/timestamp.proto";
 import "google/protobuf/wrappers.proto";
 
 package farm_ng_proto.tractor.v1;
@@ -19,4 +20,19 @@ message Resource {
 
   // (Optional) The uncompressed size of the resource in bytes.
   google.protobuf.Int64Value length = 4;
+}
+
+message File {
+  message Ordinary {}
+  message Directory {
+    repeated File files = 2;
+  }
+
+  string name = 1;
+  oneof type {
+    Directory directory = 2;
+    Ordinary ordinary = 3;
+  }
+  int64 size = 4;
+  google.protobuf.Timestamp modification_time = 5;
 }

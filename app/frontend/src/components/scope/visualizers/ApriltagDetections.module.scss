@@ -1,20 +1,3 @@
-.card {
-  min-height: 0;
-  flex-grow: 1;
-
-  :global(.card-body) {
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-  }
-
-  .footer {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-}
-
 .annotatedImageContainer {
   display: flex;
   min-height: 0;

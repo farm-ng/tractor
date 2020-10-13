@@ -1,25 +1,20 @@
 /* eslint-disable no-console */
 import * as React from "react";
-import {
-  SingleElementVisualizerProps,
-  Visualizer,
-  VisualizerId,
-  VisualizerOptionConfig,
-  VisualizerProps
-} from "../../../registry/visualization";
-import { EventTypeId } from "../../../registry/events";
-import { Layout } from "./Layout";
+import { SingleElementVisualizerProps } from "../../../registry/visualization";
 import { KeyValueTable } from "./KeyValueTable";
 import { Card } from "./Card";
 import { CaptureVideoDatasetResult } from "../../../../genproto/farm_ng_proto/tractor/v1/capture_video_dataset";
-import { CaptureVideoDatasetConfigurationElement } from "./CaptureVideoDatasetConfiguration";
+import {
+  StandardComponent,
+  StandardComponentOptions
+} from "./StandardComponent";
+import { CaptureVideoDatasetConfigurationVisualizer } from "./CaptureVideoDatasetConfiguration";
 
-export const CaptureVideoDatasetResultElement: React.FC<SingleElementVisualizerProps<
+const CaptureVideoDatasetResultElement: React.FC<SingleElementVisualizerProps<
   CaptureVideoDatasetResult
 >> = (props) => {
   const {
-    value: [timestamp, value],
-    resources
+    value: [timestamp, value]
   } = props;
 
   const { configuration, numFrames, stampEnd, dataset } = value;
@@ -38,10 +33,9 @@ export const CaptureVideoDatasetResultElement: React.FC<SingleElementVisualizerP
       {configuration && (
         <Card title="Configuration">
           {
-            <CaptureVideoDatasetConfigurationElement
+            <CaptureVideoDatasetConfigurationVisualizer.Element
+              {...props}
               value={[0, configuration]}
-              options={[]}
-              resources={resources}
             />
           }
         </Card>
@@ -50,25 +44,12 @@ export const CaptureVideoDatasetResultElement: React.FC<SingleElementVisualizerP
   );
 };
 
-export class CaptureVideoDatasetResultVisualizer
-  implements Visualizer<CaptureVideoDatasetResult> {
-  static id: VisualizerId = "captureVideoDatasetResult";
-  types: EventTypeId[] = [
+export const CaptureVideoDatasetResultVisualizer = {
+  id: "CaptureVideoDatasetResult",
+  types: [
     "type.googleapis.com/farm_ng_proto.tractor.v1.CaptureVideoDatasetResult"
-  ];
-
-  options: VisualizerOptionConfig[] = [
-    { label: "view", options: ["overlay", "grid"] }
-  ];
-
-  component: React.FC<VisualizerProps<CaptureVideoDatasetResult>> = (props) => {
-    const view = props.options[0].value as "overlay" | "grid";
-    return (
-      <Layout
-        view={view}
-        element={CaptureVideoDatasetResultElement}
-        {...props}
-      />
-    );
-  };
-}
+  ],
+  options: StandardComponentOptions,
+  Component: StandardComponent(CaptureVideoDatasetResultElement),
+  Element: CaptureVideoDatasetResultElement
+};

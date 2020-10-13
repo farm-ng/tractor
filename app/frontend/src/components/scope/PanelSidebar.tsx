@@ -5,7 +5,7 @@ import { useStores } from "../../hooks/useStores";
 import { useObserver } from "mobx-react-lite";
 import { ChangeEvent, useEffect } from "react";
 import { EventTypeId, eventTypeIds } from "../../registry/events";
-import { Panel, visualizerId } from "../../stores/VisualizationStore";
+import { Panel } from "../../stores/VisualizationStore";
 import { autorun } from "mobx";
 
 interface IProps {
@@ -84,8 +84,8 @@ export const PanelSidebar: React.FC<IProps> = ({ panel }) => {
             disabled={bufferEmpty}
           >
             {visualizers.map((v, index) => (
-              <option key={visualizerId(v)} value={index}>
-                {visualizerId(v)}
+              <option key={v.id} value={index}>
+                {v.id}
               </option>
             ))}
           </Form.Control>
