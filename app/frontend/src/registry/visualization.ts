@@ -23,6 +23,7 @@ import { TractorConfigVisualizer } from "../components/scope/visualizers/Tractor
 import { CaptureVideoDatasetConfigurationVisualizer } from "../components/scope/visualizers/CaptureVideoDatasetConfiguration";
 import { CaptureVideoDatasetStatusVisualizer } from "../components/scope/visualizers/CaptureVideoDatasetStatus";
 import { CaptureVideoDatasetResultVisualizer } from "../components/scope/visualizers/CaptureVideoDatasetResult";
+import { ApriltagConfigVisualizer } from "../components/scope/visualizers/ApriltagConfig";
 
 export interface VisualizerOptionConfig {
   label: string;
@@ -57,6 +58,7 @@ export interface Visualizer<T extends EventType = EventType> {
 }
 
 export const visualizerRegistry: { [k: string]: Visualizer } = [
+  ApriltagConfigVisualizer,
   ApriltagDetectionsVisualizer,
   BaseToCameraModelVisualizer,
   CalibrateApriltagRigConfigurationVisualizer,

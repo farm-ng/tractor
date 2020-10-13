@@ -11,6 +11,7 @@ import styles from "./Form.module.scss";
 
 interface IGroupProps extends FormControlProps {
   label: string;
+  id?: string;
   description?: string;
   checked?: boolean;
   onChange: React.ChangeEventHandler<
@@ -18,15 +19,21 @@ interface IGroupProps extends FormControlProps {
   >;
 }
 
-const Group: React.FC<IGroupProps> = (props) => {
-  const { label, value, description, children } = props;
-  const camelCaseLabel = toCamelCase(label);
+const Group: React.FC<IGroupProps> = ({
+  label,
+  value,
+  id,
+  description,
+  children,
+  ...props
+}) => {
+  const controlId = id || toCamelCase(label);
   const defaultValue = typeof value === "number" ? 0 : "";
   return (
-    <BootstrapForm.Group controlId={camelCaseLabel}>
+    <BootstrapForm.Group controlId={controlId}>
       <BootstrapForm.Label>{label}</BootstrapForm.Label>
       <BootstrapForm.Control
-        name={camelCaseLabel}
+        name={controlId}
         value={value || defaultValue}
         {...props}
       >
