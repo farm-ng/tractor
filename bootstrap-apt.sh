@@ -22,6 +22,12 @@ if ! dpkg -s yarn > /dev/null 2>&1; then
   echo "deb https://dl.yarnpkg.com/debian/ stable main" | sudo tee /etc/apt/sources.list.d/yarn.list
 fi
 
+# Grafana apt sources
+if ! dpkg -s grafana > /dev/null 2>&1; then
+  wget -q -O - https://packages.grafana.com/gpg.key | sudo apt-key add -
+  echo "deb https://packages.grafana.com/oss/deb stable main" | sudo tee -a /etc/apt/sources.list.d/grafana.list
+fi
+
 # System dependencies
 sudo apt-get update
 sudo apt-get install -y \
@@ -34,6 +40,7 @@ sudo apt-get install -y \
      dirmngr \
      git \
      git-lfs \
+     grafana \
      gstreamer1.0-libav \
      libatlas-base-dev \
      libboost-filesystem-dev \

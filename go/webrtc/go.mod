@@ -4,14 +4,10 @@ go 1.14
 
 require (
 	github.com/farm-ng/tractor/genproto v0.0.0-00010101000000-000000000000
-	github.com/gogo/protobuf v1.3.1
 	github.com/golang/protobuf v1.4.2
-	github.com/golang/snappy v0.0.2
 	github.com/gorilla/mux v1.8.0
 	github.com/pion/rtp v1.6.0
 	github.com/pion/webrtc/v3 v3.0.0-beta.1
-	github.com/prometheus/common v0.14.0
-	github.com/prometheus/prometheus v2.5.0+incompatible
 	github.com/rs/cors v1.7.0
 	github.com/twitchtv/twirp v7.1.0+incompatible
 	golang.org/x/net v0.0.0-20200625001655-4c5254603344
