@@ -98,8 +98,7 @@ ProtobufT ReadProtobufFromJsonFile(const boost::filesystem::path& path) {
   ProtobufT message;
   auto status =
       google::protobuf::util::JsonStringToMessage(json_str, &message, options);
-  CHECK(status.ok()) << __PRETTY_FUNCTION__ << " " << status << " "
-                     << path.string();
+  CHECK(status.ok()) << status << " " << path.string();
 
   return message;
 }
