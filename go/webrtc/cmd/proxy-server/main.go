@@ -16,6 +16,7 @@ import (
 	"github.com/farm-ng/tractor/webrtc/internal/api"
 	"github.com/farm-ng/tractor/webrtc/internal/blobstore"
 	"github.com/farm-ng/tractor/webrtc/internal/eventbus"
+	"github.com/farm-ng/tractor/webrtc/internal/metrics"
 	"github.com/farm-ng/tractor/webrtc/internal/proxy"
 	"github.com/farm-ng/tractor/webrtc/internal/spa"
 )
@@ -81,6 +82,14 @@ func main() {
 	log.Println("Serving blobstore from ", blobstoreRoot)
 	blobstore := blobstoreCorsWrapper.Handler(blobstore.FileServer(&blobstore.RWDir{Dir: http.Dir(blobstoreRoot)}))
 
+	// Create metrics server handler
+	metricsServerEventBus := eventbus.NewEventBus(&eventbus.EventBusConfig{
+		MulticastGroup: (net.UDPAddr{IP: net.ParseIP(eventBusAddr), Port: eventBusPort}),
+		ServiceName:    "metrics-server",
+	})
+	go metricsServerEventBus.Start()
+	metricsServer := &metrics.Server{EventBus: metricsServerEventBus}
+
 	// Serve the API and frontend
 	serverAddr := defaultServerAddr
 	port := os.Getenv("PORT")
@@ -89,6 +98,7 @@ func main() {
 	}
 	router := mux.NewRouter()
 	router.PathPrefix("/twirp/").Handler(api)
+	router.PathPrefix("/receive_metrics").Handler(metricsServer)
 	router.PathPrefix("/blobstore/").Handler(http.StripPrefix("/blobstore", blobstore))
 	router.PathPrefix("/").Handler(spa)
 	srv := &http.Server{

@@ -60,6 +60,7 @@ import {
   CalibrateBaseToCameraStatus
 } from "../../genproto/farm_ng_proto/tractor/v1/calibrate_base_to_camera";
 import { Event as BusEvent } from "../../genproto/farm_ng_proto/tractor/v1/io";
+import { TimeSeries } from "../../genproto/farm_ng_proto/tractor/v1/metrics";
 
 export type EventType =
   | BusEvent
@@ -85,6 +86,7 @@ export type EventType =
   | ProgramSupervisorStatus
   | StartProgramRequest
   | ApriltagRig
+  | TimeSeries
   | StopProgramRequest
   | MonocularApriltagRigModel
   | BaseToCameraModel
@@ -118,6 +120,7 @@ export const eventRegistry = inferKeys({
   "type.googleapis.com/farm_ng_proto.tractor.v1.MotorControllerState": MotorControllerState,
   "type.googleapis.com/farm_ng_proto.tractor.v1.ApriltagDetections": ApriltagDetections,
   "type.googleapis.com/farm_ng_proto.tractor.v1.ApriltagRig": ApriltagRig,
+  "type.googleapis.com/farm_ng_proto.tractor.v1.TimeSeries": TimeSeries,
   "type.googleapis.com/farm_ng_proto.tractor.v1.TractorState": TractorState,
   "type.googleapis.com/farm_ng_proto.tractor.v1.Announce": Announce,
   "type.googleapis.com/farm_ng_proto.tractor.v1.Vec2": Vec2,
