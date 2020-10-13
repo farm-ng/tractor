@@ -629,7 +629,9 @@ class TrackingCameraClient {
     // TODO(ethanrublee) look up image size from realsense profile.
 
     ApriltagConfig apriltag_config = ReadProtobufFromJsonFile<ApriltagConfig>(
-        GetBucketAbsolutePath(BUCKET_CONFIGURATIONS) / "apriltag.config");
+        GetBucketAbsolutePath(BUCKET_CONFIGURATIONS) / "apriltag.json");
+
+    LOG(INFO) << " apriltag config: " << apriltag_config.ShortDebugString();
 
     std::string encoder_x264 =
         std::string(

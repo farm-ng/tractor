@@ -17,6 +17,7 @@ boost::filesystem::path GetBucketRelativePath(Bucket id) {
       Bucket_Name(id).substr(std::strlen("BUCKET_"), std::string::npos);
   std::transform(path.begin(), path.end(), path.begin(),
                  [](unsigned char c) { return std::tolower(c); });
+  return path;
 }
 
 boost::filesystem::path GetBucketAbsolutePath(Bucket id) {
