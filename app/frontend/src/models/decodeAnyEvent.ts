@@ -1,10 +1,8 @@
-import { Event as BusAnyEvent } from "../../genproto/farm_ng_proto/tractor/v1/io";
+import { Event as BusEvent } from "../../genproto/farm_ng_proto/tractor/v1/io";
 import { eventRegistry, EventType, EventTypeId } from "../registry/events";
 import { Message } from "../types/common";
 
-export function decodeAnyEvent<T extends EventType>(
-  event: BusAnyEvent
-): T | null {
+export function decodeAnyEvent<T extends EventType>(event: BusEvent): T | null {
   const { data } = event;
   if (!data) {
     return null;

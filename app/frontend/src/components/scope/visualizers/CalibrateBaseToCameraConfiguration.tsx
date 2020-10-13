@@ -1,25 +1,92 @@
 /* eslint-disable no-console */
 import * as React from "react";
 import {
-  SingleElementVisualizerProps,
-  Visualizer,
-  VisualizerId,
-  VisualizerOptionConfig,
-  VisualizerProps
+  FormProps,
+  SingleElementVisualizerProps
 } from "../../../registry/visualization";
-import { EventTypeId } from "../../../registry/events";
-import { Layout } from "./Layout";
+import {
+  StandardComponentOptions,
+  StandardComponent
+} from "./StandardComponent";
 import { KeyValueTable } from "./KeyValueTable";
 import { Card } from "./Card";
 import { CalibrateBaseToCameraConfiguration } from "../../../../genproto/farm_ng_proto/tractor/v1/calibrate_base_to_camera";
 import { useFetchResource } from "../../../hooks/useFetchResource";
 import { CaptureCalibrationDatasetResult } from "../../../../genproto/farm_ng_proto/tractor/v1/capture_calibration_dataset";
 import { CalibrateApriltagRigResult } from "../../../../genproto/farm_ng_proto/tractor/v1/calibrate_apriltag_rig";
-import { CaptureCalibrationDatasetResultElement } from "./CaptureCalibrationDatasetResult";
-import { CalibrateApriltagRigResultElement } from "./CalibrateApriltagRigResult";
-import { BaseToCameraInitializationTable } from "./BaseToCameraInitializationTable";
+import { useFormState } from "../../../hooks/useFormState";
+import Form from "./Form";
+import { Resource } from "../../../../genproto/farm_ng_proto/tractor/v1/resource";
+import { BaseToCameraInitialization } from "../../../../genproto/farm_ng_proto/tractor/v1/calibrator";
+import { CaptureCalibrationDatasetResultVisualizer } from "./CaptureCalibrationDatasetResult";
+import { CalibrateApriltagRigResultVisualizer } from "./CalibrateApriltagRigResult";
+import { BaseToCameraInitializationVisualizer } from "./BaseToCameraInitialization";
 
-export const CalibrateBaseToCameraConfigurationElement: React.FC<SingleElementVisualizerProps<
+const CalibrateBaseToCameraConfigurationForm: React.FC<FormProps<
+  CalibrateBaseToCameraConfiguration
+>> = (props) => {
+  const [value, setValue] = useFormState(props);
+  return (
+    <>
+      <Form.Group
+        // TODO: Replace with resource browser
+        label="Calibration Dataset"
+        value={value.calibrationDataset?.path}
+        type="text"
+        onChange={(e) => {
+          const path = e.target.value;
+          setValue((v) => ({
+            ...v,
+            calibrationDataset: Resource.fromPartial({
+              path,
+              contentType:
+                "application/json; type=type.googleapis.com/farm_ng_proto.tractor.v1.CaptureCalibrationDatasetResult"
+            })
+          }));
+        }}
+      />
+
+      <Form.Group
+        // TODO: Replace with resource browser
+        label="Apriltag Rig Result"
+        value={value.apriltagRigResult?.path}
+        type="text"
+        onChange={(e) => {
+          const path = e.target.value;
+          setValue((v) => ({
+            ...v,
+            apriltagRigResult: Resource.fromPartial({
+              path,
+              contentType:
+                "application/json; type=type.googleapis.com/farm_ng_proto.tractor.v1.CalibrateApriltagRigResult"
+            })
+          }));
+        }}
+      />
+
+      <BaseToCameraInitializationVisualizer.Form
+        initialValue={
+          value.initialization || BaseToCameraInitialization.fromPartial({})
+        }
+        onChange={(updated) =>
+          setValue((v) => ({ ...v, initialization: updated }))
+        }
+      />
+
+      <Form.Group
+        label="Name"
+        value={value.name}
+        type="text"
+        onChange={(e) => {
+          const name = e.target.value;
+          setValue((v) => ({ ...v, name }));
+        }}
+      />
+    </>
+  );
+};
+
+const CalibrateBaseToCameraConfigurationElement: React.FC<SingleElementVisualizerProps<
   CalibrateBaseToCameraConfiguration
 >> = (props) => {
   const {
@@ -29,11 +96,11 @@ export const CalibrateBaseToCameraConfigurationElement: React.FC<SingleElementVi
 
   const calibrationDataset = useFetchResource<CaptureCalibrationDatasetResult>(
     value.calibrationDataset,
-    resources || undefined
+    resources
   );
   const apriltagRigResult = useFetchResource<CalibrateApriltagRigResult>(
     value.apriltagRigResult,
-    resources || undefined
+    resources
   );
   const { initialization, name } = value;
 
@@ -44,24 +111,24 @@ export const CalibrateBaseToCameraConfigurationElement: React.FC<SingleElementVi
       </Card>
       {initialization && (
         <Card title="base_pose_camera Initialization">
-          <BaseToCameraInitializationTable value={initialization} />
+          <BaseToCameraInitializationVisualizer.Element
+            value={[0, initialization]}
+          />
         </Card>
       )}
       {calibrationDataset && (
         <Card title="Calibration Dataset">
-          <CaptureCalibrationDatasetResultElement
+          <CaptureCalibrationDatasetResultVisualizer.Element
+            {...props}
             value={[0, calibrationDataset]}
-            options={[]}
-            resources={resources}
           />
         </Card>
       )}
       {apriltagRigResult && (
         <Card title="Apriltag Rig Result">
-          <CalibrateApriltagRigResultElement
+          <CalibrateApriltagRigResultVisualizer.Element
+            {...props}
             value={[0, apriltagRigResult]}
-            options={[]}
-            resources={resources}
           />
         </Card>
       )}
@@ -69,27 +136,13 @@ export const CalibrateBaseToCameraConfigurationElement: React.FC<SingleElementVi
   );
 };
 
-export class CalibrateBaseToCameraConfigurationVisualizer
-  implements Visualizer<CalibrateBaseToCameraConfiguration> {
-  static id: VisualizerId = "calibrateBaseToCameraConfiguration";
-  types: EventTypeId[] = [
+export const CalibrateBaseToCameraConfigurationVisualizer = {
+  id: "CalibrateBaseToCameraConfiguration",
+  types: [
     "type.googleapis.com/farm_ng_proto.tractor.v1.CalibrateBaseToCameraConfiguration"
-  ];
-
-  options: VisualizerOptionConfig[] = [
-    { label: "view", options: ["overlay", "grid"] }
-  ];
-
-  component: React.FC<VisualizerProps<CalibrateBaseToCameraConfiguration>> = (
-    props
-  ) => {
-    const view = props.options[0].value as "overlay" | "grid";
-    return (
-      <Layout
-        view={view}
-        element={CalibrateBaseToCameraConfigurationElement}
-        {...props}
-      />
-    );
-  };
-}
+  ],
+  options: StandardComponentOptions,
+  Component: StandardComponent(CalibrateBaseToCameraConfigurationElement),
+  Element: CalibrateBaseToCameraConfigurationElement,
+  Form: CalibrateBaseToCameraConfigurationForm
+};

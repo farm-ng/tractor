@@ -1,22 +1,115 @@
 /* eslint-disable no-console */
 import * as React from "react";
 import {
-  SingleElementVisualizerProps,
-  Visualizer,
-  VisualizerId,
-  VisualizerOptionConfig,
-  VisualizerProps
+  FormProps,
+  SingleElementVisualizerProps
 } from "../../../registry/visualization";
-import { EventTypeId } from "../../../registry/events";
-import { Layout } from "./Layout";
+import {
+  StandardComponentOptions,
+  StandardComponent
+} from "./StandardComponent";
 import { CalibrateApriltagRigConfiguration } from "../../../../genproto/farm_ng_proto/tractor/v1/calibrate_apriltag_rig";
 import { useFetchResource } from "../../../hooks/useFetchResource";
 import { KeyValueTable } from "./KeyValueTable";
 import { Card } from "./Card";
 import { CaptureCalibrationDatasetResult } from "../../../../genproto/farm_ng_proto/tractor/v1/capture_calibration_dataset";
-import { CaptureCalibrationDatasetResultElement } from "./CaptureCalibrationDatasetResult";
+import { useFormState } from "../../../hooks/useFormState";
+import Form from "./Form";
+import { Resource } from "../../../../genproto/farm_ng_proto/tractor/v1/resource";
+import { CaptureCalibrationDatasetResultVisualizer } from "./CaptureCalibrationDatasetResult";
 
-export const CalibrateApriltagRigConfigurationElement: React.FC<SingleElementVisualizerProps<
+CaptureCalibrationDatasetResultVisualizer.Element;
+
+const CalibrateApriltagRigConfigurationForm: React.FC<FormProps<
+  CalibrateApriltagRigConfiguration
+>> = (props) => {
+  const [value, setValue] = useFormState(props);
+
+  console.log(value);
+
+  return (
+    <>
+      <Form.Group
+        // TODO: Replace with resource browser
+        label="Resource Path"
+        value={value.calibrationDataset?.path}
+        type="text"
+        onChange={(e) => {
+          const path = e.target.value;
+          setValue((v) => ({
+            ...v,
+            calibrationDataset: Resource.fromPartial({
+              path,
+              contentType:
+                "application/json; type=type.googleapis.com/farm_ng_proto.tractor.v1.CaptureCalibrationDatasetResult"
+            })
+          }));
+        }}
+      />
+      <h6>Tag IDs</h6>
+      {value.tagIds.map((tagId, index) => (
+        <React.Fragment key={index}>
+          <Form.Group
+            label={`Tag ID ${index}`}
+            value={tagId}
+            type="number"
+            onChange={(e) => {
+              const tagId = parseInt(e.target.value);
+              setValue((v) => ({
+                ...v,
+                tagIds: Object.assign([...v.tagIds], { [index]: tagId })
+              }));
+            }}
+          />
+          <Form.ButtonGroup
+            buttonText="X"
+            onClick={() =>
+              setValue((v) => ({
+                ...v,
+                tagIds: [
+                  ...v.tagIds.slice(0, index),
+                  ...v.tagIds.slice(index + 1)
+                ]
+              }))
+            }
+          />
+        </React.Fragment>
+      ))}
+
+      <Form.ButtonGroup
+        buttonText="+"
+        onClick={() =>
+          setValue((v) => ({
+            ...v,
+            tagIds: [...v.tagIds, 0]
+          }))
+        }
+      />
+
+      <Form.Group
+        label="Name"
+        value={value.name}
+        type="text"
+        onChange={(e) => {
+          const name = e.target.value;
+          setValue((v) => ({ ...v, name }));
+        }}
+      />
+
+      <Form.Group
+        label="Root Tag ID"
+        value={value.rootTagId}
+        type="number"
+        onChange={(e) => {
+          const rootTagId = parseInt(e.target.value);
+          setValue((v) => ({ ...v, rootTagId }));
+        }}
+      />
+    </>
+  );
+};
+
+const CalibrateApriltagRigConfigurationElement: React.FC<SingleElementVisualizerProps<
   CalibrateApriltagRigConfiguration
 >> = (props) => {
   const {
@@ -28,7 +121,7 @@ export const CalibrateApriltagRigConfigurationElement: React.FC<SingleElementVis
 
   const calibrationDataset = useFetchResource<CaptureCalibrationDatasetResult>(
     value.calibrationDataset,
-    resources || undefined
+    resources
   );
 
   return (
@@ -37,17 +130,16 @@ export const CalibrateApriltagRigConfigurationElement: React.FC<SingleElementVis
         <KeyValueTable
           records={[
             ["Name", name],
-            ["Tag IDs", tagIds.join(", ")],
+            ["Tag IDs", (tagIds || []).join(", ")],
             ["Root Tag ID", rootTagId]
           ]}
         />
       </Card>
       {calibrationDataset && (
         <Card title="Calibration Dataset">
-          <CaptureCalibrationDatasetResultElement
+          <CaptureCalibrationDatasetResultVisualizer.Element
+            {...props}
             value={[0, calibrationDataset]}
-            options={[]}
-            resources={resources}
           />
         </Card>
       )}
@@ -55,27 +147,13 @@ export const CalibrateApriltagRigConfigurationElement: React.FC<SingleElementVis
   );
 };
 
-export class CalibrateApriltagRigConfigurationVisualizer
-  implements Visualizer<CalibrateApriltagRigConfiguration> {
-  static id: VisualizerId = "calibrateApriltagRigConfiguration";
-  types: EventTypeId[] = [
+export const CalibrateApriltagRigConfigurationVisualizer = {
+  id: "CalibrateApriltagRigConfiguration",
+  types: [
     "type.googleapis.com/farm_ng_proto.tractor.v1.CalibrateApriltagRigConfiguration"
-  ];
-
-  options: VisualizerOptionConfig[] = [
-    { label: "view", options: ["overlay", "grid"] }
-  ];
-
-  component: React.FC<VisualizerProps<CalibrateApriltagRigConfiguration>> = (
-    props
-  ) => {
-    const view = props.options[0].value as "overlay" | "grid";
-    return (
-      <Layout
-        view={view}
-        element={CalibrateApriltagRigConfigurationElement}
-        {...props}
-      />
-    );
-  };
-}
+  ],
+  options: StandardComponentOptions,
+  Component: StandardComponent(CalibrateApriltagRigConfigurationElement),
+  Element: CalibrateApriltagRigConfigurationElement,
+  Form: CalibrateApriltagRigConfigurationForm
+};

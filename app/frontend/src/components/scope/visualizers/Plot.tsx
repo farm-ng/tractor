@@ -11,7 +11,7 @@ interface IProps {
 }
 
 export const Plot: React.FC<IProps> = ({ data, options }) => {
-  const [uPlotInstance, setUPlotInstance] = useState<uPlot | null>(null);
+  const [uPlotInstance, setUPlotInstance] = useState<uPlot>();
 
   // Handle resizing
   const [container, containerRef, resizeObservation] = useResizeObserver();

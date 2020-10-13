@@ -1,26 +1,22 @@
 /* eslint-disable no-console */
 import * as React from "react";
+import { SingleElementVisualizerProps } from "../../../registry/visualization";
 import {
-  SingleElementVisualizerProps,
-  Visualizer,
-  VisualizerId,
-  VisualizerOptionConfig,
-  VisualizerProps
-} from "../../../registry/visualization";
-import { EventTypeId } from "../../../registry/events";
-import { Layout } from "./Layout";
+  StandardComponentOptions,
+  StandardComponent
+} from "./StandardComponent";
 import { KeyValueTable } from "./KeyValueTable";
 import { Card } from "./Card";
 import { CalibrateBaseToCameraResult } from "../../../../genproto/farm_ng_proto/tractor/v1/calibrate_base_to_camera";
-import { CalibrateBaseToCameraConfigurationElement } from "./CalibrateBaseToCameraConfiguration";
 import {
   BaseToCameraModel,
   solverStatusToJSON
 } from "../../../../genproto/farm_ng_proto/tractor/v1/calibrator";
 import { useFetchResource } from "../../../hooks/useFetchResource";
-import { BaseToCameraModelElement } from "./BaseToCameraModel";
+import { BaseToCameraModelVisualizer } from "./BaseToCameraModel";
+import { CalibrateBaseToCameraConfigurationVisualizer } from "./CalibrateBaseToCameraConfiguration";
 
-export const CalibrateBaseToCameraResultElement: React.FC<SingleElementVisualizerProps<
+const CalibrateBaseToCameraResultElement: React.FC<SingleElementVisualizerProps<
   CalibrateBaseToCameraResult
 >> = (props) => {
   const {
@@ -30,11 +26,11 @@ export const CalibrateBaseToCameraResultElement: React.FC<SingleElementVisualize
 
   const initial = useFetchResource<BaseToCameraModel>(
     value.baseToCameraModelInitial,
-    resources || undefined
+    resources
   );
   const solved = useFetchResource<BaseToCameraModel>(
     value.baseToCameraModelSolved,
-    resources || undefined
+    resources
   );
 
   const { configuration, solverStatus, rmse, stampEnd, eventLog } = value;
@@ -54,57 +50,36 @@ export const CalibrateBaseToCameraResultElement: React.FC<SingleElementVisualize
       {configuration && (
         <Card title="Configuration">
           {
-            <CalibrateBaseToCameraConfigurationElement
+            <CalibrateBaseToCameraConfigurationVisualizer.Element
+              {...props}
               value={[0, configuration]}
-              options={[]}
-              resources={resources}
             />
           }
         </Card>
       )}
       {initial && (
         <Card title="Initial">
-          <BaseToCameraModelElement
+          <BaseToCameraModelVisualizer.Element
+            {...props}
             value={[0, initial]}
-            options={[]}
-            resources={resources}
           />
         </Card>
       )}
       {solved && (
         <Card title="Solved">
-          <BaseToCameraModelElement
-            value={[0, solved]}
-            options={[]}
-            resources={resources}
-          />
+          <BaseToCameraModelVisualizer.Element {...props} value={[0, solved]} />
         </Card>
       )}
     </Card>
   );
 };
 
-export class CalibrateBaseToCameraResultVisualizer
-  implements Visualizer<CalibrateBaseToCameraResult> {
-  static id: VisualizerId = "calibrateBaseToCameraResult";
-  types: EventTypeId[] = [
+export const CalibrateBaseToCameraResultVisualizer = {
+  id: "CalibrateBaseToCameraResult",
+  types: [
     "type.googleapis.com/farm_ng_proto.tractor.v1.CalibrateBaseToCameraResult"
-  ];
-
-  options: VisualizerOptionConfig[] = [
-    { label: "view", options: ["overlay", "grid"] }
-  ];
-
-  component: React.FC<VisualizerProps<CalibrateBaseToCameraResult>> = (
-    props
-  ) => {
-    const view = props.options[0].value as "overlay" | "grid";
-    return (
-      <Layout
-        view={view}
-        element={CalibrateBaseToCameraResultElement}
-        {...props}
-      />
-    );
-  };
-}
+  ],
+  options: StandardComponentOptions,
+  Component: StandardComponent(CalibrateBaseToCameraResultElement),
+  Element: CalibrateBaseToCameraResultElement
+};

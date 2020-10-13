@@ -24,7 +24,3 @@ docker run \
 shopt -s globstar
 mv go/genproto/farm_ng_proto/**/*.twirp.go go/genproto
 find go/genproto -type d -empty -delete
-
-# Nasty hack until ts-protos generates Long types for google.protobuf.Int64Values
-# https://github.com/stephenh/ts-proto/issues/122
-patch app/frontend/genproto/farm_ng_proto/tractor/v1/resource.ts < protos/resource.ts.patch

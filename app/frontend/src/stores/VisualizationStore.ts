@@ -1,6 +1,4 @@
 import { observable, computed, transaction } from "mobx";
-// import { CalibrateApriltagRigStatus } from "../../genproto/farm_ng_proto/tractor/v1/calibrate_apriltag_rig";
-// import { CalibrateBaseToCameraStatus } from "../../genproto/farm_ng_proto/tractor/v1/calibrate_base_to_camera";
 import {
   BusEventEmitter,
   BusEventEmitterHandle
@@ -10,17 +8,12 @@ import { StreamingBuffer } from "../models/StreamingBuffer";
 import { EventTypeId } from "../registry/events";
 import {
   Visualizer,
-  VisualizerId,
   VisualizerOption,
   VisualizerOptionConfig,
   visualizersForEventType
 } from "../registry/visualization";
 import { Buffer, TimestampedEvent } from "../types/common";
 import { duration } from "../utils/duration";
-
-export function visualizerId(v: Visualizer): VisualizerId {
-  return Object.getPrototypeOf(v).constructor.id;
-}
 
 function mapToDateRange(value: number, startDate: Date, endDate: Date): Date {
   return new Date(
@@ -76,37 +69,6 @@ export class Panel {
     this.selectedOptions[optionIndex] = valueIndex;
   }
 }
-
-// const testBuffer: Buffer = {
-//   "type.googleapis.com/farm_ng_proto.tractor.v1.CalibrateApriltagRigStatus": {
-//     test: [
-//       [
-//         0,
-//         CalibrateApriltagRigStatus.fromJSON({
-//           result: {
-//             path: "apriltag_rig_models/rig.json",
-//             contentType:
-//               "application/json; type=type.googleapis.com/farm_ng_proto.tractor.v1.CalibrateApriltagRigResult"
-//           }
-//         })
-//       ]
-//     ]
-//   },
-//   "type.googleapis.com/farm_ng_proto.tractor.v1.CalibrateBaseToCameraStatus": {
-//     test: [
-//       [
-//         0,
-//         CalibrateBaseToCameraStatus.fromJSON({
-//           result: {
-//             path: "base_to_camera_models/base_to_camera.json",
-//             contentType:
-//               "application/json; type=type.googleapis.com/farm_ng_proto.tractor.v1.CalibrateBaseToCameraResult"
-//           }
-//         })
-//       ]
-//     ]
-//   }
-// };
 
 export class VisualizationStore {
   @observable bufferStart: Date | null = null;

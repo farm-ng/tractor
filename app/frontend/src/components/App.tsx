@@ -8,6 +8,7 @@ import { Map } from "./Map";
 import { Root as Scope } from "./scope/Root";
 import styles from "./App.module.scss";
 import { Programs } from "./Programs";
+import { Blobstore } from "./Blobstore";
 
 export const App: React.FC = () => {
   return (
@@ -43,6 +44,9 @@ export const App: React.FC = () => {
             <Nav.Link as={Link} to="/scope">
               Scope
             </Nav.Link>
+            <Nav.Link as={Link} to="/blobs">
+              Blobs
+            </Nav.Link>
           </Nav>
         </Navbar.Collapse>
       </Navbar>
@@ -54,6 +58,7 @@ export const App: React.FC = () => {
         <Route exact path="/map" component={Map} />
         <Route exact path="/programs" component={Programs} />
         <Route exact path="/scope" component={Scope} />
+        <Route path={["/blobs/:blobPath+", "/blobs"]} component={Blobstore} />
         <Route render={() => <p>Not found</p>} />
       </Switch>
     </div>

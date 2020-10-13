@@ -35,7 +35,7 @@ export const Card: React.FC<IProps> = ({
       </Collapse>
       {showFooter && (
         <BootstrapCard.Footer className={styles.footer}>
-          {Boolean(timestamp) && timestamp && (
+          {timestamp !== undefined && (
             <span className="text-muted">
               {formatValue(new Date(timestamp))}
             </span>

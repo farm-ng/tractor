@@ -14,6 +14,7 @@ import (
 	"github.com/farm-ng/tractor/genproto"
 	pb "github.com/farm-ng/tractor/genproto"
 	"github.com/farm-ng/tractor/webrtc/internal/api"
+	"github.com/farm-ng/tractor/webrtc/internal/blobstore"
 	"github.com/farm-ng/tractor/webrtc/internal/eventbus"
 	"github.com/farm-ng/tractor/webrtc/internal/proxy"
 	"github.com/farm-ng/tractor/webrtc/internal/spa"
@@ -73,12 +74,12 @@ func main() {
 		log.Fatalln("BLOBSTORE_ROOT must be set.")
 	}
 	blobstoreCorsWrapper := cors.New(cors.Options{
-		AllowedOrigins: []string{"*"},
-		AllowedMethods: []string{"GET"},
+		AllowedOrigins: []string{"*"}, // TODO: Security issue
+		AllowedMethods: []string{"GET", "POST"},
 		AllowedHeaders: []string{"Content-Type"},
 	})
 	log.Println("Serving blobstore from ", blobstoreRoot)
-	blobstore := blobstoreCorsWrapper.Handler(http.FileServer(http.Dir(blobstoreRoot)))
+	blobstore := blobstoreCorsWrapper.Handler(blobstore.FileServer(&blobstore.RWDir{Dir: http.Dir(blobstoreRoot)}))
 
 	// Serve the API and frontend
 	serverAddr := defaultServerAddr

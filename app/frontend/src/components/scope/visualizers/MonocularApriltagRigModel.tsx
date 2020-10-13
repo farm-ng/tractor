@@ -2,24 +2,18 @@
 import * as React from "react";
 import { Table } from "react-bootstrap";
 import { Card } from "./Card";
-import {
-  SingleElementVisualizerProps,
-  Visualizer,
-  VisualizerId,
-  VisualizerOptionConfig,
-  VisualizerProps
-} from "../../../registry/visualization";
+import { SingleElementVisualizerProps } from "../../../registry/visualization";
 import {
   MonocularApriltagRigModel,
   solverStatusToJSON
 } from "../../../../genproto/farm_ng_proto/tractor/v1/calibrator";
 import { formatValue } from "../../../utils/formatValue";
-import { EventTypeId } from "../../../registry/events";
 import { useState } from "react";
-import { Layout } from "./Layout";
+import {
+  StandardComponentOptions,
+  StandardComponent
+} from "./StandardComponent";
 import RangeSlider from "react-bootstrap-range-slider";
-import { ApriltagDetectionsElement } from "./ApriltagDetectionsVisualizer";
-import { ImageElement } from "./ImageVisualizer";
 import styles from "./MonocularApriltagRigModel.module.scss";
 import { Canvas } from "../../Canvas";
 import { NamedSE3Pose } from "../../../../genproto/farm_ng_proto/tractor/v1/geometry";
@@ -30,8 +24,10 @@ import { ReferenceFrameViz } from "../../PoseViz";
 import { Ground } from "../../Ground";
 import { getDagTransform } from "../../../utils/geometry";
 import { KeyValueTable } from "./KeyValueTable";
+import { ApriltagDetectionsVisualizer } from "./ApriltagDetections";
+import { ImageVisualizer } from "./Image";
 
-export const MonocularApriltagRigModelElement: React.FC<SingleElementVisualizerProps<
+const MonocularApriltagRigModelElement: React.FC<SingleElementVisualizerProps<
   MonocularApriltagRigModel
 >> = (props) => {
   const {
@@ -188,10 +184,16 @@ export const MonocularApriltagRigModelElement: React.FC<SingleElementVisualizerP
           <div className={styles.detailRow}>
             {detection && (
               // Unfortunately we don't have the timestamp for these detections
-              <ApriltagDetectionsElement {...props} value={[0, detection]} />
+              <ApriltagDetectionsVisualizer.Element
+                {...props}
+                value={[0, detection]}
+              />
             )}
             {reprojectionImage && (
-              <ImageElement {...props} value={[0, reprojectionImage]} />
+              <ImageVisualizer.Element
+                {...props}
+                value={[0, reprojectionImage]}
+              />
             )}
           </div>
           <Card className={styles.card}>
@@ -220,25 +222,12 @@ export const MonocularApriltagRigModelElement: React.FC<SingleElementVisualizerP
   );
 };
 
-export class MonocularApriltagRigModelVisualizer
-  implements Visualizer<MonocularApriltagRigModel> {
-  static id: VisualizerId = "monocularApriltagRigModel";
-  types: EventTypeId[] = [
+export const MonocularApriltagRigModelVisualizer = {
+  id: "MonocularApriltagRigModel",
+  types: [
     "type.googleapis.com/farm_ng_proto.tractor.v1.MonocularApriltagRigModel"
-  ];
-
-  options: VisualizerOptionConfig[] = [
-    { label: "view", options: ["overlay", "grid"] }
-  ];
-
-  component: React.FC<VisualizerProps<MonocularApriltagRigModel>> = (props) => {
-    const view = props.options[0].value as "overlay" | "grid";
-    return (
-      <Layout
-        view={view}
-        element={MonocularApriltagRigModelElement}
-        {...props}
-      />
-    );
-  };
-}
+  ],
+  options: StandardComponentOptions,
+  Component: StandardComponent(MonocularApriltagRigModelElement),
+  Element: MonocularApriltagRigModelElement
+};

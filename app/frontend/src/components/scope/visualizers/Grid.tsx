@@ -11,7 +11,7 @@ import styles from "./Grid.module.scss";
 const defaultPageSize = 12;
 
 interface IProps<T extends EventType> {
-  element: React.FC<SingleElementVisualizerProps<T>>;
+  Element: React.FC<SingleElementVisualizerProps<T>>;
   pageSize?: number;
 }
 export type GridProps<T extends EventType> = IProps<T> & VisualizerProps<T>;
@@ -19,7 +19,7 @@ export type GridProps<T extends EventType> = IProps<T> & VisualizerProps<T>;
 export const Grid = <T extends EventType>(
   props: GridProps<T>
 ): React.ReactElement<GridProps<T>> => {
-  const { element: Component, values } = props;
+  const { Element, values } = props;
 
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(props.pageSize || defaultPageSize);
@@ -50,7 +50,7 @@ export const Grid = <T extends EventType>(
       <div className={styles.grid}>
         {values.slice(page * pageSize, (page + 1) * pageSize).map((v) => (
           <div key={v[0]} className={styles.gridItem}>
-            <Component value={v} {...props} />
+            <Element value={v} {...props} />
           </div>
         ))}
       </div>

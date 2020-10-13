@@ -14,8 +14,8 @@ const t265Resolution = {
 };
 
 export const Video: React.FC = () => {
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
   const { busEventStore, mediaStreamStore } = useStores();
 
   const resize = (): void => {

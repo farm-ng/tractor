@@ -14,8 +14,8 @@ import { normalizeTarPath } from "../../models/TarReader";
 
 export const Header: React.FC = () => {
   const { visualizationStore: store } = useStores();
-  const fileInputRef = React.useRef<HTMLInputElement | null>(null);
-  const [logFilePath, setLogFilePath] = React.useState<string | null>(null);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const [logFilePath, setLogFilePath] = React.useState<string>();
 
   const handleOnLoadLog = async (
     e: React.ChangeEvent<HTMLInputElement>

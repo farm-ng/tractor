@@ -15,21 +15,21 @@
 yarn
 ```
 
-### Launch the web app
+### Run in development
 
-Start webpack - watches the directory and puts build artifacts into `dist/`:
-
-```
-yarn dev-watch
-```
-
-Start a tornado backend
+1. Start any API dependencies
 
 ```
-python sample_backend.py
+cd $FARM_NG_ROOT/go/webrtc
+PORT=8081 go run cmd/proxy-server/main.go
 ```
 
-Visit [http://localhost:9010](http://localhost:9010)
+2. Start
+
+```
+cd $FARM_NG_ROOT/app/frontend
+BASE_URL="http://tractor.local:8081" yarn dev-start-remote --port 8080
+```
 
 ### Experimental
 

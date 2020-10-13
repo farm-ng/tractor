@@ -1,21 +1,17 @@
 /* eslint-disable no-console */
 import * as React from "react";
+import { SingleElementVisualizerProps } from "../../../registry/visualization";
 import {
-  SingleElementVisualizerProps,
-  Visualizer,
-  VisualizerId,
-  VisualizerOptionConfig,
-  VisualizerProps
-} from "../../../registry/visualization";
-import { EventTypeId } from "../../../registry/events";
-import { Layout } from "./Layout";
+  StandardComponentOptions,
+  StandardComponent
+} from "./StandardComponent";
 import {
   CalibrateApriltagRigResult,
   CalibrateApriltagRigStatus
 } from "../../../../genproto/farm_ng_proto/tractor/v1/calibrate_apriltag_rig";
 import { useFetchResource } from "../../../hooks/useFetchResource";
 import { Card } from "./Card";
-import { CalibrateApriltagRigResultElement } from "./CalibrateApriltagRigResult";
+import { CalibrateApriltagRigResultVisualizer } from "./CalibrateApriltagRigResult";
 
 const CalibrateApriltagRigStatusElement: React.FC<SingleElementVisualizerProps<
   CalibrateApriltagRigStatus
@@ -27,43 +23,29 @@ const CalibrateApriltagRigStatusElement: React.FC<SingleElementVisualizerProps<
 
   const result = useFetchResource<CalibrateApriltagRigResult>(
     value.result,
-    resources || undefined
+    resources
   );
 
+  if (!result) {
+    return null;
+  }
+
   return (
-    result && (
-      <Card timestamp={timestamp} json={value}>
-        <CalibrateApriltagRigResultElement
-          value={[0, result]}
-          options={[]}
-          resources={resources}
-        />
-      </Card>
-    )
+    <Card timestamp={timestamp} json={value}>
+      <CalibrateApriltagRigResultVisualizer.Element
+        {...props}
+        value={[0, result]}
+      />
+    </Card>
   );
 };
 
-export class CalibrateApriltagRigStatusVisualizer
-  implements Visualizer<CalibrateApriltagRigStatus> {
-  static id: VisualizerId = "calibrateApriltagRigStatus";
-  types: EventTypeId[] = [
+export const CalibrateApriltagRigStatusVisualizer = {
+  id: "CalibrateApriltagRigStatus",
+  types: [
     "type.googleapis.com/farm_ng_proto.tractor.v1.CalibrateApriltagRigStatus"
-  ];
-
-  options: VisualizerOptionConfig[] = [
-    { label: "view", options: ["overlay", "grid"] }
-  ];
-
-  component: React.FC<VisualizerProps<CalibrateApriltagRigStatus>> = (
-    props
-  ) => {
-    const view = props.options[0].value as "overlay" | "grid";
-    return (
-      <Layout
-        view={view}
-        element={CalibrateApriltagRigStatusElement}
-        {...props}
-      />
-    );
-  };
-}
+  ],
+  options: StandardComponentOptions,
+  Component: StandardComponent(CalibrateApriltagRigStatusElement),
+  Element: CalibrateApriltagRigStatusElement
+};
