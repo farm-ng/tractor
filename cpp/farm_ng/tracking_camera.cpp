@@ -596,10 +596,12 @@ class VideoFileWriter {
       ResetVideoWriter();
     }
     writer_->write(image);
-    image_pb_.mutable_frame_number()->set_value(
-        image_pb_.frame_number().value() + 1);
     bus_.Send(MakeEvent(image_pb_.camera_model().frame_name() + "/image",
                         image_pb_, stamp));
+
+    // zero index base for the frame_number, set after send.
+    image_pb_.mutable_frame_number()->set_value(
+    image_pb_.frame_number().value() + 1);
 
     if (image_pb_.frame_number().value() >= k_max_frames_) {
       writer_.reset();

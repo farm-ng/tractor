@@ -64,6 +64,7 @@ DEFINE_string(apriltag_rig_result, "",
 DEFINE_string(base_to_camera_result, "",
               "The path to a serialized CalibrateBaseToCameraResult");
 
+DEFINE_bool(zero_indexed, true, "Data recorded with zero indexed video frame numbers?  This is a hack that should be removed once data format is stable.");
 namespace farm_ng {
 
 class ImageLoader {
@@ -90,10 +91,14 @@ class ImageLoader {
       LOG(INFO) << image.resource().path()
                 << " frame number: " << image.frame_number().value();
 
-      capture_->set(cv::CAP_PROP_POS_FRAMES, image.frame_number().value() - 1);
-      CHECK_EQ(image.frame_number().value() - 1,
+      int frame_number =  image.frame_number().value();
+      if(!FLAGS_zero_indexed) {
+	CHECK_GT(frame_number, 0);
+	frame_number -= 1;
+      }
+      capture_->set(cv::CAP_PROP_POS_FRAMES, frame_number);
+      CHECK_EQ(frame_number,
                uint32_t(capture_->get(cv::CAP_PROP_POS_FRAMES)));
-
       *capture_ >> frame;
     } else {
       frame =
