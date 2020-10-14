@@ -15,7 +15,7 @@ prefix=/opt/farm_ng make -C $SERVICE_DIR/uhubctl
 prefix=/opt/farm_ng make -C $SERVICE_DIR/uhubctl install
 
 # install grafana configuration
-sudo rsync --verbose --recursive --delete --group $SERVICE_DIR/metrics/grafana/provisioning/ /etc/grafana/provisioning
+sudo rsync --verbose --recursive --delete --owner --group --chown=root:grafana $SERVICE_DIR/metrics/grafana/provisioning/ /etc/grafana/provisioning
 
 # clean
 systemctl list-unit-files | grep "tractor" | awk '{print $1}' | xargs --no-run-if-empty -n1 sudo systemctl disable
