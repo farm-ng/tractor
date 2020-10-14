@@ -71,6 +71,6 @@ repos:
     hooks:
     -   id: proto-lint
         name: proto-lint
-        language: docker_image
+        language: system
         pass_filenames: false
-        entry: docker.io/bufbuild/buf:latest check lint
+        entry: buf check lint

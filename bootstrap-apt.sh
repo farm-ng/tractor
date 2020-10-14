@@ -74,6 +74,15 @@ if ! nodejs --version | grep 12.18.3; then
   nodejs --version
 fi
 
+# Buf
+if ! buf --version | grep 0.26.0; then
+  BIN="/usr/local/bin" && VERSION="0.26.0" && BINARY_NAME="buf" && \
+    curl -sSL \
+      "https://github.com/bufbuild/buf/releases/download/v${VERSION}/${BINARY_NAME}-$(uname -s)-$(uname -m)" \
+      -o "${BIN}/${BINARY_NAME}" && \
+    chmod +x "${BIN}/${BINARY_NAME}"
+fi
+
 # tractor-logs
 if [ ! -d "$HOME/tractor-logs" ]; then
   if git clone git@github.com:farm-ng/tractor-logs.git $HOME/tractor-logs; then
