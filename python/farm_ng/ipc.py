@@ -7,12 +7,12 @@ import struct
 import sys
 import time
 
-import farm_ng.proto_utils  # noqa: F401
-from farm_ng.periodic import Periodic
-from farm_ng_proto.tractor.v1.io_pb2 import Announce
-from farm_ng_proto.tractor.v1.io_pb2 import Event
+from farm_ng_proto.tractor.v1.io_pb2 import Announce, Event, Subscription
 from google.protobuf.text_format import MessageToString
 from google.protobuf.timestamp_pb2 import Timestamp
+
+import farm_ng.proto_utils  # noqa: F401
+from farm_ng.periodic import Periodic
 
 # loads all the protos for pretty print of any
 
@@ -80,10 +80,12 @@ async def _event_bus_recver(event_bus, callback):
             callback(event)
 
 
+# Intended to be accessed via get_event_bus, which ensures there is only one EventBus instance per process.
 class EventBus:
-    def __init__(self, name, recv_raw=False):
+    def __init__(self, name, subscriptions: list[Subscription] = [], recv_raw=False):
         if name is None:
             name = 'python-ipc'
+        self._subscriptions = subscriptions
         # forward raw packets, don't track state
         self._recv_raw = recv_raw
         self._multicast_group = _g_multicast_group
@@ -97,9 +99,15 @@ class EventBus:
         self._loop = loop
         self._periodic_listen = Periodic(2, loop, self._listen_for_services)
         self._periodic_announce = Periodic(1, loop, self._announce_service)
+        # A subset of eventbus traffic that this service wishes to receive
+        self._subscriptions = subscriptions
+        # Announcements of active IPC peers, keyed by `<host>:<port>`
         self._services = dict()
+        # The latest value of all received events, keyed by event name
         self._state = dict()
+        # Intraprocess event callback subscribers
         self._subscribers = set()
+        # Intraprocess announcement callback subscribers
         self._announce_subscribers = set()
 
     def _announce_service(self, n_periods):
@@ -111,6 +119,7 @@ class EventBus:
         announce.host = '127.0.0.1'
         announce.port = port
         announce.service = self._name
+        announce.subscriptions = self._subscriptions
         msg = announce.SerializeToString()
         self._mc_send_sock.sendto(msg, self._multicast_group)
 
@@ -132,6 +141,9 @@ class EventBus:
 
     def add_event_callback(self, callback):
         return self._loop.create_task(_event_bus_recver(self, callback))
+
+    def add_subscriptions(self, subscriptions: list[Subscription]):
+        self._subscriptions.extend(subscriptions)
 
     def _remove_announce_queue(self, queue):
         self._announce_subscribers.remove(queue)
@@ -178,10 +190,16 @@ class EventBus:
         loop = asyncio.get_event_loop()
         loop.add_reader(self._mc_send_sock.fileno(), self._send_recv)
 
+    def _recipients(self, event: Event):
+        return [s for s in self._services.values() if any([re.search(sub.name, event.name) for sub in s.subscriptions])]
+
     def send(self, event: Event):
         self._state[event.name] = event
+        recipients = self._recipients(event)
+        if len(recipients) == 0:
+            return
         buff = event.SerializeToString()
-        for service in self._services.values():
+        for service in recipients:
             self._mc_send_sock.sendto(buff, (service.host, service.port))
 
     def _send_recv(self):
@@ -262,20 +280,24 @@ class EventBus:
 
     def get_last_event(self, name):
         assert not self._recv_raw, 'EventBus initialized with recv_raw, no state.'
+        if not self._subscriptions:
+            logger.warning(f'{self._name} is not subscribed to any eventbus traffic')
         return self._state.get(name, None)
 
     def log_state(self):
         assert not self._recv_raw, 'EventBus initialized with recv_raw, no state.'
+        if not self._subscriptions:
+            logger.warning(f'{self._name} is not subscribed to any eventbus traffic')
         logger.info('\n'.join([MessageToString(value, as_one_line=True) for value in self._state.values()]))
 
 
 _g_event_bus = None
 
 
-def get_event_bus(name=None):
+def get_event_bus(*args, **kwargs):
     global _g_event_bus
     if _g_event_bus is None:
-        _g_event_bus = EventBus(name)
+        _g_event_bus = _EventBus(*args, **kwargs)
     return _g_event_bus
 
 
@@ -303,11 +325,9 @@ async def get_message(event_queue, name_pattern, message_type):
 
 def main():
     logging.basicConfig(stream=sys.stdout, level=logging.INFO)
-    event_loop = asyncio.get_event_loop()
-    event_bus = get_event_bus('python-ipc')
-    _ = Periodic(1, event_loop, lambda n_periods: event_bus.log_state())
-
-    event_loop.run_forever()
+    event_bus = get_event_bus('python-ipc', [Subscription(name=".*")])
+    _ = Periodic(1, event_bus.event_loop(), lambda n_periods: event_bus.log_state())
+    event_bus.event_loop().run_forever()
 
 
 if __name__ == '__main__':

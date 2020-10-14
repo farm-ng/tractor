@@ -3,16 +3,11 @@ import logging
 import os
 from collections import namedtuple
 
-from farm_ng.ipc import EventBus
-from farm_ng.ipc import EventBusQueue
-from farm_ng.ipc import get_message
-from farm_ng.ipc import make_event
-from farm_ng_proto.tractor.v1.program_supervisor_pb2 import Program
-from farm_ng_proto.tractor.v1.program_supervisor_pb2 import ProgramSupervisorStatus
-from farm_ng_proto.tractor.v1.program_supervisor_pb2 import StartProgramRequest
-from farm_ng_proto.tractor.v1.program_supervisor_pb2 import StopProgramRequest
+from farm_ng_proto.tractor.v1.program_supervisor_pb2 import (
+    Program, ProgramSupervisorStatus, StartProgramRequest, StopProgramRequest)
 
-event_bus = EventBus('program_supervisor')
+from farm_ng.ipc import (EventBus, EventBusQueue, Subscription, get_event_bus,
+                         get_message, make_event)
 
 logger = logging.getLogger('program_supervisor')
 logger.setLevel(logging.INFO)
@@ -61,7 +56,9 @@ libraryPb = [Program(id=_id, name=p.name, description=p.description) for _id, p 
 
 
 class ProgramSupervisor:
-    def __init__(self):
+    def __init__(self, event_bus: EventBus):
+        self._event_bus = event_bus
+        self._event_bus.add_subscriptions([Subscription(name="program_supervisor/request")])
         self.status = ProgramSupervisorStatus(stopped=ProgramSupervisorStatus.ProgramStopped(), library=libraryPb)
         self.shutdown = False
         self.child_process = None
@@ -72,11 +69,11 @@ class ProgramSupervisor:
     async def send_status(self):
         while not self.shutdown:
             event = make_event('program_supervisor/status', self.status)
-            event_bus.send(event)
+            self._event_bus.send(event)
             await asyncio.sleep(1)
 
     async def handle_stop(self):
-        with EventBusQueue(event_bus) as event_queue:
+        with EventBusQueue(self._event_bus) as event_queue:
             while not self.shutdown:
                 stop_request: StopProgramRequest = await get_message(
                     event_queue,
@@ -94,7 +91,7 @@ class ProgramSupervisor:
                 self.child_process.terminate()
 
     async def handle_start(self):
-        with EventBusQueue(event_bus) as event_queue:
+        with EventBusQueue(self._event_bus) as event_queue:
             while not self.shutdown:
                 start_request: StartProgramRequest = await get_message(event_queue, 'program_supervisor/request', StartProgramRequest)
                 if self.status.WhichOneof('status') != 'stopped':
@@ -105,7 +102,7 @@ class ProgramSupervisor:
                     logger.info(f'StartProgramRequest received for program {start_request.id} which does not exist.')
                     continue
                 self.status.running.program.id = start_request.id
-                asyncio.get_event_loop().create_task(self.launch_child_process(program_info))
+                asyncio.get_running_loop().create_task(self.launch_child_process(program_info))
 
     async def launch_child_process(self, program_info):
         logger.info('Launching ', program_info.path, program_info.args)
@@ -124,5 +121,6 @@ class ProgramSupervisor:
 
 
 if __name__ == '__main__':
-    supervisor = ProgramSupervisor()
-    asyncio.get_event_loop().run_until_complete(supervisor.run())
+    event_bus = get_event_bus('program_supervisor')
+    supervisor = ProgramSupervisor(event_bus)
+    event_bus.event_loop().run_until_complete(supervisor.run())

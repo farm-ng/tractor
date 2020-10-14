@@ -1,27 +1,25 @@
-import asyncio
 import logging
 import sys
 
 import numpy as np
+from farm_ng_proto.tractor.v1.geometry_pb2 import NamedSE3Pose
+from liegroups import SE3
+
 from farm_ng.config import default_config
-from farm_ng.ipc import get_event_bus
-from farm_ng.ipc import make_event
+from farm_ng.ipc import EventBus, get_event_bus, make_event
 from farm_ng.kinematics import TractorKinematics
 from farm_ng.periodic import Periodic
 from farm_ng.proto_utils import se3_to_proto
-from farm_ng_proto.tractor.v1.geometry_pb2 import NamedSE3Pose
-from liegroups import SE3
 
 logger = logging.getLogger('pose_vis_toy')
 logger.setLevel(logging.INFO)
 
 
 class PoseVisToy:
-    def __init__(self, event_loop):
-        self.event_loop = event_loop
+    def __init__(self, event_bus: EventBus):
         self.command_rate_hz = 50
         self.command_period_seconds = 1.0 / self.command_rate_hz
-        self.event_bus = get_event_bus('farm_ng.pose_vis_toy')
+        self.event_bus = event_bus
         self.odom_pose_tractor = SE3.identity()
         self.tractor_pose_wheel_left = SE3.exp((0.0, 1.0, 0, 0, 0, 0)).dot(SE3.exp((0.0, 0.0, 0, -np.pi/2, 0, 0)))
         self.tractor_pose_wheel_right = SE3.exp((0.0, -1.0, 0, 0, 0, 0)).dot(SE3.exp((0.0, 0.0, 0, -np.pi/2, 0, 0)))
@@ -29,7 +27,7 @@ class PoseVisToy:
         self.kinematic_model = TractorKinematics(default_config())
 
         self.control_timer = Periodic(
-            self.command_period_seconds, self.event_loop,
+            self.command_period_seconds, self.event_bus.event_loop(),
             self._command_loop, name='control_loop',
         )
 
@@ -70,11 +68,10 @@ class PoseVisToy:
 
 def main():
     logging.basicConfig(stream=sys.stdout, level=logging.INFO)
-    event_loop = asyncio.get_event_loop()
-
-    controller = PoseVisToy(event_loop)
-    logger.info('Created controller %s', controller)
-    event_loop.run_forever()
+    event_bus = get_event_bus('farm_ng.pose_vis_toy')
+    pose_vis_toy = PoseVisToy(event_bus)
+    logger.info('Created pose_vis_toy %s', pose_vis_toy)
+    event_bus.event_loop().run_forever()
 
 
 if __name__ == '__main__':

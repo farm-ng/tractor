@@ -6,13 +6,13 @@ import sys
 
 import linuxfd
 import numpy as np
-from farm_ng.canbus import CANSocket
-from farm_ng.config import default_config
-from farm_ng.ipc import get_event_bus
-from farm_ng.ipc import make_event
 from farm_ng_proto.tractor.v1 import motor_pb2
 from google.protobuf.text_format import MessageToString
 from google.protobuf.timestamp_pb2 import Timestamp
+
+from farm_ng.canbus import CANSocket
+from farm_ng.config import default_config
+from farm_ng.ipc import get_event_bus, make_event
 
 logger = logging.getLogger('farm_ng.motor')
 
@@ -144,9 +144,10 @@ class HubMotor:
         self.gear_ratio = gear_ratio
         self.poll_pairs = poll_pairs
         self.max_current = 20
+        self._event_bus = get_event_bus(self.name)
         self._latest_state = motor_pb2.MotorControllerState()
         self._latest_stamp = Timestamp()
-        self.can_socket.add_reader(self._handle_can_message)
+        # self.can_socket.add_reader(self._handle_can_message)
         self._last_tachometer_stamp = None
         self._delta_time_seconds = 0.0
         self._average_delta_time = 0.0
@@ -177,7 +178,7 @@ class HubMotor:
 
             # only log on the 5th vesc message, as we have complete state at that point.
             event = make_event('%s/state' % self.name, self._latest_state, stamp=self._latest_stamp)
-            get_event_bus(self.name).send(event)
+            self._event_bus.send(event)
 
     def _send_can_command(self, command, data):
         cob_id = int(self.can_node_id) | (command << 8)
@@ -185,7 +186,8 @@ class HubMotor:
         # socket.CAN_EFF_FLAG for some reason on raspberry pi this is
         # the wrong value (-0x80000000 )
         eff_flag = 0x80000000
-        self.can_socket.send(cob_id, data, flags=eff_flag)
+        # TODO: RE-ENABLE
+        # self.can_socket.send(cob_id, data, flags=eff_flag)
 
     def _tach_to_rads(self, er):
         '''compute radians from electric revs'''
