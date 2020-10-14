@@ -289,7 +289,7 @@ class EventBusImpl {
       const Announce& announce = it.second;
       if (std::any_of(
               announce.subscriptions().begin(), announce.subscriptions().end(),
-              [event](Subscription& subscription) {
+              [event](const Subscription& subscription) {
                 std::smatch match;
                 return std::regex_search(event.name(), match,
                                          std::regex(subscription.name()));

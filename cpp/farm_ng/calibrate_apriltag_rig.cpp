@@ -186,7 +186,7 @@ class CalibrateApriltagRigProgram {
   }
 
   void on_event(const EventPb& event) {
-    CHECK(event.name().rfind(bus_.GetName() + "/", 0) == 0)
+    CHECK(event.name().rfind(bus_.GetName() + "/", 0) == 0);
     if (on_configuration(event)) {
       return;
     }

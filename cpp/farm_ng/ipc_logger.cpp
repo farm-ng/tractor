@@ -12,6 +12,7 @@ typedef farm_ng_proto::tractor::v1::Event EventPb;
 using farm_ng_proto::tractor::v1::LoggingCommand;
 using farm_ng_proto::tractor::v1::LoggingStatus;
 using farm_ng_proto::tractor::v1::Resource;
+using farm_ng_proto::tractor::v1::Subscription;
 
 class IpcLogger {
  public:

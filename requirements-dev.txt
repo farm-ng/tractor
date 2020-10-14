@@ -6,3 +6,4 @@ flake8-typing-imports
 pre-commit
 pytest
 requests
+snakeviz
