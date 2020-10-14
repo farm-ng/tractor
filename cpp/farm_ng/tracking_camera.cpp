@@ -26,16 +26,15 @@
 
 typedef farm_ng_proto::tractor::v1::Event EventPb;
 
-using farm_ng_proto::tractor::v1::Image;
-using farm_ng_proto::tractor::v1::NamedSE3Pose;
-using farm_ng_proto::tractor::v1::Vec2;
-
 using farm_ng_proto::tractor::v1::ApriltagDetection;
 using farm_ng_proto::tractor::v1::ApriltagDetections;
-
 using farm_ng_proto::tractor::v1::CameraModel;
+using farm_ng_proto::tractor::v1::Image;
+using farm_ng_proto::tractor::v1::NamedSE3Pose;
+using farm_ng_proto::tractor::v1::Subscription;
 using farm_ng_proto::tractor::v1::TrackingCameraCommand;
 using farm_ng_proto::tractor::v1::TrackingCameraPoseFrame;
+using farm_ng_proto::tractor::v1::Vec2;
 
 DEFINE_bool(jetson, false, "Use jetson hardware encoding.");
 
@@ -610,6 +609,11 @@ class TrackingCameraClient {
       : io_service_(bus.get_io_service()), event_bus_(bus) {
     event_bus_.GetEventSignal()->connect(std::bind(
         &TrackingCameraClient::on_event, this, std::placeholders::_1));
+
+    Subscription subscription;
+    subscription.set_name(".*");
+    event_bus_.AddSubscriptions({subscription});
+
     // TODO(ethanrublee) look up image size from realsense profile.
 
     std::string encoder_x264 =
