@@ -6,6 +6,7 @@
 #include <functional>
 #include <iostream>
 #include <mutex>
+#include <regex>
 #include <string>
 
 #include <boost/asio.hpp>
@@ -21,8 +22,11 @@
 #include "farm_ng_proto/tractor/v1/tracking_camera.pb.h"
 
 namespace farm_ng {
+using farm_ng_proto::tractor::v1::Announce;
+using farm_ng_proto::tractor::v1::Event;
 using farm_ng_proto::tractor::v1::LoggingCommand;
 using farm_ng_proto::tractor::v1::LoggingStatus;
+using farm_ng_proto::tractor::v1::Subscription;
 using farm_ng_proto::tractor::v1::TrackingCameraCommand;
 using farm_ng_proto::tractor::v1::TrackingCameraCommand_RecordStart_Mode;
 namespace {
@@ -111,7 +115,7 @@ class receiver {
     // Ignore non-local announcements
     // TODO: Implement this
 
-    farm_ng_proto::tractor::v1::Announce announce;
+    Announce announce;
     announce.ParseFromArray(static_cast<const void*>(data_), bytes_recvd);
     *announce.mutable_recv_stamp() = MakeTimestampNow();
 
@@ -134,9 +138,8 @@ class receiver {
                   std::placeholders::_2));
   }
 
-  const std::map<boost::asio::ip::udp::endpoint,
-                 farm_ng_proto::tractor::v1::Announce>&
-  announcements() const {
+  const std::map<boost::asio::ip::udp::endpoint, Announce>& announcements()
+      const {
     return announcements_;
   }
 
@@ -160,15 +163,13 @@ class receiver {
  private:
   boost::asio::ip::udp::socket socket_;
   boost::asio::ip::udp::endpoint sender_endpoint_;
-  std::map<boost::asio::ip::udp::endpoint, farm_ng_proto::tractor::v1::Announce>
-      announcements_;
+  std::map<boost::asio::ip::udp::endpoint, Announce> announcements_;
 
   char data_[max_datagram_size];
 };
 
 }  // namespace
-typedef boost::signals2::signal<void(const farm_ng_proto::tractor::v1::Event&)>
-    EventSignal;
+typedef boost::signals2::signal<void(const Event&)> EventSignal;
 typedef std::shared_ptr<EventSignal> EventSignalPtr;
 
 class EventBusImpl {
@@ -206,12 +207,14 @@ class EventBusImpl {
         std::bind(&EventBusImpl::send_announce, this, std::placeholders::_1));
 
     auto endpoint = socket_.local_endpoint();
-    farm_ng_proto::tractor::v1::Announce announce;
+    Announce announce;
     // For now, only announce our local address
     // announce.set_host(endpoint.address().to_string());
     announce.set_host("127.0.0.1");
     announce.set_port(endpoint.port());
     announce.set_service(service_name_);
+    *announce.mutable_subscriptions() = {subscriptions_.begin(),
+                                         subscriptions_.end()};
 
     *announce.mutable_stamp() = MakeTimestampNow();
     announce.SerializeToString(&announce_message_);
@@ -224,7 +227,7 @@ class EventBusImpl {
   void handle_receive_from(const boost::system::error_code& error,
                            size_t bytes_recvd) {
     if (!error) {
-      farm_ng_proto::tractor::v1::Event event;
+      Event event;
       CHECK(event.ParseFromArray(static_cast<const void*>(data_), bytes_recvd));
 
       if (event.data().type_url() ==
@@ -248,13 +251,27 @@ class EventBusImpl {
     }
   }
 
-  void send_event(const farm_ng_proto::tractor::v1::Event& event) {
+  void send_event(const Event& event) {
+    auto recipient_list = recipients(event);
+    if (recipient_list.empty()) {
+      return;
+    }
+
     event.SerializeToString(&event_message_);
     CHECK_LT(int(event_message_.size()), max_datagram_size)
         << "Event is too big, doesn't fit in one udp packet.";
-    for (const auto& it : recv_.announcements()) {
-      socket_.send_to(boost::asio::buffer(event_message_), it.first);
+    for (const auto& recipient : recipient_list) {
+      socket_.send_to(boost::asio::buffer(event_message_), recipient);
     }
+  }
+
+  void add_subscriptions(const std::vector<Subscription>& subscriptions) {
+    subscriptions_.insert(subscriptions_.end(), subscriptions.begin(),
+                          subscriptions.end());
+  }
+
+  const std::vector<Subscription>& subscriptions() const {
+    return subscriptions_;
   }
 
   void set_name(const std::string& name) { service_name_ = name; }
@@ -265,6 +282,24 @@ class EventBusImpl {
   receiver recv_;
 
  private:
+  const std::vector<boost::asio::ip::udp::endpoint> recipients(
+      const Event& event) {
+    std::vector<boost::asio::ip::udp::endpoint> result;
+    for (auto& it : recv_.announcements()) {
+      const Announce& announce = it.second;
+      if (std::any_of(
+              announce.subscriptions().begin(), announce.subscriptions().end(),
+              [event](Subscription& subscription) {
+                std::smatch match;
+                return std::regex_search(event.name(), match,
+                                         std::regex(subscription.name()));
+              })) {
+        result.push_back(it.first);
+      }
+    }
+    return result;
+  }
+
   boost::asio::ip::udp::socket socket_;
   boost::asio::deadline_timer announce_timer_;
 
@@ -274,9 +309,10 @@ class EventBusImpl {
   std::string announce_message_;
   std::string event_message_;
   std::string service_name_ = "unknown [cpp-ipc]";
+  std::vector<Subscription> subscriptions_;
 
  public:
-  std::map<std::string, farm_ng_proto::tractor::v1::Event> state_;
+  std::map<std::string, Event> state_;
   EventSignalPtr signal_;
 };
 
@@ -294,18 +330,22 @@ EventBus::~EventBus() { impl_.reset(nullptr); }
 
 EventSignalPtr EventBus::GetEventSignal() const { return impl_->signal_; }
 
-const std::map<std::string, farm_ng_proto::tractor::v1::Event>&
-EventBus::GetState() const {
+const std::map<std::string, Event>& EventBus::GetState() const {
+  if (impl_->subscriptions().empty()) {
+    LOG(WARNING) << "This EventBus has no subscriptions registered";
+  }
   return impl_->state_;
 }
-const std::map<boost::asio::ip::udp::endpoint,
-               farm_ng_proto::tractor::v1::Announce>&
+const std::map<boost::asio::ip::udp::endpoint, Announce>&
 EventBus::GetAnnouncements() const {
   return impl_->recv_.announcements();
 }
-void EventBus::Send(const farm_ng_proto::tractor::v1::Event& event) {
-  impl_->send_event(event);
+void EventBus::AddSubscriptions(
+    const std::vector<farm_ng_proto::tractor::v1::Subscription>&
+        subscriptions) {
+  return impl_->add_subscriptions(subscriptions);
 }
+void EventBus::Send(const Event& event) { impl_->send_event(event); }
 void EventBus::SetName(const std::string& name) { impl_->set_name(name); }
 std::string EventBus::GetName() { return impl_->get_name(); }
 

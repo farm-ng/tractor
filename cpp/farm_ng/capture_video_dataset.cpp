@@ -22,6 +22,7 @@ using farm_ng_proto::tractor::v1::CaptureVideoDatasetConfiguration;
 using farm_ng_proto::tractor::v1::CaptureVideoDatasetResult;
 using farm_ng_proto::tractor::v1::CaptureVideoDatasetStatus;
 using farm_ng_proto::tractor::v1::Image;
+using farm_ng_proto::tractor::v1::Subscription;
 using farm_ng_proto::tractor::v1::TrackingCameraCommand;
 
 void Cleanup(farm_ng::EventBus& bus) {
@@ -43,6 +44,11 @@ class CaptureVideoDatasetProgram {
     } else {
       set_configuration(configuration);
     }
+    Subscription subscriptions[] = {Subscription(), Subscription()};
+    subscriptions[0].set_name("^" + bus_.GetName() + "/");
+    subscriptions[1].set_name("^tracking_camera/front/left/image");
+    bus_.AddSubscriptions({std::begin(subscriptions), std::end(subscriptions)});
+
     bus_.GetEventSignal()->connect(std::bind(
         &CaptureVideoDatasetProgram::on_event, this, std::placeholders::_1));
     on_timer(boost::system::error_code());

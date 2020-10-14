@@ -35,6 +35,7 @@ using farm_ng_proto::tractor::v1::CalibrateApriltagRigResult;
 using farm_ng_proto::tractor::v1::CalibrateApriltagRigStatus;
 using farm_ng_proto::tractor::v1::CaptureCalibrationDatasetResult;
 using farm_ng_proto::tractor::v1::MonocularApriltagRigModel;
+using farm_ng_proto::tractor::v1::Subscription;
 
 namespace farm_ng {
 
@@ -55,6 +56,9 @@ class CalibrateApriltagRigProgram {
     } else {
       set_configuration(configuration);
     }
+    Subscription subscription;
+    subscription.set_name("^" + bus_.GetName() + "/");
+    bus_.AddSubscriptions({subscription});
     bus_.GetEventSignal()->connect(std::bind(
         &CalibrateApriltagRigProgram::on_event, this, std::placeholders::_1));
     on_timer(boost::system::error_code());
@@ -182,9 +186,7 @@ class CalibrateApriltagRigProgram {
   }
 
   void on_event(const EventPb& event) {
-    if (!event.name().rfind(bus_.GetName() + "/", 0) == 0) {
-      return;
-    }
+    CHECK(event.name().rfind(bus_.GetName() + "/", 0) == 0)
     if (on_configuration(event)) {
       return;
     }

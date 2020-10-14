@@ -44,6 +44,8 @@ class EventBus : public boost::asio::io_service::service {
                  farm_ng_proto::tractor::v1::Announce>&
   GetAnnouncements() const;
 
+  void AddSubscriptions(const std::vector<farm_ng_proto::tractor::v1::Subscription>& subscriptions);
+
   void Send(const farm_ng_proto::tractor::v1::Event& event);
 
   void SetName(const std::string& name);
