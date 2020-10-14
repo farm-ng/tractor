@@ -75,12 +75,14 @@ if ! nodejs --version | grep 12.18.3; then
 fi
 
 # Buf
-if ([ $arch == "amd64" ] && ! buf --version | grep 0.26.0 ); then
-  BIN="/usr/local/bin" && VERSION="0.26.0" && BINARY_NAME="buf" && \
-    curl -sSL \
-      "https://github.com/bufbuild/buf/releases/download/v${VERSION}/${BINARY_NAME}-$(uname -s)-$(uname -m)" \
-      -o "${BIN}/${BINARY_NAME}" && \
-    chmod +x "${BIN}/${BINARY_NAME}"
+if [ $arch == "amd64" ]; then
+  if ! buf --version 2>&1 | grep 0.26.0; then
+    BIN="/usr/local/bin" && VERSION="0.26.0" && BINARY_NAME="buf" && \
+      sudo curl -sSL \
+        "https://github.com/bufbuild/buf/releases/download/v${VERSION}/${BINARY_NAME}-$(uname -s)-$(uname -m)" \
+        -o "${BIN}/${BINARY_NAME}" && \
+      sudo chmod +x "${BIN}/${BINARY_NAME}"
+  fi
 fi
 
 # tractor-logs
