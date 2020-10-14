@@ -73,4 +73,4 @@ repos:
         name: proto-lint
         language: system
         pass_filenames: false
-        entry: buf check lint
+        entry: bash -c 'if [ `dpkg --print-architecture` == "amd64" ]; then buf check lint; fi'
