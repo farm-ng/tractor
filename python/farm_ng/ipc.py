@@ -9,6 +9,7 @@ import time
 from typing import Dict
 from typing import List
 from typing import Optional
+from typing import Pattern
 from typing import Set
 
 import farm_ng.proto_utils  # noqa: F401
@@ -85,7 +86,18 @@ async def _event_bus_recver(event_bus, callback):
             callback(event)
 
 
+class RegexCompiler:
+    compiled: Dict[str, Pattern] = dict()
+
+    @staticmethod
+    def compile(s: str):
+        if s not in RegexCompiler.compiled:
+            RegexCompiler.compiled[s] = re.compile(s)
+        return RegexCompiler.compiled[s]
+
 # Intended to be accessed via get_event_bus, which ensures there is only one EventBus instance per process.
+
+
 class EventBus:
     def __init__(self, name, subscriptions: List[Subscription] = [], recv_raw=False):
         if name is None:
@@ -196,7 +208,10 @@ class EventBus:
         loop.add_reader(self._mc_send_sock.fileno(), self._send_recv)
 
     def _recipients(self, event: Event):
-        return [s for s in self._services.values() if any([re.search(re.compile(sub.name), event.name) for sub in s.subscriptions])]
+        return [
+            s for s in self._services.values()
+            if any([re.search(RegexCompiler.compile(sub.name), event.name) for sub in s.subscriptions])
+        ]
 
     def send(self, event: Event):
         self._state[event.name] = event
@@ -333,7 +348,7 @@ async def get_message(event_queue, name_pattern, message_type):
 
 def main():
     logging.basicConfig(stream=sys.stdout, level=logging.INFO)
-    event_bus = get_event_bus('python-ipc', [Subscription(name='.*')])
+    event_bus = get_event_bus('python-ipc', [Subscription(name='tractor2'), Subscription(name='steering')])
     _ = Periodic(1, event_bus.event_loop(), lambda n_periods: event_bus.log_state())
     event_bus.event_loop().run_forever()
 
