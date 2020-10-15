@@ -99,10 +99,9 @@ class RegexCompiler:
 
 
 class EventBus:
-    def __init__(self, name, subscriptions: List[Subscription] = [], recv_raw=False):
+    def __init__(self, name, recv_raw=False):
         if name is None:
             name = 'python-ipc'
-        self._subscriptions = subscriptions
         # forward raw packets, don't track state
         self._recv_raw = recv_raw
         self._multicast_group = _g_multicast_group
@@ -117,7 +116,7 @@ class EventBus:
         self._periodic_listen = Periodic(2, loop, self._listen_for_services)
         self._periodic_announce = Periodic(1, loop, self._announce_service)
         # A subset of eventbus traffic that this service wishes to receive
-        self._subscriptions = subscriptions
+        self._subscriptions: List[Subscription] = []
         # Announcements of active IPC peers, keyed by `<host>:<port>`
         self._services:  Dict[str, Announce] = dict()
         # The latest value of all received events, keyed by event name
@@ -159,8 +158,8 @@ class EventBus:
     def add_event_callback(self, callback):
         return self._loop.create_task(_event_bus_recver(self, callback))
 
-    def add_subscriptions(self, subscriptions: List[Subscription]):
-        self._subscriptions.extend(subscriptions)
+    def add_subscriptions(self, names: List[str]):
+        self._subscriptions.extend([Subscription(name=name) for name in names])
 
     def _remove_announce_queue(self, queue):
         self._announce_subscribers.remove(queue)
@@ -348,7 +347,8 @@ async def get_message(event_queue, name_pattern, message_type):
 
 def main():
     logging.basicConfig(stream=sys.stdout, level=logging.INFO)
-    event_bus = get_event_bus('python-ipc', [Subscription(name='tractor2'), Subscription(name='steering')])
+    event_bus = get_event_bus('python-ipc')
+    event_bus.add_subscriptions('.*')
     _ = Periodic(1, event_bus.event_loop(), lambda n_periods: event_bus.log_state())
     event_bus.event_loop().run_forever()
 

@@ -15,8 +15,8 @@ message Event {
 
 message Subscription {
   // A regular expression that acts as a filter on event names.
-  // Applied as a scan of the entire event name for a match (i.e. re.search, not re.match).
-  // Should adhere to the least common denominator syntax supported by our implementation languages.
+  // Scans the entire event name for a match (i.e. re.search, not re.match).
+  // Should only use regex syntax supported by the standard regex library in all implementation languages.
   string name = 1;
 }
 

@@ -6,7 +6,6 @@ import numpy as np
 from farm_ng.ipc import EventBus
 from farm_ng.ipc import get_event_bus
 from farm_ng.ipc import make_event
-from farm_ng.ipc import Subscription
 from farm_ng.joystick import MaybeJoystick
 from farm_ng.periodic import Periodic
 from farm_ng_proto.tractor.v1.steering_pb2 import SteeringCommand
@@ -32,7 +31,7 @@ class SteeringClient:
         SetStopCommand(self._stop_command)
         self.lockout = True
         self._event_bus = event_bus
-        self._event_bus.add_subscriptions([Subscription(name=_g_message_name)])
+        self._event_bus.add_subscriptions([_g_message_name])
 
     def get_steering_command(self):
         event = self._event_bus.get_last_event(_g_message_name)

@@ -8,7 +8,6 @@ from farm_ng.ipc import EventBusQueue
 from farm_ng.ipc import get_event_bus
 from farm_ng.ipc import get_message
 from farm_ng.ipc import make_event
-from farm_ng.ipc import Subscription
 from farm_ng_proto.tractor.v1.program_supervisor_pb2 import Program
 from farm_ng_proto.tractor.v1.program_supervisor_pb2 import ProgramSupervisorStatus
 from farm_ng_proto.tractor.v1.program_supervisor_pb2 import StartProgramRequest
@@ -63,7 +62,7 @@ libraryPb = [Program(id=_id, name=p.name, description=p.description) for _id, p 
 class ProgramSupervisor:
     def __init__(self, event_bus: EventBus):
         self._event_bus = event_bus
-        self._event_bus.add_subscriptions([Subscription(name='program_supervisor/request')])
+        self._event_bus.add_subscriptions(['program_supervisor/request'])
         self.status = ProgramSupervisorStatus(stopped=ProgramSupervisorStatus.ProgramStopped(), library=libraryPb)
         self.shutdown = False
         self.child_process = None

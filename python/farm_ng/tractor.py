@@ -5,13 +5,11 @@ import sys
 from collections import deque
 
 import numpy as np
-from farm_ng.canbus import CANSocket
 from farm_ng.config import default_config
 from farm_ng.controller import TractorMoveToGoalController
 from farm_ng.ipc import EventBus
 from farm_ng.ipc import get_event_bus
 from farm_ng.ipc import make_event
-from farm_ng.ipc import Subscription
 from farm_ng.kinematics import TractorKinematics
 from farm_ng.motor import HubMotor
 from farm_ng.periodic import Periodic
@@ -63,11 +61,12 @@ class TractorController:
         # self.record_counter = 0
         # self.recording = False
         self.event_bus = event_bus
-        self.event_bus.add_subscriptions([Subscription(name='pose/tractor/base/goal')])
+        self.event_bus.add_subscriptions(['pose/tractor/base/goal'])
         self.event_bus.add_event_callback(self._on_event)
 
         self.lock_out = False
-        self.can_socket = CANSocket('can0', self.event_bus.event_loop())
+        # self.can_socket = CANSocket('can0', self.event_bus.event_loop())
+        self.can_socket = None
         self.steering = SteeringClient(self.event_bus)
         self.tractor_state = TractorState()
 
