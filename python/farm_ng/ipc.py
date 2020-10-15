@@ -6,13 +6,18 @@ import socket
 import struct
 import sys
 import time
-
-from farm_ng_proto.tractor.v1.io_pb2 import Announce, Event, Subscription
-from google.protobuf.text_format import MessageToString
-from google.protobuf.timestamp_pb2 import Timestamp
+from typing import Dict
+from typing import List
+from typing import Optional
+from typing import Set
 
 import farm_ng.proto_utils  # noqa: F401
 from farm_ng.periodic import Periodic
+from farm_ng_proto.tractor.v1.io_pb2 import Announce
+from farm_ng_proto.tractor.v1.io_pb2 import Event
+from farm_ng_proto.tractor.v1.io_pb2 import Subscription
+from google.protobuf.text_format import MessageToString
+from google.protobuf.timestamp_pb2 import Timestamp
 
 # loads all the protos for pretty print of any
 
@@ -82,7 +87,7 @@ async def _event_bus_recver(event_bus, callback):
 
 # Intended to be accessed via get_event_bus, which ensures there is only one EventBus instance per process.
 class EventBus:
-    def __init__(self, name, subscriptions: list[Subscription] = [], recv_raw=False):
+    def __init__(self, name, subscriptions: List[Subscription] = [], recv_raw=False):
         if name is None:
             name = 'python-ipc'
         self._subscriptions = subscriptions
@@ -91,8 +96,8 @@ class EventBus:
         self._multicast_group = _g_multicast_group
         self._name = name
         self._quiet_count = 0
-        self._mc_recv_sock = None
-        self._mc_send_sock = None
+        self._mc_recv_sock: Optional[socket.SocketType] = None
+        self._mc_send_sock: Optional[socket.SocketType] = None
         self._connect_recv_sock()
         self._connect_send_sock()
         loop = asyncio.get_event_loop()
@@ -102,13 +107,13 @@ class EventBus:
         # A subset of eventbus traffic that this service wishes to receive
         self._subscriptions = subscriptions
         # Announcements of active IPC peers, keyed by `<host>:<port>`
-        self._services = dict()
+        self._services:  Dict[str, Announce] = dict()
         # The latest value of all received events, keyed by event name
-        self._state = dict()
+        self._state: Dict[str, Event] = dict()
         # Intraprocess event callback subscribers
-        self._subscribers = set()
+        self._subscribers: Set[asyncio.Queue] = set()
         # Intraprocess announcement callback subscribers
-        self._announce_subscribers = set()
+        self._announce_subscribers: Set[asyncio.Queue] = set()
 
     def _announce_service(self, n_periods):
         host, port = self._mc_send_sock.getsockname()
@@ -142,7 +147,7 @@ class EventBus:
     def add_event_callback(self, callback):
         return self._loop.create_task(_event_bus_recver(self, callback))
 
-    def add_subscriptions(self, subscriptions: list[Subscription]):
+    def add_subscriptions(self, subscriptions: List[Subscription]):
         self._subscriptions.extend(subscriptions)
 
     def _remove_announce_queue(self, queue):
@@ -191,12 +196,15 @@ class EventBus:
         loop.add_reader(self._mc_send_sock.fileno(), self._send_recv)
 
     def _recipients(self, event: Event):
-        return [s for s in self._services.values() if any([re.search(sub.name, event.name) for sub in s.subscriptions])]
+        return [s for s in self._services.values() if any([re.search(re.compile(sub.name), event.name) for sub in s.subscriptions])]
 
     def send(self, event: Event):
         self._state[event.name] = event
         recipients = self._recipients(event)
         if len(recipients) == 0:
+            return
+        if not self._mc_send_sock:
+            logger.error('No socket ready to send on')
             return
         buff = event.SerializeToString()
         for service in recipients:
@@ -297,7 +305,7 @@ _g_event_bus = None
 def get_event_bus(*args, **kwargs):
     global _g_event_bus
     if _g_event_bus is None:
-        _g_event_bus = _EventBus(*args, **kwargs)
+        _g_event_bus = EventBus(*args, **kwargs)
     return _g_event_bus
 
 
@@ -325,7 +333,7 @@ async def get_message(event_queue, name_pattern, message_type):
 
 def main():
     logging.basicConfig(stream=sys.stdout, level=logging.INFO)
-    event_bus = get_event_bus('python-ipc', [Subscription(name=".*")])
+    event_bus = get_event_bus('python-ipc', [Subscription(name='.*')])
     _ = Periodic(1, event_bus.event_loop(), lambda n_periods: event_bus.log_state())
     event_bus.event_loop().run_forever()
 
