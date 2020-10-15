@@ -290,12 +290,19 @@ class EventBusImpl {
       if (std::any_of(
               announce.subscriptions().begin(), announce.subscriptions().end(),
               [event](const Subscription& subscription) {
-                std::smatch match;
+                // TODO: memoize
+                // https://stackoverflow.com/questions/6846510/how-to-convert-string-to-regex-literal
+                std::wsmatch match;
+                std::wstring event_name(event.name().begin(),
+                                        event.name().end());
+                std::wstring subscription_name(subscription.name().begin(),
+                                               subscription.name().end());
+                std::wregex escape_chars(
+                    L"(([\\^\\$\\\\\\.\*\\+\\?\(\)\[\]\\{\\}\\|]))");
+                std::wstring escaped_subscription_name(std::regex_replace(
+                    subscription_name, escape_chars, L"\\$1"));
                 return std::regex_search(
-                    event.name(), match,
-                    // TODO:
-                    // https://stackoverflow.com/questions/6846510/how-to-convert-string-to-regex-literal
-                    std::regex(subscription.name()));
+                    event_name, match, std::wregex(escaped_subscription_name));
               })) {
         result.push_back(it.first);
       }
