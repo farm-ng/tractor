@@ -36,9 +36,6 @@ test:
 	./env.sh pytest $(PY_TEST_FILTER)
 	cd app/frontend && yarn test$(JS_TEST_FILTER)
 
-test-integration:
-	scripts/test-integration.sh
-
 webserver:
 	cd go/webrtc && ../../env.sh make
 
@@ -47,4 +44,4 @@ webservices:
 	make frontend
 	make webserver
 
-.PHONY: bootstrap cpp frontend protos systemd third_party test test-integration webserver webservices all
+.PHONY: bootstrap cpp frontend protos systemd third_party test webserver webservices all
