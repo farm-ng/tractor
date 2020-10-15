@@ -14,7 +14,9 @@ message Event {
 }
 
 message Subscription {
-  // A regular expression that acts as a filter on event names
+  // A regular expression that acts as a filter on event names.
+  // Applied as a scan of the entire event name for a match (i.e. re.search, not re.match).
+  // Should adhere to the least common denominator syntax supported by our implementation languages.
   string name = 1;
 }
 
@@ -25,8 +27,8 @@ message Announce {
   google.protobuf.Timestamp stamp = 4;
   google.protobuf.Timestamp recv_stamp = 5;
 
-  // A set of events that this service is interested in receiving
-  // Multiple subscriptions are combined via union, not intersection
+  // Defines a subset of eventbus traffic that this service wishes to receive.
+  // Multiple subscriptions are combined via union, not intersection.
   repeated Subscription subscriptions = 6;
 }
 
