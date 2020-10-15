@@ -286,24 +286,7 @@ class EventBusImpl {
       const Event& event) {
     std::vector<boost::asio::ip::udp::endpoint> result;
     for (auto& it : recv_.announcements()) {
-      const Announce& announce = it.second;
-      if (std::any_of(
-              announce.subscriptions().begin(), announce.subscriptions().end(),
-              [event](const Subscription& subscription) {
-                // TODO: memoize
-                // https://stackoverflow.com/questions/6846510/how-to-convert-string-to-regex-literal
-                std::wsmatch match;
-                std::wstring event_name(event.name().begin(),
-                                        event.name().end());
-                std::wstring subscription_name(subscription.name().begin(),
-                                               subscription.name().end());
-                std::wregex escape_chars(
-                    L"(([\\^\\$\\\\\\.\*\\+\\?\(\)\[\]\\{\\}\\|]))");
-                std::wstring escaped_subscription_name(std::regex_replace(
-                    subscription_name, escape_chars, L"\\$1"));
-                return std::regex_search(
-                    event_name, match, std::wregex(escaped_subscription_name));
-              })) {
+      if (is_recipient(it.second, event)) {
         result.push_back(it.first);
       }
     }
@@ -507,5 +490,33 @@ void RequestStopCapturing(EventBus& bus) {
   command.mutable_record_stop();
   bus.Send(farm_ng::MakeEvent("tracking_camera/command", command));
 }
+
+bool is_recipient(const Announce& announce, const Event& event) {
+  return std::any_of(
+      announce.subscriptions().begin(), announce.subscriptions().end(),
+      [event](const Subscription& subscription) {
+        std::wsmatch match;
+        std::wstring event_name(event.name().begin(), event.name().end());
+        return std::regex_search(event_name, match,
+                                 RegexCompiler::compile(subscription.name()));
+      });
+}
+
+// A cache of regexes, compiled from strings.
+// Handles escaping of special characters in the input strings.
+class RegexCompiler {
+ private:
+  static std::unordered_map<std::string, std::wregex> compiled_;
+
+ public:
+  static std::wregex compile(const std::string& s) {
+    if (compiled_.find(s) == compiled_.end()) {
+      std::wregex escape_chars(L"(([\\^\\$\\\\\\.\*\\+\\?\(\)\[\]\\{\\}\\|]))");
+      compiled_[s] = std::wregex(std::regex_replace(
+          std::wstring(s.begin(), s.end()), escape_chars, L"\\$1"));
+    }
+    return compiled_.at(s);
+  }
+};
 
 }  // namespace farm_ng
