@@ -124,7 +124,7 @@ class EventBus:
         announce.host = '127.0.0.1'
         announce.port = port
         announce.service = self._name
-        announce.subscriptions = self._subscriptions
+        announce.subscriptions.extend(self._subscriptions)
         msg = announce.SerializeToString()
         self._mc_send_sock.sendto(msg, self._multicast_group)
 
