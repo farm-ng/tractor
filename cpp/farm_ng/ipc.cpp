@@ -291,8 +291,11 @@ class EventBusImpl {
               announce.subscriptions().begin(), announce.subscriptions().end(),
               [event](const Subscription& subscription) {
                 std::smatch match;
-                return std::regex_search(event.name(), match,
-                                         std::regex(subscription.name()));
+                return std::regex_search(
+                    event.name(), match,
+                    // TODO:
+                    // https://stackoverflow.com/questions/6846510/how-to-convert-string-to-regex-literal
+                    std::regex(subscription.name()));
               })) {
         result.push_back(it.first);
       }
