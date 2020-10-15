@@ -351,9 +351,18 @@ EventBus::GetAnnouncements() const {
   return impl_->recv_.announcements();
 }
 void EventBus::AddSubscriptions(
-    const std::vector<farm_ng_proto::tractor::v1::Subscription>&
-        subscriptions) {
+    const std::vector<Subscription>& subscriptions) {
   return impl_->add_subscriptions(subscriptions);
+}
+void EventBus::AddSubscriptions(const std::vector<std::string>& names) {
+  std::vector<Subscription> subscriptions;
+  std::transform(names.begin(), names.end(), std::back_inserter(subscriptions),
+                 [](const std::string& name) {
+                   Subscription subscription;
+                   subscription.set_name(name);
+                   return subscription;
+                 });
+  return AddSubscriptions(subscriptions);
 }
 void EventBus::Send(const Event& event) { impl_->send_event(event); }
 void EventBus::SetName(const std::string& name) { impl_->set_name(name); }

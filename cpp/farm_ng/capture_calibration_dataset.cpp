@@ -39,9 +39,7 @@ class CaptureCalibrationDatasetProgram {
     } else {
       set_configuration(configuration);
     }
-    Subscription subscription;
-    subscription.set_name("^calibrator/");
-    bus_.AddSubscriptions({subscription});
+    bus_.AddSubscriptions({"^calibrator/"});
     bus_.GetEventSignal()->connect(
         std::bind(&CaptureCalibrationDatasetProgram::on_event, this,
                   std::placeholders::_1));

@@ -610,9 +610,7 @@ class TrackingCameraClient {
     event_bus_.GetEventSignal()->connect(std::bind(
         &TrackingCameraClient::on_event, this, std::placeholders::_1));
 
-    Subscription subscription;
-    subscription.set_name(".*");
-    event_bus_.AddSubscriptions({subscription});
+    event_bus_.AddSubscriptions({".*"});
 
     // TODO(ethanrublee) look up image size from realsense profile.
 

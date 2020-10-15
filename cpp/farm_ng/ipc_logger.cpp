@@ -21,9 +21,7 @@ class IpcLogger {
         log_writer_(nullptr),
         log_timer_(bus_.get_io_service()),
         announce_timer_(bus_.get_io_service()) {
-    Subscription subscription;
-    subscription.set_name(".*");
-    bus_.AddSubscriptions({subscription});
+    bus_.AddSubscriptions({".*"});
     bus_.GetEventSignal()->connect(
         std::bind(&IpcLogger::on_event, this, std::placeholders::_1));
     log_state(boost::system::error_code());

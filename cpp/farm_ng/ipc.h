@@ -17,6 +17,7 @@
 
 namespace farm_ng {
 using farm_ng_proto::tractor::v1::LoggingStatus;
+using farm_ng_proto::tractor::v1::Subscription;
 using farm_ng_proto::tractor::v1::TrackingCameraCommand_RecordStart_Mode;
 
 typedef boost::signals2::signal<void(const farm_ng_proto::tractor::v1::Event&)>
@@ -44,7 +45,8 @@ class EventBus : public boost::asio::io_service::service {
                  farm_ng_proto::tractor::v1::Announce>&
   GetAnnouncements() const;
 
-  void AddSubscriptions(const std::vector<farm_ng_proto::tractor::v1::Subscription>& subscriptions);
+  void AddSubscriptions(const std::vector<Subscription>& subscriptions);
+  void AddSubscriptions(const std::vector<std::string>& names);
 
   void Send(const farm_ng_proto::tractor::v1::Event& event);
 

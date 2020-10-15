@@ -44,10 +44,8 @@ class CaptureVideoDatasetProgram {
     } else {
       set_configuration(configuration);
     }
-    Subscription subscriptions[] = {Subscription(), Subscription()};
-    subscriptions[0].set_name("^" + bus_.GetName() + "/");
-    subscriptions[1].set_name("^tracking_camera/front/left/image");
-    bus_.AddSubscriptions({std::begin(subscriptions), std::end(subscriptions)});
+    bus_.AddSubscriptions(
+        {"^" + bus_.GetName() + "/", "^tracking_camera/front/left/image"});
 
     bus_.GetEventSignal()->connect(std::bind(
         &CaptureVideoDatasetProgram::on_event, this, std::placeholders::_1));
