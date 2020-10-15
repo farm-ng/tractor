@@ -5,22 +5,26 @@ import sys
 from collections import deque
 
 import numpy as np
-from farm_ng_proto.tractor.v1.geometry_pb2 import NamedSE3Pose
-from farm_ng_proto.tractor.v1.steering_pb2 import SteeringCommand
-from farm_ng_proto.tractor.v1.tractor_pb2 import TractorConfig, TractorState
-from google.protobuf.text_format import MessageToString
-from google.protobuf.timestamp_pb2 import Timestamp
-from liegroups import SE3
-
 from farm_ng.canbus import CANSocket
 from farm_ng.config import default_config
 from farm_ng.controller import TractorMoveToGoalController
-from farm_ng.ipc import EventBus, Subscription, get_event_bus, make_event
+from farm_ng.ipc import EventBus
+from farm_ng.ipc import get_event_bus
+from farm_ng.ipc import make_event
+from farm_ng.ipc import Subscription
 from farm_ng.kinematics import TractorKinematics
 from farm_ng.motor import HubMotor
 from farm_ng.periodic import Periodic
-from farm_ng.proto_utils import proto_to_se3, se3_to_proto
+from farm_ng.proto_utils import proto_to_se3
+from farm_ng.proto_utils import se3_to_proto
 from farm_ng.steering import SteeringClient
+from farm_ng_proto.tractor.v1.geometry_pb2 import NamedSE3Pose
+from farm_ng_proto.tractor.v1.steering_pb2 import SteeringCommand
+from farm_ng_proto.tractor.v1.tractor_pb2 import TractorConfig
+from farm_ng_proto.tractor.v1.tractor_pb2 import TractorState
+from google.protobuf.text_format import MessageToString
+from google.protobuf.timestamp_pb2 import Timestamp
+from liegroups import SE3
 
 logger = logging.getLogger('tractor')
 logger.setLevel(logging.INFO)

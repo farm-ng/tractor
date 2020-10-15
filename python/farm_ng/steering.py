@@ -3,11 +3,13 @@ import sys
 import time
 
 import numpy as np
-from farm_ng_proto.tractor.v1.steering_pb2 import SteeringCommand
-
-from farm_ng.ipc import EventBus, Subscription, get_event_bus, make_event
+from farm_ng.ipc import EventBus
+from farm_ng.ipc import get_event_bus
+from farm_ng.ipc import make_event
+from farm_ng.ipc import Subscription
 from farm_ng.joystick import MaybeJoystick
 from farm_ng.periodic import Periodic
+from farm_ng_proto.tractor.v1.steering_pb2 import SteeringCommand
 
 logger = logging.getLogger('steering')
 logger.setLevel(logging.INFO)

@@ -6,13 +6,13 @@ import sys
 
 import linuxfd
 import numpy as np
+from farm_ng.canbus import CANSocket
+from farm_ng.config import default_config
+from farm_ng.ipc import get_event_bus
+from farm_ng.ipc import make_event
 from farm_ng_proto.tractor.v1 import motor_pb2
 from google.protobuf.text_format import MessageToString
 from google.protobuf.timestamp_pb2 import Timestamp
-
-from farm_ng.canbus import CANSocket
-from farm_ng.config import default_config
-from farm_ng.ipc import get_event_bus, make_event
 
 logger = logging.getLogger('farm_ng.motor')
 
@@ -181,13 +181,15 @@ class HubMotor:
             self._event_bus.send(event)
 
     def _send_can_command(self, command, data):
+        # TODO: RE-ENABLE
+        return
+
         cob_id = int(self.can_node_id) | (command << 8)
         # print('send %x'%cob_id, '%x'%socket.CAN_EFF_FLAG)
         # socket.CAN_EFF_FLAG for some reason on raspberry pi this is
         # the wrong value (-0x80000000 )
         eff_flag = 0x80000000
-        # TODO: RE-ENABLE
-        # self.can_socket.send(cob_id, data, flags=eff_flag)
+        self.can_socket.send(cob_id, data, flags=eff_flag)
 
     def _tach_to_rads(self, er):
         '''compute radians from electric revs'''
