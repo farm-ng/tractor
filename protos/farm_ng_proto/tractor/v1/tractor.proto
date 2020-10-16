@@ -12,10 +12,16 @@ message TractorState {
   // program starts, which is usually on system boot; i.e. it will reset if the
   // program or computer is restarted.
   double abs_distance_traveled = 1;
+
+  // TODO(ethanrublee) Consider using wheel measurements message to abstract
+  // this a bit more.
   double wheel_velocity_rads_left = 2;
   double wheel_velocity_rads_right = 3;
+  double wheel_velocity_rads_left_aft = 14;
+  double wheel_velocity_rads_right_aft = 15;
 
   double commanded_brake_current = 4;
+  // At the moment we command the same wheel velocity for fore and aft wheels
   double commanded_wheel_velocity_rads_left = 5;
   double commanded_wheel_velocity_rads_right = 6;
 
@@ -38,6 +44,8 @@ message TractorState {
 
   double average_update_rate_left_motor = 12;
   double average_update_rate_right_motor = 13;
+  double average_update_rate_left_aft_motor = 18;
+  double average_update_rate_right_aft_motor = 19;
 }
 
 message TractorConfig {
@@ -59,4 +67,14 @@ message TractorConfig {
 
   // Extrinsic relationships to sensors.
   repeated NamedSE3Pose base_poses_sensor = 7;
+
+  // Enum for the motor/kinematic topology
+  enum Topology {
+    TOPOLOGY_UNSPECIFIED = 0;
+    TOPOLOGY_TWO_MOTOR_DIFF_DRIVE = 1;
+    TOPOLOGY_TWO_MOTOR_TRACKS = 2;
+    TOPOLOGY_FOUR_MOTOR_SKID_STEER = 3;
+    TOPOLOGY_FOUR_MOTOR_TRACKS = 4;
+  }
+  Topology topology = 8;
 }
