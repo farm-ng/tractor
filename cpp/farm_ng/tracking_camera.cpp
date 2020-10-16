@@ -403,11 +403,8 @@ class ApriltagDetector {
   // see
   // https://github.com/AprilRobotics/apriltag/blob/master/example/opencv_demo.cc
  public:
-  ApriltagDetector(CameraModel camera_model, const TagLibrary& tag_library,
-                   EventBus* event_bus = nullptr)
-      : event_bus_(event_bus),
-        tag_library_(tag_library),
-        camera_model_(camera_model) {
+  ApriltagDetector(CameraModel camera_model, EventBus* event_bus = nullptr)
+      : event_bus_(event_bus), camera_model_(camera_model) {
     tag_family_ = tag36h11_create();
     tag_detector_ = apriltag_detector_create();
     apriltag_detector_add_family(tag_detector_, tag_family_);
@@ -423,7 +420,13 @@ class ApriltagDetector {
     tag36h11_destroy(tag_family_);
   }
 
+  void Close() { apriltag_config_.reset(); }
+
   ApriltagDetections Detect(cv::Mat gray, google::protobuf::Timestamp stamp) {
+    if (!apriltag_config_) {
+      LoadApriltagConfig();
+    }
+
     CHECK_EQ(gray.channels(), 1);
     CHECK_EQ(gray.type(), CV_8UC1);
 
@@ -453,14 +456,17 @@ class ApriltagDetector {
         p_j->set_x(det->p[j][0]);
         p_j->set_y(det->p[j][1]);
       }
-      detection->set_tag_size(TagSize(tag_library_, det->id));
+      CHECK(apriltag_config_.has_value());
+      detection->set_tag_size(
+          TagSize(apriltag_config_.value().tag_library(), det->id));
       detection->mutable_c()->set_x(det->c[0]);
       detection->mutable_c()->set_y(det->c[1]);
       detection->set_id(det->id);
       detection->set_hamming(static_cast<uint8_t>(det->hamming));
       detection->set_decision_margin(det->decision_margin);
       // estimation comes last because this mutates det
-      auto pose = EstimateCameraPoseTag(intrinsics_, tag_library_, det);
+      auto pose = EstimateCameraPoseTag(
+          intrinsics_, apriltag_config_.value().tag_library(), det);
       if (pose) {
         auto* named_pose = detection->mutable_pose();
         SophusToProto(*pose, named_pose->mutable_a_pose_b());
@@ -484,9 +490,16 @@ class ApriltagDetector {
   }
 
  private:
+  void LoadApriltagConfig() {
+    apriltag_config_ = ReadProtobufFromJsonFile<ApriltagConfig>(
+        GetBucketAbsolutePath(BUCKET_CONFIGURATIONS) / "apriltag.json");
+    LOG(INFO) << " apriltag config: "
+              << apriltag_config_.value().ShortDebugString();
+  }
+
   EventBus* event_bus_;
   rs2_intrinsics intrinsics_;
-  TagLibrary tag_library_;
+  std::optional<ApriltagConfig> apriltag_config_;
   CameraModel camera_model_;
   apriltag_family_t* tag_family_;
   apriltag_detector_t* tag_detector_;
@@ -628,11 +641,6 @@ class TrackingCameraClient {
         &TrackingCameraClient::on_event, this, std::placeholders::_1));
     // TODO(ethanrublee) look up image size from realsense profile.
 
-    ApriltagConfig apriltag_config = ReadProtobufFromJsonFile<ApriltagConfig>(
-        GetBucketAbsolutePath(BUCKET_CONFIGURATIONS) / "apriltag.json");
-
-    LOG(INFO) << " apriltag config: " << apriltag_config.ShortDebugString();
-
     std::string encoder_x264 =
         std::string(
             " x264enc bitrate=600 speed-preset=ultrafast tune=zerolatency ") +
@@ -687,8 +695,7 @@ class TrackingCameraClient {
     SetCameraModelFromRs(&left_camera_model_, fisheye_intrinsics);
     left_camera_model_.set_frame_name(
         "tracking_camera/front/left");  // TODO Pass in constructor.
-    detector_.reset(new ApriltagDetector(
-        left_camera_model_, apriltag_config.tag_library(), &event_bus_));
+    detector_.reset(new ApriltagDetector(left_camera_model_, &event_bus_));
     LOG(INFO) << " intrinsics model: " << left_camera_model_.ShortDebugString();
     frame_video_writer_ =
         std::make_unique<VideoFileWriter>(event_bus_, left_camera_model_);
@@ -786,6 +793,8 @@ class TrackingCameraClient {
             // Close may be called regardless of state.  If we were recording,
             // it closes the video file on the last chunk.
             frame_video_writer_->Close();
+            // Disposes of apriltag config (tag library, etc.)
+            detector_->Close();
             return;
           }
           // note this function is called later, in main thread, via
