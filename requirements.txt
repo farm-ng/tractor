@@ -5,6 +5,7 @@ git+https://github.com/alex-eri/python-networkmanager.git@ec5d10ef7e18f27b24b439
 git+https://github.com/utiasSTARS/liegroups.git@11e0203048def0345097cb42c664aa91435c3dd0
 linuxfd
 numpy
+prometheus_client
 protobuf
 tornado
 websockets

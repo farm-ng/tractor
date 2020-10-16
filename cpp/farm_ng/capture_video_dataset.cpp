@@ -18,6 +18,7 @@ DEFINE_string(name, "default",
               "a dataset name, used in the output archive name");
 
 typedef farm_ng_proto::tractor::v1::Event EventPb;
+using farm_ng_proto::tractor::v1::BUCKET_VIDEO_DATASETS;
 using farm_ng_proto::tractor::v1::CaptureVideoDatasetConfiguration;
 using farm_ng_proto::tractor::v1::CaptureVideoDatasetResult;
 using farm_ng_proto::tractor::v1::CaptureVideoDatasetStatus;
@@ -76,7 +77,7 @@ class CaptureVideoDatasetProgram {
       ArchiveProtobufAsJsonResource(configuration_.name(), result);
 
       status_.mutable_result()->CopyFrom(WriteProtobufAsJsonResource(
-          BucketId::kVideoDatasets, configuration_.name(), result));
+          BUCKET_VIDEO_DATASETS, configuration_.name(), result));
       LOG(INFO) << "Complete:\n" << status_.DebugString();
       send_status();
       return 0;

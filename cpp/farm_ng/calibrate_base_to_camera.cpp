@@ -21,6 +21,7 @@
 typedef farm_ng_proto::tractor::v1::Event EventPb;
 using farm_ng_proto::tractor::v1::ApriltagDetections;
 using farm_ng_proto::tractor::v1::BaseToCameraModel;
+using farm_ng_proto::tractor::v1::BUCKET_BASE_TO_CAMERA_MODELS;
 using farm_ng_proto::tractor::v1::CalibrateApriltagRigResult;
 using farm_ng_proto::tractor::v1::CalibrateBaseToCameraConfiguration;
 using farm_ng_proto::tractor::v1::CalibrateBaseToCameraResult;
@@ -152,7 +153,7 @@ class CalibrateBaseToCameraProgram {
     ArchiveProtobufAsJsonResource(configuration_.name(), result);
 
     status_.mutable_result()->CopyFrom(WriteProtobufAsJsonResource(
-        BucketId::kBaseToCameraModels, configuration_.name(), result));
+        BUCKET_BASE_TO_CAMERA_MODELS, configuration_.name(), result));
     LOG(INFO) << "Complete:\n" << status_.DebugString();
     send_status();
     return 0;

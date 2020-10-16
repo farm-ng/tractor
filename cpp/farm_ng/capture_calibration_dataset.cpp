@@ -21,6 +21,7 @@ DEFINE_int32(num_frames, 16, "number of frames to capture");
 typedef farm_ng_proto::tractor::v1::Event EventPb;
 
 using farm_ng_proto::tractor::v1::ApriltagDetections;
+using farm_ng_proto::tractor::v1::BUCKET_CALIBRATION_DATASETS;
 using farm_ng_proto::tractor::v1::CaptureCalibrationDatasetConfiguration;
 using farm_ng_proto::tractor::v1::CaptureCalibrationDatasetResult;
 using farm_ng_proto::tractor::v1::CaptureCalibrationDatasetStatus;
@@ -73,7 +74,7 @@ class CaptureCalibrationDatasetProgram {
     ArchiveProtobufAsJsonResource(configuration_.name(), result);
 
     status_.mutable_result()->CopyFrom(WriteProtobufAsJsonResource(
-        BucketId::kCalibrationDatasets, configuration_.name(), result));
+        BUCKET_CALIBRATION_DATASETS, configuration_.name(), result));
     LOG(INFO) << "Complete:\n" << status_.DebugString();
     send_status();
     return 0;

@@ -91,3 +91,20 @@ message ApriltagRig {
   // The set of nodes that make up this rig.
   repeated Node nodes = 3;
 }
+
+message TagConfig {
+  // Apriltag tag ID
+  int32 id = 1;
+
+  // Tag size in meters
+  double size = 2;
+}
+
+message TagLibrary {
+  repeated TagConfig tags = 1;
+}
+
+
+message ApriltagConfig {
+  TagLibrary tag_library = 1;
+}
