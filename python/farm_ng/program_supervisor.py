@@ -106,7 +106,7 @@ class ProgramSupervisor:
                     logger.info(f'StartProgramRequest received for program {start_request.id} which does not exist.')
                     continue
                 self.status.running.program.id = start_request.id
-                asyncio.get_running_loop().create_task(self.launch_child_process(program_info))
+                asyncio.get_event_loop().create_task(self.launch_child_process(program_info))
 
     async def launch_child_process(self, program_info):
         logger.info('Launching ', program_info.path, program_info.args)
