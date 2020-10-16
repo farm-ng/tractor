@@ -30,6 +30,8 @@ _g_datagram_size = 65507
 def host_is_local(hostname, port):
     # https://gist.github.com/bennr01/7043a460155e8e763b3a9061c95faaa0
     """returns True if the hostname points to the localhost, otherwise False."""
+    return True
+    # HACK(ethanrublee) getfqdn takes a long time and blocks the control loop.
     hostname = socket.getfqdn(hostname)
     if hostname in ('localhost', '0.0.0.0'):
         return True
