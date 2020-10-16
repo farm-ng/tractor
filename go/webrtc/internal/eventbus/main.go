@@ -144,17 +144,26 @@ func (bus *EventBus) Start() {
 	select {}
 }
 
+var compiled = make(map[string]*regexp.Regexp)
+
+func compileRegex(s string) *regexp.Regexp {
+	if _, ok := compiled[s]; !ok {
+		var err error
+		compiled[s], err = regexp.Compile(s)
+		if err != nil {
+			log.Fatalf("could not compile regex %v -- %v:", s, err)
+		}
+	}
+	return compiled[s]
+}
+
 func (bus *EventBus) recipients(e *pb.Event) []*pb.Announce {
 	var recipientsList []*pb.Announce
 	bus.announcementsMutex.Lock()
 	defer bus.announcementsMutex.Unlock()
 	for _, a := range bus.Announcements {
 		for _, s := range a.Subscriptions {
-			// TODO: memoize
-			re, err := regexp.Compile(s.Name)
-			if err != nil {
-				log.Fatalf("could not compile regex %v -- %v:", s.Name, err)
-			}
+			re := compileRegex(s.Name)
 			if re.Match([]byte(e.Name)) {
 				recipientsList = append(recipientsList, a)
 				continue
