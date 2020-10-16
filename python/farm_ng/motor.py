@@ -144,6 +144,7 @@ class HubMotor:
         self.gear_ratio = gear_ratio
         self.poll_pairs = poll_pairs
         self.max_current = 20
+        self._event_bus = get_event_bus(self.name)
         self._latest_state = motor_pb2.MotorControllerState()
         self._latest_stamp = Timestamp()
         self.can_socket.add_reader(self._handle_can_message)
@@ -177,7 +178,7 @@ class HubMotor:
 
             # only log on the 5th vesc message, as we have complete state at that point.
             event = make_event('%s/state' % self.name, self._latest_state, stamp=self._latest_stamp)
-            get_event_bus(self.name).send(event)
+            self._event_bus.send(event)
 
     def _send_can_command(self, command, data):
         cob_id = int(self.can_node_id) | (command << 8)

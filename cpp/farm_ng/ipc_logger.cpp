@@ -12,6 +12,7 @@ typedef farm_ng_proto::tractor::v1::Event EventPb;
 using farm_ng_proto::tractor::v1::LoggingCommand;
 using farm_ng_proto::tractor::v1::LoggingStatus;
 using farm_ng_proto::tractor::v1::Resource;
+using farm_ng_proto::tractor::v1::Subscription;
 
 class IpcLogger {
  public:
@@ -20,6 +21,7 @@ class IpcLogger {
         log_writer_(nullptr),
         log_timer_(bus_.get_io_service()),
         announce_timer_(bus_.get_io_service()) {
+    bus_.AddSubscriptions({".*"});
     bus_.GetEventSignal()->connect(
         std::bind(&IpcLogger::on_event, this, std::placeholders::_1));
     log_state(boost::system::error_code());

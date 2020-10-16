@@ -1,4 +1,3 @@
-import asyncio
 import bisect
 import logging
 import sys
@@ -8,6 +7,7 @@ import numpy as np
 from farm_ng.canbus import CANSocket
 from farm_ng.config import TractorConfigManager
 from farm_ng.controller import TractorMoveToGoalController
+from farm_ng.ipc import EventBus
 from farm_ng.ipc import get_event_bus
 from farm_ng.ipc import make_event
 from farm_ng.kinematics import TractorKinematics
@@ -53,8 +53,7 @@ class TimeSeries:
 
 
 class TractorController:
-    def __init__(self, event_bus):
-        self.event_loop = asyncio.get_event_loop()
+    def __init__(self, event_bus: EventBus):
         self.command_rate_hz = 50
         self.command_period_seconds = 1.0 / self.command_rate_hz
         self.n_cycle = 0
@@ -62,10 +61,11 @@ class TractorController:
         # self.record_counter = 0
         # self.recording = False
         self.event_bus = event_bus
+        self.event_bus.add_subscriptions(['pose/tractor/base/goal'])
         self.event_bus.add_event_callback(self._on_event)
 
         self.lock_out = False
-        self.can_socket = CANSocket('can0', self.event_loop)
+        self.can_socket = CANSocket('can0', self.event_bus.event_loop())
         self.steering = SteeringClient(self.event_bus)
         self.tractor_state = TractorState()
 
@@ -101,7 +101,7 @@ class TractorController:
             )
 
         self.control_timer = Periodic(
-            self.command_period_seconds, self.event_loop,
+            self.command_period_seconds, self.event_bus.event_loop(),
             self._command_loop, name='control_loop',
         )
 

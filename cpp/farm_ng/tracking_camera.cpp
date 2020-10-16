@@ -26,20 +26,19 @@
 
 typedef farm_ng_proto::tractor::v1::Event EventPb;
 
-using farm_ng_proto::tractor::v1::Image;
-using farm_ng_proto::tractor::v1::NamedSE3Pose;
-using farm_ng_proto::tractor::v1::Vec2;
-
 using farm_ng_proto::tractor::v1::ApriltagConfig;
 using farm_ng_proto::tractor::v1::ApriltagDetection;
 using farm_ng_proto::tractor::v1::ApriltagDetections;
 using farm_ng_proto::tractor::v1::BUCKET_CONFIGURATIONS;
+using farm_ng_proto::tractor::v1::CameraModel;
+using farm_ng_proto::tractor::v1::Image;
+using farm_ng_proto::tractor::v1::NamedSE3Pose;
+using farm_ng_proto::tractor::v1::Subscription;
 using farm_ng_proto::tractor::v1::TagConfig;
 using farm_ng_proto::tractor::v1::TagLibrary;
-
-using farm_ng_proto::tractor::v1::CameraModel;
 using farm_ng_proto::tractor::v1::TrackingCameraCommand;
 using farm_ng_proto::tractor::v1::TrackingCameraPoseFrame;
+using farm_ng_proto::tractor::v1::Vec2;
 
 DEFINE_bool(jetson, false, "Use jetson hardware encoding.");
 
@@ -639,6 +638,9 @@ class TrackingCameraClient {
       : io_service_(bus.get_io_service()), event_bus_(bus) {
     event_bus_.GetEventSignal()->connect(std::bind(
         &TrackingCameraClient::on_event, this, std::placeholders::_1));
+
+    event_bus_.AddSubscriptions({"^tracking_camera/command$"});
+
     // TODO(ethanrublee) look up image size from realsense profile.
 
     std::string encoder_x264 =
@@ -812,21 +814,19 @@ class TrackingCameraClient {
           }
         });
       }
-    }
-    /*else if (rs2::pose_frame pose_frame = frame.as<rs2::pose_frame>()) {
+    } /* else if (rs2::pose_frame pose_frame = frame.as<rs2::pose_frame>()) {
       // HACK disable for now, this harms the ipc perfomance.
-
-       auto pose_data = pose_frame.get_pose_data();
+      auto pose_data = pose_frame.get_pose_data();
       // Print the x, y, z values of the translation, relative to initial
       // position
-      // std::cout << "\r Device Position: " << std::setprecision(3) <<
-      // std::fixed << pose_data.translation.x << " " <<
-     pose_data.translation.y
-      // << " " << pose_data.translation.z << " (meters)";
+      std::cout << "\r Device Position: " << std::setprecision(3) << std::fixed
+                << pose_data.translation.x << " " << pose_data.translation.y
+                << " " << pose_data.translation.z << " (meters)";
       event_bus_.Send(farm_ng::MakeEvent("tracking_camera/front/pose",
                                          ToPoseFrame(pose_frame)));
       event_bus_.Send(ToNamedPoseEvent(pose_frame));
-     }*/
+
+  } */
   }
   boost::asio::io_service& io_service_;
   EventBus& event_bus_;
@@ -841,7 +841,7 @@ class TrackingCameraClient {
   ApriltagsFilter tag_filter_;
   std::unique_ptr<VideoFileWriter> frame_video_writer_;
   CameraModel left_camera_model_;
-};
+};  // namespace farm_ng
 }  // namespace farm_ng
 
 void Cleanup(farm_ng::EventBus& bus) {}
