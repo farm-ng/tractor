@@ -86,14 +86,13 @@ async def _event_bus_recver(event_bus, callback):
             callback(event)
 
 
-class RegexCompiler:
-    compiled: Dict[str, Pattern] = dict()
+_compiled: Dict[str, Pattern] = dict()
 
-    @staticmethod
-    def compile(s: str):
-        if s not in RegexCompiler.compiled:
-            RegexCompiler.compiled[s] = re.compile(s)
-        return RegexCompiler.compiled[s]
+
+def _compile_regex(s: str):
+    if s not in _compiled:
+        _compiled[s] = re.compile(s)
+    return _compiled[s]
 
 
 class EventBus:
@@ -210,7 +209,7 @@ class EventBus:
     def _recipients(self, event: Event):
         return [
             s for s in self._services.values()
-            if any([re.search(RegexCompiler.compile(sub.name), event.name) for sub in s.subscriptions])
+            if any([re.search(_compile_regex(sub.name), event.name) for sub in s.subscriptions])
         ]
 
     def send(self, event: Event):
