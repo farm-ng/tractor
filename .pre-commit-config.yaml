@@ -71,6 +71,6 @@ repos:
     hooks:
     -   id: proto-lint
         name: proto-lint
-        language: system
+        language: docker_image
         pass_filenames: false
-        entry: bash -c 'if [ `dpkg --print-architecture` == "amd64" ]; then buf check lint; fi'
+        entry: docker.io/bufbuild/buf:latest check lint
