@@ -168,10 +168,8 @@ class receiver {
   char data_[max_datagram_size];
 };
 
-// Memoized results for compile_regex
+// Memoized regex compilation
 std::unordered_map<std::string, std::regex> compiled_;
-
-// Handles escaping of special characters in the input strings.
 std::regex compile_regex(const std::string& s) {
   if (compiled_.find(s) == compiled_.end()) {
     compiled_[s] = std::regex(s);
