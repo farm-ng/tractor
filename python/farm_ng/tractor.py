@@ -5,6 +5,7 @@ import sys
 from collections import deque
 
 import numpy as np
+from farm_ng.canbus import CANSocket
 from farm_ng.config import default_config
 from farm_ng.controller import TractorMoveToGoalController
 from farm_ng.ipc import EventBus
@@ -65,8 +66,7 @@ class TractorController:
         self.event_bus.add_event_callback(self._on_event)
 
         self.lock_out = False
-        # self.can_socket = CANSocket('can0', self.event_bus.event_loop())
-        self.can_socket = None
+        self.can_socket = CANSocket('can0', self.event_bus.event_loop())
         self.steering = SteeringClient(self.event_bus)
         self.tractor_state = TractorState()
 

@@ -147,7 +147,7 @@ class HubMotor:
         self._event_bus = get_event_bus(self.name)
         self._latest_state = motor_pb2.MotorControllerState()
         self._latest_stamp = Timestamp()
-        # self.can_socket.add_reader(self._handle_can_message)
+        self.can_socket.add_reader(self._handle_can_message)
         self._last_tachometer_stamp = None
         self._delta_time_seconds = 0.0
         self._average_delta_time = 0.0
@@ -181,9 +181,6 @@ class HubMotor:
             self._event_bus.send(event)
 
     def _send_can_command(self, command, data):
-        # TODO: RE-ENABLE
-        return
-
         cob_id = int(self.can_node_id) | (command << 8)
         # print('send %x'%cob_id, '%x'%socket.CAN_EFF_FLAG)
         # socket.CAN_EFF_FLAG for some reason on raspberry pi this is
