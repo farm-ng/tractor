@@ -19,6 +19,7 @@ from farm_ng.proto_utils import se3_to_proto
 from farm_ng.steering import SteeringClient
 from farm_ng_proto.tractor.v1.geometry_pb2 import NamedSE3Pose
 from farm_ng_proto.tractor.v1.steering_pb2 import SteeringCommand
+from farm_ng_proto.tractor.v1.tractor_pb2 import TractorConfig
 from farm_ng_proto.tractor.v1.tractor_pb2 import TractorState
 from google.protobuf.text_format import MessageToString
 from google.protobuf.timestamp_pb2 import Timestamp
@@ -93,10 +94,10 @@ class TractorController:
         # $ mkdir -p /home/farmer/tractor-data/config
         # $ touch /home/farmer/tractor-data/config/HAS_FOUR_WHEELS
         has_four_motors = os.path.exists('/home/farmer/tractor-data/config/HAS_FOUR_WHEELS')
-        self.tractor_state.topology = TractorState.TOPOLOGY_TWO_MOTOR_DIFF_DRIVE
+        self.config.topology = TractorConfig.TOPOLOGY_TWO_MOTOR_DIFF_DRIVE
         if has_four_motors:
             logger.info('Four Motor Skid Steer Mode')
-            self.tractor_state.topology = TractorState.TOPOLOGY_FOUR_MOTOR_SKID_STEER
+            self.config.topology = TractorConfig.TOPOLOGY_FOUR_MOTOR_SKID_STEER
             self.right_motor_aft = HubMotor(
                 'right_motor_aft',
                 radius, gear_ratio, poll_pairs, 8, self.can_socket,
@@ -136,7 +137,7 @@ class TractorController:
 
         self.right_motor.send_velocity_command_rads(right)
         self.left_motor.send_velocity_command_rads(left)
-        if self.tractor_state.topology == TractorState.TOPOLOGY_FOUR_MOTOR_SKID_STEER:
+        if self.config.topology == TractorConfig.TOPOLOGY_FOUR_MOTOR_SKID_STEER:
             self.right_motor_aft.send_velocity_command_rads(right)
             self.left_motor_aft.send_velocity_command_rads(left)
 
@@ -163,7 +164,7 @@ class TractorController:
         self.tractor_state.average_update_rate_left_motor = self.left_motor.average_update_rate()
         self.tractor_state.average_update_rate_right_motor = self.right_motor.average_update_rate()
 
-        if self.tractor_state.topology == TractorState.TOPOLOGY_FOUR_MOTOR_SKID_STEER:
+        if self.config.topology == TractorConfig.TOPOLOGY_FOUR_MOTOR_SKID_STEER:
             self.tractor_state.wheel_veolcity_rads_left_aft = self.left_motor_aft.velocity_rads()
             self.tractor_state.wheel_veolcity_rads_right_aft = self.right_motor_aft.velocity_rads()
             self.tractor_state.average_update_rate_left_aft_motor = self.left_motor_aft.average_update_rate()
@@ -213,7 +214,7 @@ class TractorController:
             self.tractor_state.target_unicycle_angular_velocity = 0.0
             self.right_motor.send_current_brake_command(brake_current)
             self.left_motor.send_current_brake_command(brake_current)
-            if self.tractor_state.topology == TractorState.TOPOLOGY_FOUR_MOTOR_SKID_STEER:
+            if self.config.topology == TractorConfig.TOPOLOGY_FOUR_MOTOR_SKID_STEER:
                 self.right_motor_aft.send_current_brake_command(brake_current)
                 self.left_motor_aft.send_current_brake_command(brake_current)
 
