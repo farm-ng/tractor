@@ -13,20 +13,12 @@
 
 namespace farm_ng {
 
+using farm_ng_proto::tractor::v1::Bucket;
 using farm_ng_proto::tractor::v1::Resource;
 
-// TODO use proto enum here.
-enum class BucketId {
-  kLogs,
-  kCalibrationDatasets,
-  kApriltagRigModels,
-  kBaseToCameraModels,
-  kVideoDatasets
-};
-
 boost::filesystem::path GetBlobstoreRoot();
-boost::filesystem::path GetBucketRelativePath(BucketId id);
-boost::filesystem::path GetBucketAbsolutePath(BucketId id);
+boost::filesystem::path GetBucketRelativePath(Bucket id);
+boost::filesystem::path GetBucketAbsolutePath(Bucket id);
 
 void WriteProtobufToJsonFile(const boost::filesystem::path& path,
                              const google::protobuf::Message& proto);
@@ -58,7 +50,7 @@ boost::filesystem::path MakePathUnique(boost::filesystem::path root,
                                        boost::filesystem::path path);
 template <typename ProtobufT>
 farm_ng_proto::tractor::v1::Resource WriteProtobufAsJsonResource(
-    BucketId id, const std::string& path, const ProtobufT& message) {
+    Bucket id, const std::string& path, const ProtobufT& message) {
   farm_ng_proto::tractor::v1::Resource resource;
   resource.set_content_type(ContentTypeProtobufJson<ProtobufT>());
 
@@ -72,7 +64,7 @@ farm_ng_proto::tractor::v1::Resource WriteProtobufAsJsonResource(
 
 template <typename ProtobufT>
 farm_ng_proto::tractor::v1::Resource WriteProtobufAsBinaryResource(
-    BucketId id, const std::string& path, const ProtobufT& message) {
+    Bucket id, const std::string& path, const ProtobufT& message) {
   farm_ng_proto::tractor::v1::Resource resource;
   resource.set_content_type(ContentTypeProtobufBinary<ProtobufT>());
 

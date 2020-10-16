@@ -1,6 +1,8 @@
 import {
+  ApriltagConfig,
   ApriltagDetections,
-  ApriltagRig
+  ApriltagRig,
+  TagConfig
 } from "../../genproto/farm_ng_proto/tractor/v1/apriltag";
 import {
   NamedSE3Pose,
@@ -75,6 +77,8 @@ export type EventType =
   | Vec2
   | Image
   | TractorConfig
+  | ApriltagConfig
+  | TagConfig
   | CalibrationParameter
   | ViewInitialization
   | LoggingCommand
@@ -123,6 +127,8 @@ export const eventRegistry = inferKeys({
   "type.googleapis.com/farm_ng_proto.tractor.v1.Vec2": Vec2,
   "type.googleapis.com/farm_ng_proto.tractor.v1.Image": Image,
   "type.googleapis.com/farm_ng_proto.tractor.v1.TractorConfig": TractorConfig,
+  "type.googleapis.com/farm_ng_proto.tractor.v1.ApriltagConfig": ApriltagConfig,
+  "type.googleapis.com/farm_ng_proto.tractor.v1.TagConfig": TagConfig,
   "type.googleapis.com/farm_ng_proto.tractor.v1.ViewInitialization": ViewInitialization,
   "type.googleapis.com/farm_ng_proto.tractor.v1.BaseToCameraInitialization": BaseToCameraInitialization,
   "type.googleapis.com/farm_ng_proto.tractor.v1.CalibrationParameter": CalibrationParameter,
@@ -142,7 +148,6 @@ export const eventRegistry = inferKeys({
   "type.googleapis.com/farm_ng_proto.tractor.v1.CaptureVideoDatasetConfiguration": CaptureVideoDatasetConfiguration,
   "type.googleapis.com/farm_ng_proto.tractor.v1.CaptureVideoDatasetStatus": CaptureVideoDatasetStatus,
   "type.googleapis.com/farm_ng_proto.tractor.v1.CaptureVideoDatasetResult": CaptureVideoDatasetResult,
-
   "type.googleapis.com/farm_ng_proto.tractor.v1.CalibrateApriltagRigConfiguration": CalibrateApriltagRigConfiguration,
   "type.googleapis.com/farm_ng_proto.tractor.v1.CalibrateApriltagRigStatus": CalibrateApriltagRigStatus,
   "type.googleapis.com/farm_ng_proto.tractor.v1.CalibrateApriltagRigResult": CalibrateApriltagRigResult,

@@ -9,11 +9,16 @@ import {
   StandardComponent
 } from "./StandardComponent";
 import { Card } from "./Card";
-import { TractorConfig } from "../../../../genproto/farm_ng_proto/tractor/v1/tractor";
+import {
+  TractorConfig,
+  TractorConfig_Topology as Topology,
+  tractorConfig_TopologyToJSON as TopologyToJSON
+} from "../../../../genproto/farm_ng_proto/tractor/v1/tractor";
 import { KeyValueTable } from "./KeyValueTable";
 import { useFormState } from "../../../hooks/useFormState";
 import Form from "./Form";
 import { NamedSE3PoseVisualizer } from "./NamedSE3Pose";
+import { enumNumericKeys } from "../../../utils/enum";
 
 const TractorConfigForm: React.FC<FormProps<TractorConfig>> = (props) => {
   const [value, setValue] = useFormState(props);
@@ -98,6 +103,26 @@ const TractorConfigForm: React.FC<FormProps<TractorConfig>> = (props) => {
         }}
       />
 
+      <Form.Group
+        label="Topology"
+        value={value.topology}
+        as="select"
+        onChange={(e) => {
+          const topology = parseInt(e.target.value);
+          setValue((v) => ({ ...v, topology }));
+        }}
+      >
+        {enumNumericKeys(Topology)
+          .filter((k) => k > 0)
+          .map((k) => {
+            return (
+              <option key={k} value={k}>
+                {TopologyToJSON(k)}
+              </option>
+            );
+          })}
+      </Form.Group>
+
       {value.basePosesSensor.map((basePoseSensor, i) => (
         <NamedSE3PoseVisualizer.Form
           key={basePoseSensor.frameA + basePoseSensor.frameB}
@@ -132,7 +157,8 @@ const TractorConfigElement: React.FC<SingleElementVisualizerProps<
           ["Wheel Radius Left", value.wheelRadiusLeft],
           ["Wheel Radius Right", value.wheelRadiusRight],
           ["Hub Motor Gear Ratio", value.hubMotorGearRatio],
-          ["Hub Motor Poll Pairs", value.hubMotorPollPairs]
+          ["Hub Motor Poll Pairs", value.hubMotorPollPairs],
+          ["Topology", TopologyToJSON(value.topology)]
         ]}
       />
 

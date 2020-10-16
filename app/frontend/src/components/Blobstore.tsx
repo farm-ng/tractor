@@ -33,13 +33,19 @@ const dirsToPath = (dirs: FileData[]): string =>
   dirs.map((_) => _.name).join("/");
 
 const bestGuessEventType = (
-  folderChain: FileData[]
+  folderChain: FileData[],
+  selectedPath: string
 ): EventTypeId | undefined => {
   if (folderChain.map((_) => _.name).includes("apriltag_rig_models")) {
     return "type.googleapis.com/farm_ng_proto.tractor.v1.CalibrateApriltagRigResult";
   }
   if (folderChain.map((_) => _.name).includes("configurations")) {
-    return "type.googleapis.com/farm_ng_proto.tractor.v1.TractorConfig";
+    if (selectedPath.endsWith("tractor.json")) {
+      return "type.googleapis.com/farm_ng_proto.tractor.v1.TractorConfig";
+    }
+    if (selectedPath.endsWith("apriltag.json")) {
+      return "type.googleapis.com/farm_ng_proto.tractor.v1.ApriltagConfig";
+    }
   }
   if (folderChain.map((_) => _.name).includes("base_to_camera_models")) {
     return "type.googleapis.com/farm_ng_proto.tractor.v1.CalibrateBaseToCameraResult";
@@ -87,7 +93,7 @@ export const Blobstore: React.FC = () => {
         return;
       }
 
-      const eventType = bestGuessEventType(parentDirs);
+      const eventType = bestGuessEventType(parentDirs, selectedPath);
 
       if (!eventType) {
         setSelectedResource(undefined);
@@ -175,7 +181,7 @@ export const Blobstore: React.FC = () => {
       return;
     }
 
-    const eventType = bestGuessEventType(parentDirs);
+    const eventType = bestGuessEventType(parentDirs, selectedPath);
 
     if (!eventType) {
       console.error(`Aborting submit. Unknown eventType for ${selectedPath}`);

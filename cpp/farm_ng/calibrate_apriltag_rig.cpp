@@ -30,6 +30,7 @@ DEFINE_int32(
 
 typedef farm_ng_proto::tractor::v1::Event EventPb;
 using farm_ng_proto::tractor::v1::ApriltagDetections;
+using farm_ng_proto::tractor::v1::BUCKET_APRILTAG_RIG_MODELS;
 using farm_ng_proto::tractor::v1::CalibrateApriltagRigConfiguration;
 using farm_ng_proto::tractor::v1::CalibrateApriltagRigResult;
 using farm_ng_proto::tractor::v1::CalibrateApriltagRigStatus;
@@ -139,7 +140,7 @@ class CalibrateApriltagRigProgram {
     ArchiveProtobufAsJsonResource(configuration_.name(), result);
 
     status_.mutable_result()->CopyFrom(WriteProtobufAsJsonResource(
-        BucketId::kApriltagRigModels, configuration_.name(), result));
+        BUCKET_APRILTAG_RIG_MODELS, configuration_.name(), result));
 
     LOG(INFO) << "status:\n"
               << status_.DebugString() << "\nresult:\n"
