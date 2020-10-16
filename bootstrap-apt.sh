@@ -22,6 +22,12 @@ if ! dpkg -s yarn > /dev/null 2>&1; then
   echo "deb https://dl.yarnpkg.com/debian/ stable main" | sudo tee /etc/apt/sources.list.d/yarn.list
 fi
 
+# Grafana apt sources
+if ! dpkg -s grafana > /dev/null 2>&1; then
+  wget -q -O - https://packages.grafana.com/gpg.key | sudo apt-key add -
+  echo "deb https://packages.grafana.com/oss/deb stable main" | sudo tee -a /etc/apt/sources.list.d/grafana.list
+fi
+
 # System dependencies
 sudo apt-get update
 sudo apt-get install -y \
@@ -34,6 +40,7 @@ sudo apt-get install -y \
      dirmngr \
      git \
      git-lfs \
+     grafana \
      gstreamer1.0-libav \
      libatlas-base-dev \
      libboost-filesystem-dev \
@@ -73,6 +80,21 @@ if ! nodejs --version | grep 12.18.3; then
   sudo apt -y install nodejs
   nodejs --version
 fi
+
+# Prometheus Node Exporter
+if ! node_exporter --version | grep 1.0.1; then
+  wget https://github.com/prometheus/node_exporter/releases/download/v1.0.1/node_exporter-1.0.1.linux-${arch}.tar.gz -P /tmp/
+  tar -C /tmp -xzf /tmp/node_exporter-1.0.1.linux-${arch}.tar.gz
+  sudo cp /tmp/node_exporter-1.0.1.linux-${arch}/node_exporter /usr/local/bin
+fi
+
+# Prometheus
+if ! prometheus --version | grep 2.21.0; then
+  wget https://github.com/prometheus/prometheus/releases/download/v2.21.0/prometheus-2.21.0.linux-${arch}.tar.gz -P /tmp/
+  tar -C /tmp -xzf /tmp/prometheus-2.21.0.linux-${arch}.tar.gz
+  sudo cp /tmp/prometheus-2.21.0.linux-${arch}/prometheus /usr/local/bin
+fi
+
 
 # tractor-logs
 if [ ! -d "$HOME/tractor-logs" ]; then
