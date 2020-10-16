@@ -169,14 +169,12 @@ class receiver {
 };
 
 // Memoized results for compile_regex
-std::unordered_map<std::string, std::wregex> compiled_;
+std::unordered_map<std::string, std::regex> compiled_;
 
 // Handles escaping of special characters in the input strings.
-std::wregex compile_regex(const std::string& s) {
+std::regex compile_regex(const std::string& s) {
   if (compiled_.find(s) == compiled_.end()) {
-    std::wregex escape_chars(L"(([\\^\\$\\\\\\.\*\\+\\?\(\)\[\]\\{\\}\\|]))");
-    compiled_[s] = std::wregex(std::regex_replace(
-        std::wstring(s.begin(), s.end()), escape_chars, L"\\$1"));
+    compiled_[s] = std::regex(s);
   }
   return compiled_.at(s);
 }
@@ -185,9 +183,8 @@ bool is_recipient(const Announce& announce, const Event& event) {
   return std::any_of(
       announce.subscriptions().begin(), announce.subscriptions().end(),
       [event](const Subscription& subscription) {
-        std::wsmatch match;
-        std::wstring event_name(event.name().begin(), event.name().end());
-        return std::regex_search(event_name, match,
+        std::smatch match;
+        return std::regex_search(event.name(), match,
                                  compile_regex(subscription.name()));
       });
 }
