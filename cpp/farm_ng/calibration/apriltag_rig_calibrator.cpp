@@ -342,11 +342,12 @@ ApriltagRigModel ApriltagRigCalibrator::PoseInitialization() {
 void ApriltagRigCalibrator::AddFrame(ApriltagDetections detections) {
   for (auto it = detections.mutable_detections()->begin();
        it != detections.mutable_detections()->end();) {
-    if (it->tag_size() == 0.0) {
-      // TODO: What's the correct behavior here?
-      it->set_tag_size(0.16);
+    bool missing_tag_size = it->tag_size() == 0.0;
+    bool known_id = ids_.count(it->id()) > 0;
+    if (known_id && missing_tag_size) {
+      LOG(WARNING) << "Known id " << it->id() << " missing tag size";
     }
-    if (ids_.count(it->id()) == 0) {
+    if (!known_id || missing_tag_size) {
       it = detections.mutable_detections()->erase(it);
     } else {
       ++it;
