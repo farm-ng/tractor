@@ -95,10 +95,10 @@ class RegexCompiler:
             RegexCompiler.compiled[s] = re.compile(s)
         return RegexCompiler.compiled[s]
 
-# Intended to be accessed via get_event_bus, which ensures there is only one EventBus instance per process.
-
 
 class EventBus:
+    """Intended to be accessed via get_event_bus, which ensures there is only one EventBus instance per process."""
+
     def __init__(self, name, recv_raw=False):
         if name is None:
             name = 'python-ipc'
@@ -159,6 +159,7 @@ class EventBus:
         return self._loop.create_task(_event_bus_recver(self, callback))
 
     def add_subscriptions(self, names: List[str]):
+        assert(isinstance(names, list))
         self._subscriptions.extend([Subscription(name=name) for name in names])
 
     def _remove_announce_queue(self, queue):
@@ -348,7 +349,7 @@ async def get_message(event_queue, name_pattern, message_type):
 def main():
     logging.basicConfig(stream=sys.stdout, level=logging.INFO)
     event_bus = get_event_bus('python-ipc')
-    event_bus.add_subscriptions('.*')
+    event_bus.add_subscriptions(['.*'])
     _ = Periodic(1, event_bus.event_loop(), lambda n_periods: event_bus.log_state())
     event_bus.event_loop().run_forever()
 
