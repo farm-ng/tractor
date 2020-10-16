@@ -7,7 +7,7 @@ import sys
 import linuxfd
 import numpy as np
 from farm_ng.canbus import CANSocket
-from farm_ng.config import TractorConfig
+from farm_ng.config import TractorConfigManager
 from farm_ng.ipc import get_event_bus
 from farm_ng.ipc import make_event
 from farm_ng_proto.tractor.v1 import motor_pb2
@@ -269,7 +269,7 @@ def main():
     print('Listening on can0')
     loop = asyncio.get_event_loop()
 
-    config = TractorConfig.saved()
+    config = TractorConfigManager.saved()
     right_motor = HubMotor(
         'right_motor',
         config.wheel_radius.value,

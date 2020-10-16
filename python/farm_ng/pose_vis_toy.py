@@ -3,7 +3,7 @@ import logging
 import sys
 
 import numpy as np
-from farm_ng.config import TractorConfig
+from farm_ng.config import TractorConfigManager
 from farm_ng.ipc import get_event_bus
 from farm_ng.ipc import make_event
 from farm_ng.kinematics import TractorKinematics
@@ -26,7 +26,7 @@ class PoseVisToy:
         self.tractor_pose_wheel_left = SE3.exp((0.0, 1.0, 0, 0, 0, 0)).dot(SE3.exp((0.0, 0.0, 0, -np.pi/2, 0, 0)))
         self.tractor_pose_wheel_right = SE3.exp((0.0, -1.0, 0, 0, 0, 0)).dot(SE3.exp((0.0, 0.0, 0, -np.pi/2, 0, 0)))
 
-        self.kinematic_model = TractorKinematics(TractorConfig.saved())
+        self.kinematic_model = TractorKinematics(TractorConfigManager.saved())
 
         self.control_timer = Periodic(
             self.command_period_seconds, self.event_loop,
