@@ -3,17 +3,16 @@ package eventbus
 import (
 	"context"
 	"fmt"
-	"log"
-	"net"
-	"sync"
-	"syscall"
-	"time"
-
 	pb "github.com/farm-ng/tractor/genproto"
 	"github.com/golang/protobuf/ptypes"
 	"golang.org/x/net/ipv4"
 	"golang.org/x/sys/unix"
 	"google.golang.org/protobuf/proto"
+	"log"
+	"net"
+	"sync"
+	"syscall"
+	"time"
 )
 
 const (
@@ -40,12 +39,22 @@ type EventBusConfig struct {
 
 // NewEventBus returns a new EventBus.
 func NewEventBus(config *EventBusConfig) *EventBus {
+	// TODO: @jin remove
+	eventChan := make(chan *pb.Event)
+	go func() {
+		for event := range eventChan {
+			log.Println(event)
+		}
+	}()
+
 	return &EventBus{
-		multicastGroup:     config.MulticastGroup,
-		serviceName:        config.ServiceName,
-		Announcements:      make(map[string]*pb.Announce),
-		announcementsMutex: &sync.Mutex{},
-		State:              make(map[string]*pb.Event),
+		multicastGroup:       config.MulticastGroup,
+		serviceName:          config.ServiceName,
+		Announcements:        make(map[string]*pb.Announce),
+		announcementsMutex:   &sync.Mutex{},
+		State:                make(map[string]*pb.Event),
+		publishAnnouncements: true,
+		eventChan:            eventChan,
 	}
 }
 
@@ -62,6 +71,13 @@ func (bus *EventBus) WithEventChannel(config *EventChannelConfig) *EventBus {
 	return bus
 }
 
+// 1. The eventbus listen for events on a random local UDP port.
+//    - For each event, sends it to an chan
+//
+// 2. The eventbus participates on a UDP multicast group/net.UDPAddr (m).
+//    - Periodically send announcement message to the UDP multicast channel
+//    - Periodically read from the UDP multicast channel to update the map of Announcements.
+//      The map is used in #SendEvent to determine which UDP ports to send data.
 func (bus *EventBus) Start() {
 	// Shared socket configuration
 	socketConfig := net.ListenConfig{
@@ -211,10 +227,11 @@ func (bus *EventBus) handleAnnouncements() {
 
 		announce := &pb.Announce{}
 		err = proto.Unmarshal(buf[:n], announce)
+		// Ignore corrupted announcement events
 		if err != nil {
-			log.Fatalln("announcement parsing failed:", err, announce)
+			log.Println(fmt.Sprintf("announcement parsing failed, byte_size=%d:", n), err)
+			continue
 		}
-
 		// Ignore faulty announcements
 		if srcPort != int(announce.Port) {
 			log.Printf("sender port (%v) does not match announcement: %v", srcPort, announce)
@@ -237,7 +254,9 @@ func (bus *EventBus) handleAnnouncements() {
 			if err != nil {
 				log.Fatalln("marshalling announcement to Any failed: ", err, announce)
 			}
+			log.Println("queuing data into event bus channel: ", event)
 			bus.eventChan <- event
+			log.Println("events are processed")
 		}
 	}
 }
@@ -252,7 +271,8 @@ func (bus *EventBus) handleEvents() {
 		event := &pb.Event{}
 		err = proto.Unmarshal(buf[:n], event)
 		if err != nil {
-			log.Fatalln("event parsing failed:", err, event)
+			log.Println(fmt.Sprintf("event parsing failed, byte_size=%d:", n), err)
+			continue
 		}
 		bus.State[event.Name] = event
 		if bus.eventChan != nil {

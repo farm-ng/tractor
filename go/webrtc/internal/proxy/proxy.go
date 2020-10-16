@@ -6,6 +6,8 @@ package proxy
 import (
 	"errors"
 	"fmt"
+	"github.com/farm-ng/tractor/webrtc/cmd/conf"
+	"github.com/farm-ng/tractor/webrtc/internal/common"
 	"log"
 	"net"
 	"sync"
@@ -210,6 +212,7 @@ func (p *EventBusProxy) sendBytes(bytes []byte) {
 type Proxy struct {
 	eventBusProxy *EventBusProxy
 	rtpProxy      *RtpProxy
+	WebrtcConns   map[string]*pb.WebrtcPeerConn
 }
 
 // NewProxy constructs a Proxy
@@ -217,6 +220,7 @@ func NewProxy(eventBusProxy *EventBusProxy, rtpProxy *RtpProxy) *Proxy {
 	return &Proxy{
 		eventBusProxy: eventBusProxy,
 		rtpProxy:      rtpProxy,
+		WebrtcConns:   make(map[string]*pb.WebrtcPeerConn),
 	}
 }
 
@@ -227,6 +231,7 @@ func (p *Proxy) Start() {
 	go p.rtpProxy.start()
 }
 
+// TODO: Be able to clean up the webrtc connection after they are completed/closed/failed
 // AddPeer accepts an offer SDP from a peer, registers callbacks for RTP and EventBus events, and returns an
 // answer SDP.
 func (p *Proxy) AddPeer(offer webrtc.SessionDescription) (*webrtc.SessionDescription, error) {
@@ -269,8 +274,11 @@ func (p *Proxy) AddPeer(offer webrtc.SessionDescription) (*webrtc.SessionDescrip
 	// Create a new RTCPeerConnection
 	api := webrtc.NewAPI(webrtc.WithSettingEngine(settingEngine), webrtc.WithMediaEngine(mediaEngine))
 	peerConnection, err := api.NewPeerConnection(webrtc.Configuration{
-		// No STUN servers for now, to ensure candidate pair that's selected communicates over LAN
-		ICEServers: []webrtc.ICEServer{},
+		ICEServers: []webrtc.ICEServer{
+			{
+				URLs: []string{"stun:stun.l.google.com:19302"},
+			},
+		},
 	})
 	if err != nil {
 		return nil, err
@@ -316,7 +324,7 @@ func (p *Proxy) AddPeer(offer webrtc.SessionDescription) (*webrtc.SessionDescrip
 				log.Printf("[%s] Starting datachannel->eventbus forwarding\n", peerID)
 				for {
 					buffer := make([]byte, messageSize)
-					n, err := raw.Read(buffer)
+					n, err := raw.Read(buffer) // TODO: This blocks forever when if the connection is closed
 					if err != nil {
 						log.Printf("[%s] Datachannel closed: %s\n", peerID, err)
 						break
@@ -411,5 +419,51 @@ func (p *Proxy) AddPeer(offer webrtc.SessionDescription) (*webrtc.SessionDescrip
 	// in a production application you should exchange ICE Candidates via OnICECandidate
 	<-gatherComplete
 
-	return peerConnection.LocalDescription(), nil
+	localSess := peerConnection.LocalDescription()
+	p.storeConn(peerID, &offer, localSess)
+	return localSess, nil
+}
+
+func StartProxy(rtpAddr string, rtpReadBufferSize int, maxRtpDatagramSize int) *Proxy {
+	// Create EventBus proxy
+	eventChan := make(chan *pb.Event)
+	eventBus := eventbus.NewEventBus(&eventbus.EventBusConfig{
+		MulticastGroup: net.UDPAddr{
+			IP:   net.ParseIP(conf.EventBusAddr),
+			Port: conf.EventBusPort,
+		},
+		ServiceName: "webrtc-proxy",
+	}).WithEventChannel(&eventbus.EventChannelConfig{
+		Channel:              eventChan,
+		PublishAnnouncements: true,
+	})
+	eventBusProxy := NewEventBusProxy(&EventBusProxyConfig{
+		EventBus:    eventBus,
+		EventSource: eventChan,
+	})
+
+	// Create Rtp proxy
+	rtpProxy := NewRtpProxy(&RtpProxyConfig{
+		ListenAddr:      rtpAddr,
+		ReadBufferSize:  rtpReadBufferSize,
+		MaxDatagramSize: maxRtpDatagramSize,
+	})
+
+	// Start webRTC proxy
+	p := NewProxy(eventBusProxy, rtpProxy)
+	p.Start()
+
+	return p
+}
+
+func (p *Proxy) storeConn(peerId string, clientSess, proxySession *webrtc.SessionDescription) {
+	clientSdp, _ := common.SerializeSess(clientSess)
+	proxySdp, _ := common.SerializeSess(proxySession)
+
+	p.WebrtcConns[peerId] = &pb.WebrtcPeerConn{
+		Stamp:     ptypes.TimestampNow(),
+		ConnId:    peerId,
+		ClientSdp: clientSdp,
+		ProxySdp:  proxySdp,
+	}
 }

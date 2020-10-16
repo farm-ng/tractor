@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"github.com/farm-ng/tractor/webrtc/cmd/conf"
 	"log"
 	"net"
 	"time"
@@ -16,8 +17,11 @@ func prettyPrint(i interface{}) string {
 
 func main() {
 	b := eventbus.NewEventBus(&eventbus.EventBusConfig{
-		MulticastGroup: net.UDPAddr{IP: net.ParseIP("239.20.20.21"), Port: 10000},
-		ServiceName:    "go-eventbus",
+		MulticastGroup: net.UDPAddr{
+			IP:   net.ParseIP(conf.EventBusAddr),
+			Port: conf.EventBusPort,
+		},
+		ServiceName: "go-eventbus",
 	})
 
 	stateTicker := time.NewTicker(1 * time.Second)

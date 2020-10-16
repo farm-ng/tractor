@@ -9,8 +9,9 @@ export function getWebRTCEmitters(
 ): [BusEventEmitter, MediaStreamEmitter, BusClient] {
   const busEventEmitter = new BusEventEmitter();
   const mediaStreamEmitter = new MediaStreamEmitter();
+
   const pc = new RTCPeerConnection({
-    iceServers: [] // no STUN servers, since we only support LAN
+    iceServers: [{ urls: "stun:stun.l.google.com:19302" }]
   });
 
   pc.ontrack = (event) => {
@@ -38,6 +39,7 @@ export function getWebRTCEmitters(
           sdp: btoa(JSON.stringify(pc.localDescription))
         })
       });
+
       const responseJson = await response.json();
       try {
         pc.setRemoteDescription(

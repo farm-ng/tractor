@@ -1,0 +1,63 @@
+syntax = "proto3";
+
+package farm_ng_proto.tractor.v1;
+option go_package = "github.com/farm_ng/genproto";
+
+import "google/protobuf/timestamp.proto";
+
+/*
+This message represents a webrtc session between the browser client and the proxy server.
+The signaling and proxy server send these messages back and forth in a webrtc data channel.
+*/
+message WebrtcPeerConn {
+  google.protobuf.Timestamp stamp = 1;
+  string conn_id = 2;
+  string client_sdp = 3; // Session Description Protocol description, base64-encoded string
+  string proxy_sdp = 4;
+}
+
+message InitiatePeerConnectionRequest {
+  string sdp = 1; // Session Description Protocol description, base64-encoded string
+}
+message InitiatePeerConnectionResponse {
+  string sdp = 1; // Session Description Protocol description, base64-encoded string
+}
+
+message InitiateSignalingConnectionRequest {
+  string sdp = 1; // Session Description Protocol description, base64-encoded string
+}
+message InitiateSignalingConnectionResponse {
+  string sdp = 1; // Session Description Protocol description, base64-encoded string
+}
+
+message ConnsRequest {
+  // Empty
+}
+message ConnsResponse {
+  int32 size = 1;
+  map<string, WebrtcPeerConn> conns = 2;
+}
+
+// TODO: It is hacky to have proxy and signaling to be exposing the same APIs.
+//       The main reason is to allow the frontend app to be able to talk to either server
+//       without any configuration changes. That is, frontend app are expected to be hosted
+//       by both of the server, and its expected API backends are located within the same host.
+
+// Both the Proxy and Signaling server implements this API
+service WebrtcApiService {
+  // Client connects to Proxy server
+  //  - path1: client <-> proxy
+  //  - path2: client <-> signaling <-> proxy
+  rpc InitiatePeerConnection (InitiatePeerConnectionRequest) returns (InitiatePeerConnectionResponse) {
+  }
+
+
+  // proxy <-> signaling
+  rpc InitiateSignalingConnection (InitiateSignalingConnectionRequest) returns (InitiateSignalingConnectionResponse) {
+  }
+
+  // View existing connections
+  // Used for debuggin only
+  rpc Conns (ConnsRequest) returns (ConnsResponse) {
+  }
+}
