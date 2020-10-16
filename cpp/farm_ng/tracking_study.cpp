@@ -1,9 +1,14 @@
-// ~/code/tractor/build/cpp/farm_ng/tracking_study --apriltag_rig_result
-// ~/code/tractor-data/apriltag_rig_models/field_tags_rig_1010.json
-// --base_to_camera_result
-// ~/code/tractor-data/base_to_camera_models/base_to_camera.json
-// --video_dataset_result
-// ~/code/tractor-data/video_datasets/tractor0003_20201011_field_tags_01_video02.json
+/*
+
+~/code/tractor/build/cpp/farm_ng/tracking_study \
+ --apriltag_rig_result \
+ ~/code/tractor-data/apriltag_rig_models/field_tags_rig_1010.json \
+ --base_to_camera_result \
+ ~/code/tractor-data/base_to_camera_models/base_to_camera.json \
+ --video_dataset_result \
+ ~/code/tractor-data/video_datasets/tractor0003_20201011_field_tags_01_video02.json
+
+ */
 #include <iostream>
 #include <optional>
 #include <sstream>
@@ -17,9 +22,11 @@
 #include "farm_ng/ipc.h"
 #include "farm_ng/sophus_protobuf.h"
 
+#include <opencv2/core/eigen.hpp>
 #include <opencv2/highgui.hpp>
 #include <opencv2/imgcodecs.hpp>
 #include <opencv2/imgproc.hpp>
+#include <opencv2/video.hpp>
 #include <opencv2/videoio.hpp>
 
 #include "farm_ng/calibration/base_to_camera_calibrator.h"
@@ -64,7 +71,9 @@ DEFINE_string(apriltag_rig_result, "",
 DEFINE_string(base_to_camera_result, "",
               "The path to a serialized CalibrateBaseToCameraResult");
 
-DEFINE_bool(zero_indexed, true, "Data recorded with zero indexed video frame numbers?  This is a hack that should be removed once data format is stable.");
+DEFINE_bool(zero_indexed, true,
+            "Data recorded with zero indexed video frame numbers?  This is a "
+            "hack that should be removed once data format is stable.");
 namespace farm_ng {
 
 class ImageLoader {
@@ -91,14 +100,13 @@ class ImageLoader {
       LOG(INFO) << image.resource().path()
                 << " frame number: " << image.frame_number().value();
 
-      int frame_number =  image.frame_number().value();
-      if(!FLAGS_zero_indexed) {
-	CHECK_GT(frame_number, 0);
-	frame_number -= 1;
+      int frame_number = image.frame_number().value();
+      if (!FLAGS_zero_indexed) {
+        CHECK_GT(frame_number, 0);
+        frame_number -= 1;
       }
       capture_->set(cv::CAP_PROP_POS_FRAMES, frame_number);
-      CHECK_EQ(frame_number,
-               uint32_t(capture_->get(cv::CAP_PROP_POS_FRAMES)));
+      CHECK_EQ(frame_number, uint32_t(capture_->get(cv::CAP_PROP_POS_FRAMES)));
       *capture_ >> frame;
     } else {
       frame =
@@ -112,6 +120,218 @@ class ImageLoader {
   }
   std::unique_ptr<cv::VideoCapture> capture_;
   std::string video_name_;
+};
+
+struct FlowPointImage {
+  uint64_t flow_point_id;
+  Eigen::Vector2f image_coordinates;
+};
+
+class FlowPointWorld {
+ public:
+  uint64_t id;
+  Eigen::Vector3d point_world;
+  std::unordered_set<uint64_t> image_ids;
+};
+
+class FlowImage {
+ public:
+  uint64_t id;
+  google::protobuf::Timestamp stamp;
+  Sophus::SE3d world_pose_camera;
+  std::optional<cv::Mat> image;
+  cv::Mat debug_trails;
+  std::vector<FlowPointImage> flow_points;
+};
+
+template <typename Scalar>
+inline cv::Point2f EigenToCvPoint2f(const Eigen::Matrix<Scalar, 2, 1>& x) {
+  return cv::Point2f(x.x(), x.y());
+}
+
+template <typename Scalar>
+inline cv::Point EigenToCvPoint(const Eigen::Matrix<Scalar, 2, 1>& x) {
+  return cv::Point(int(x.x() + 0.5), int(x.y() + 0.5));
+}
+
+class FlowBookKeeper {
+ public:
+  FlowBookKeeper(CameraModel camera_model) : camera_model_(camera_model) {
+    cv::RNG rng;
+    for (int i = 0; i < 1000; ++i) {
+      colors_.push_back(cv::Scalar(rng.uniform(0, 255), rng.uniform(0, 255),
+                                   rng.uniform(0, 255)));
+    }
+  }
+
+  // Add an image, assumed to be from the same camera, and close to periodic,
+  // meaning from the same consecutive time series of images captured from the
+  // camera.
+  uint64_t AddImage(cv::Mat image, google::protobuf::Timestamp stamp,
+                    Sophus::SE3d world_pose_camera) {
+    CHECK_EQ(camera_model_.image_width(), image.size().width);
+    CHECK_EQ(camera_model_.image_height(), image.size().height);
+    CHECK_EQ(1, image.channels()) << "Expecting gray image.";
+    FlowImage flow_image;
+    flow_image.world_pose_camera = world_pose_camera;
+    flow_image.image = image;
+    flow_image.stamp = stamp;
+    flow_image.id = image_id_gen_++;
+    if (flow_image.id > 0) {
+      FlowFromPrevious(&flow_image);
+      flow_images_.at(flow_image.id - 1).image.reset();
+    }
+    DetectGoodCorners(&flow_image);
+    flow_images_.insert(std::make_pair(flow_image.id, flow_image));
+    return flow_image.id;
+  }
+
+  std::vector<cv::Point2f> GetFlowCvPoints(const FlowImage& flow_image) const {
+    std::vector<cv::Point2f> points;
+    points.reserve(flow_image.flow_points.size());
+    for (const auto& sample : flow_image.flow_points) {
+      points.push_back(EigenToCvPoint2f(sample.image_coordinates));
+    }
+    return points;
+  }
+
+  void FlowFromPrevious(FlowImage* flow_image) {
+    CHECK_GT(flow_image->id, 0);
+    CHECK_GT(flow_images_.count(flow_image->id - 1), 0);
+    const FlowImage& prev = flow_images_.at(flow_image->id - 1);
+    if (prev.flow_points.empty()) {
+      return;
+    }
+    flow_image->debug_trails = prev.debug_trails;
+    CHECK(prev.image.has_value());
+    std::vector<uchar> status;
+    std::vector<float> err;
+    std::vector<cv::Point2f> prev_points(GetFlowCvPoints(prev));
+    std::vector<cv::Point2f> curr_points;
+    std::vector<cv::Point2f> prev_bwd_points;
+
+    cv::calcOpticalFlowPyrLK(*prev.image, *flow_image->image, prev_points,
+                             curr_points, status, err);
+
+    std::vector<uchar> bwd_status;
+
+    cv::calcOpticalFlowPyrLK(*flow_image->image, *prev.image, curr_points,
+                             prev_bwd_points, bwd_status, err);
+
+    CHECK_EQ(curr_points.size(), prev_points.size());
+    CHECK_EQ(prev.flow_points.size(), prev_points.size());
+    CHECK_EQ(status.size(), prev_points.size());
+    CHECK_EQ(err.size(), prev_points.size());
+
+    cv::Mat debug;
+    cv::cvtColor(*flow_image->image, debug, cv::COLOR_GRAY2BGR);
+    if (flow_image->debug_trails.empty()) {
+      flow_image->debug_trails =
+          cv::Mat::zeros(flow_image->image->size(), CV_8UC3);
+    }
+    flow_image->debug_trails = flow_image->debug_trails * 0.9;
+
+    for (size_t i = 0; i < curr_points.size(); ++i) {
+      if (!status[i] || !bwd_status[i]) {
+        continue;
+      }
+      if (cv::norm(prev_bwd_points[i] - prev_points[i]) > 1.0) {
+        continue;
+      }
+      FlowPointImage flow_point = prev.flow_points[i];
+      flow_point.image_coordinates =
+          Eigen::Vector2f(curr_points[i].x, curr_points[i].y);
+      flow_image->flow_points.push_back(flow_point);
+
+      auto world_it = flow_points_world_.find(flow_point.flow_point_id);
+      CHECK(world_it != flow_points_world_.end());
+
+      auto it_inserted = world_it->second.image_ids.insert(flow_image->id);
+      CHECK(it_inserted.second);
+      if (world_it->second.image_ids.size() > 5) {
+        cv::Scalar color = colors_[flow_point.flow_point_id % colors_.size()];
+        cv::line(flow_image->debug_trails, prev_points[i], curr_points[i],
+                 color);
+        cv::circle(debug, curr_points[i], 3, color, -1);
+      }
+    }
+    debug = debug + flow_image->debug_trails;
+    cv::imshow("debug flow", debug);
+  }
+
+  void RenderMaskOfFlowPoints(const FlowImage& flow_image, cv::Mat* mask,
+                              int window_size) {
+    if (mask->empty()) {
+      *mask = cv::Mat::ones(cv::Size(camera_model_.image_width(),
+                                     camera_model_.image_height()),
+                            CV_8UC1) *
+              255;
+    }
+    for (const auto& flow_point : flow_image.flow_points) {
+      cv::Point tl = EigenToCvPoint(flow_point.image_coordinates) -
+                     cv::Point(window_size / 2, window_size / 2);
+      cv::rectangle(*mask, cv::Rect(tl.x, tl.y, window_size, window_size),
+                    cv::Scalar::all(0), -1);
+    }
+  }
+  FlowPointImage GenFlowPoint(FlowImage* flow_image, cv::Point2f x) {
+    FlowPointImage flow_point_image;
+    flow_point_image.flow_point_id = flow_id_gen_++;
+    flow_point_image.image_coordinates = Eigen::Vector2f(x.x, x.y);
+    FlowPointWorld flow_point_world;
+    flow_point_world.image_ids.insert(flow_image->id);
+    flow_point_world.id = flow_point_image.flow_point_id;
+    flow_point_world.point_world =
+        flow_image->world_pose_camera * Eigen::Vector3d(0.0, 0.0, 1.0);
+    flow_points_world_.insert(
+        std::make_pair(flow_point_image.flow_point_id, flow_point_world));
+    flow_image->flow_points.push_back(flow_point_image);
+    return flow_point_image;
+  }
+
+  void DetectGoodCorners(FlowImage* flow_image) {
+    CHECK(flow_image->image.has_value()) << "image must be set.";
+    /// Parameters for Shi-Tomasi algorithm
+    int max_corners = 400;
+
+    double quality_level = 0.01;
+    double min_distance = 10;
+    int block_size = 9, gradient_size = 3;
+    bool use_harris_detector = false;
+    double k = 0.04;
+    cv::TermCriteria termcrit(cv::TermCriteria::COUNT | cv::TermCriteria::EPS,
+                              20, 0.03);
+    cv::Size subPixWinSize(10, 10), winSize(31, 31);
+
+    cv::Mat mask;
+    RenderMaskOfFlowPoints(*flow_image, &mask, 40);
+
+    cv::imshow("mask", mask);
+    /// Apply corner detection
+    std::vector<cv::Point2f> points;
+    cv::goodFeaturesToTrack(*flow_image->image, points, max_corners,
+                            quality_level, min_distance, mask, block_size,
+                            gradient_size, use_harris_detector, k);
+
+    if (points.empty()) {
+      return;
+    }
+
+    cv::cornerSubPix(*flow_image->image, points, subPixWinSize,
+                     cv::Size(-1, -1), termcrit);
+
+    for (auto& point : points) {
+      GenFlowPoint(flow_image, point);
+    }
+  }
+
+ private:
+  CameraModel camera_model_;
+  std::vector<cv::Scalar> colors_;
+  uint64_t image_id_gen_ = 0;
+  uint64_t flow_id_gen_ = 0;
+  std::unordered_map<uint64_t, FlowPointWorld> flow_points_world_;
+  std::unordered_map<uint64_t, FlowImage> flow_images_;
 };
 
 class TrackingStudyProgram {
@@ -186,6 +406,10 @@ class TrackingStudyProgram {
     LOG(INFO) << "writing video with: " << video_writer_dev;
 
     std::unique_ptr<cv::VideoWriter> writer;
+
+    std::unique_ptr<FlowBookKeeper> flow;
+
+    Sophus::SE3d world_pose_base = Sophus::SE3d::rotX(0.0);
     for (auto& event : images) {
       Image image;
 
@@ -199,12 +423,24 @@ class TrackingStudyProgram {
                                            image.camera_model().image_height()),
                                   true));
         }
-
-        cv::Mat frame = image_loader.LoadImage(image);
-        if (frame.channels() == 1) {
-          cv::cvtColor(frame.clone(), frame, cv::COLOR_GRAY2RGB);
+        if (!flow) {
+          flow.reset(new FlowBookKeeper(image.camera_model()));
         }
+
+        cv::Mat gray = image_loader.LoadImage(image);
+        cv::Mat frame;
+        if (gray.channels() == 1) {
+          cv::cvtColor(gray.clone(), frame, cv::COLOR_GRAY2RGB);
+        } else {
+          frame = gray;
+          cv::cvtColor(frame.clone(), gray, cv::COLOR_RGB2GRAY);
+        }
+        LOG(INFO) << frame.channels();
+
         auto last_image_stamp = event.stamp();
+
+        flow->AddImage(gray, event.stamp(), world_pose_base * base_pose_camera);
+
         Eigen::Vector2d last_point_image = ProjectPointToPixel(
             image.camera_model(),
             base_pose_camera.inverse() * Eigen::Vector3d(0, 0, 0));
@@ -221,17 +457,19 @@ class TrackingStudyProgram {
           Eigen::Vector3d point_camera =
               base_pose_camera.inverse() *
               (odometry_pose_base * Eigen::Vector3d(0.0, 0.0, 0.0));
+          if (point_camera.z() > 0) {
+            Eigen::Vector2d point_image =
+                ProjectPointToPixel(image.camera_model(), point_camera);
+            cv::circle(frame, cv::Point(point_image.x(), point_image.y()), 2,
+                       cv::Scalar(0, 0, 255));
 
-          Eigen::Vector2d point_image =
-              ProjectPointToPixel(image.camera_model(), point_camera);
-          cv::circle(frame, cv::Point(point_image.x(), point_image.y()), 2,
-                     cv::Scalar(0, 0, 255));
+            cv::line(frame,
+                     cv::Point(last_point_image.x(), last_point_image.y()),
+                     cv::Point(point_image.x(), point_image.y()),
+                     cv::Scalar(255, 255, 0));
 
-          cv::line(frame, cv::Point(last_point_image.x(), last_point_image.y()),
-                   cv::Point(point_image.x(), point_image.y()),
-                   cv::Scalar(255, 255, 0));
-
-          last_point_image = point_image;
+            last_point_image = point_image;
+          }
           last_image_stamp = next_stamp;
         }
 
