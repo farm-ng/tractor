@@ -168,6 +168,30 @@ class receiver {
   char data_[max_datagram_size];
 };
 
+// Memoized results for compile_regex
+std::unordered_map<std::string, std::wregex> compiled_;
+
+// Handles escaping of special characters in the input strings.
+std::wregex compile_regex(const std::string& s) {
+  if (compiled_.find(s) == compiled_.end()) {
+    std::wregex escape_chars(L"(([\\^\\$\\\\\\.\*\\+\\?\(\)\[\]\\{\\}\\|]))");
+    compiled_[s] = std::wregex(std::regex_replace(
+        std::wstring(s.begin(), s.end()), escape_chars, L"\\$1"));
+  }
+  return compiled_.at(s);
+}
+
+bool is_recipient(const Announce& announce, const Event& event) {
+  return std::any_of(
+      announce.subscriptions().begin(), announce.subscriptions().end(),
+      [event](const Subscription& subscription) {
+        std::wsmatch match;
+        std::wstring event_name(event.name().begin(), event.name().end());
+        return std::regex_search(event_name, match,
+                                 compile_regex(subscription.name()));
+      });
+}
+
 }  // namespace
 typedef boost::signals2::signal<void(const Event&)> EventSignal;
 typedef std::shared_ptr<EventSignal> EventSignalPtr;
@@ -490,33 +514,5 @@ void RequestStopCapturing(EventBus& bus) {
   command.mutable_record_stop();
   bus.Send(farm_ng::MakeEvent("tracking_camera/command", command));
 }
-
-bool is_recipient(const Announce& announce, const Event& event) {
-  return std::any_of(
-      announce.subscriptions().begin(), announce.subscriptions().end(),
-      [event](const Subscription& subscription) {
-        std::wsmatch match;
-        std::wstring event_name(event.name().begin(), event.name().end());
-        return std::regex_search(event_name, match,
-                                 RegexCompiler::compile(subscription.name()));
-      });
-}
-
-// A cache of regexes, compiled from strings.
-// Handles escaping of special characters in the input strings.
-class RegexCompiler {
- private:
-  static std::unordered_map<std::string, std::wregex> compiled_;
-
- public:
-  static std::wregex compile(const std::string& s) {
-    if (compiled_.find(s) == compiled_.end()) {
-      std::wregex escape_chars(L"(([\\^\\$\\\\\\.\*\\+\\?\(\)\[\]\\{\\}\\|]))");
-      compiled_[s] = std::wregex(std::regex_replace(
-          std::wstring(s.begin(), s.end()), escape_chars, L"\\$1"));
-    }
-    return compiled_.at(s);
-  }
-};
 
 }  // namespace farm_ng
