@@ -688,7 +688,7 @@ class VisualOdometer {
         flow_.AddImage(image, stamp,
                        odometry_pose_base_wheel_only * base_pose_camera_);
         SolvePose();
-        if (flow_.LastImageId() % 10 == 0) {
+        if (flow_.LastImageId() % 100 == 0) {
           DumpFlowPointsWorld("/tmp/flow_points_world." +
                               std::to_string(flow_.LastImageId()) + ".ply");
         }
@@ -780,9 +780,9 @@ class VisualOdometer {
     LOG(INFO) << "distance: " << flow_.LastImageId() - *flow_image_ids.begin();
 
     // for (auto id : flow_image_ids) {
-    problem.SetParameterBlockConstant(
-        flow_.MutableFlowImage(flow_.LastImageId() - 1)
-            ->camera_pose_world.data());
+    // problem.SetParameterBlockConstant(
+    // flow_.MutableFlowImage(flow_.LastImageId() - 1)
+    //->camera_pose_world.data());
     // break;
     //}
 
