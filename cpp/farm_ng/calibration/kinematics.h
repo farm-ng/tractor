@@ -3,19 +3,29 @@
 #include <sophus/se3.hpp>
 
 namespace farm_ng {
+
 template <typename T>
-static Sophus::SE3<T> TractorPoseDelta(
-    const T& wheel_radius, const T& wheel_baseline,
-    const BaseToCameraModel::WheelMeasurement wheel_measurement) {
-  T vel_left(wheel_measurement.wheel_velocity_rads_left());
-  T vel_right(wheel_measurement.wheel_velocity_rads_right());
-  T dt(wheel_measurement.dt());
-  T v = T(wheel_radius / 2.0) * (vel_left + vel_right);
+Sophus::SE3<T> TractorPoseDelta(const T& wheel_radius, const T& wheel_baseline,
+                                const T& vel_left, const T& vel_right,
+                                const T& dt) {
+  T v = (wheel_radius / T(2.0)) * (vel_left + vel_right);
   T w = (wheel_radius / wheel_baseline) * (vel_right - vel_left);
   Eigen::Matrix<T, 6, 1> x;
   x << v * dt, T(0), T(0), T(0), T(0), w * dt;
   return Sophus::SE3<T>::exp(x);
 }
+
+template <typename T>
+Sophus::SE3<T> TractorPoseDelta(
+    const T& wheel_radius, const T& wheel_baseline,
+    const BaseToCameraModel::WheelMeasurement& wheel_measurement) {
+  T vel_left(wheel_measurement.wheel_velocity_rads_left());
+  T vel_right(wheel_measurement.wheel_velocity_rads_right());
+  T dt(wheel_measurement.dt());
+  return TractorPoseDelta(wheel_radius, wheel_baseline, vel_left, vel_right,
+                          dt);
+}
+
 template <typename T, typename IteratorT>
 Sophus::SE3<T> TractorStartPoseTractorEnd(const T& wheel_radius,
                                           const T& wheel_baseline,

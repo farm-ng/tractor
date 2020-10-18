@@ -10,6 +10,7 @@ class TimeSeries {
  public:
   typedef std::deque<ValueT> ContainerT;
   typedef typename ContainerT::const_iterator const_iterator;
+  typedef std::pair<const_iterator, const_iterator> RangeT;
   static bool Compare(const ValueT& lhs, const ValueT& rhs) {
     return lhs.stamp() < rhs.stamp();
   }
@@ -31,9 +32,8 @@ class TimeSeries {
         });
   }
 
-  std::pair<const_iterator, const_iterator> find_range(
-      google::protobuf::Timestamp begin_stamp,
-      google::protobuf::Timestamp end_stamp) const {
+  RangeT find_range(google::protobuf::Timestamp begin_stamp,
+                    google::protobuf::Timestamp end_stamp) const {
     auto begin_it = lower_bound(begin_stamp);
     VLOG(2) << "begin delta milliseconds: "
             << google::protobuf::util::TimeUtil::DurationToMilliseconds(

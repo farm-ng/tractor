@@ -23,8 +23,23 @@ boost::asio::io_service& _get_io_service() {
   return io_service;
 }
 
+boost::asio::signal_set& _get_signal_set() {
+  static boost::asio::signal_set signals(_get_io_service(), SIGTERM, SIGINT);
+  return signals;
+}
+
 void (*_g_cleanup_func)(EventBus&) = nullptr;
 
+void _signal_handler(const boost::system::error_code& error,
+                     int signal_number) {
+  std::cout << "Received (error, signal) " << error << " , " << signal_number
+            << std::endl;
+  // std::quick_exit(signal_number);
+  _get_io_service().stop();
+  _get_signal_set().async_wait(&_signal_handler);
+
+  throw std::runtime_error(std::to_string(signal_number));
+}
 }  // namespace
 void GlogFailureFunction() {
   std::cerr << boost::stacktrace::stacktrace() << std::endl;
@@ -44,14 +59,7 @@ int Main(int argc, char** argv, int (*main_func)(EventBus&),
   google::InstallFailureFunction(&GlogFailureFunction);
   google::InstallFailureSignalHandler();
 
-  boost::asio::signal_set signals(_get_io_service(), SIGTERM, SIGINT);
-  signals.async_wait([](const boost::system::error_code& error,
-                        int signal_number) {
-    std::cout << "Received (error, signal) " << error << " , " << signal_number
-              << std::endl;
-    _get_io_service().stop();
-    throw std::runtime_error("signal caught: " + std::to_string(signal_number));
-  });
+  _get_signal_set().async_wait(&_signal_handler);
 
   EventBus& bus = GetEventBus(_get_io_service());
   bus.SetName(filename);
