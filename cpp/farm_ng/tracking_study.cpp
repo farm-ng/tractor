@@ -218,7 +218,8 @@ typedef std::unordered_map<uint64_t, std::vector<FlowBlock>> FlowBlocks;
 
 class FlowBookKeeper {
  public:
-  FlowBookKeeper(CameraModel camera_model) : camera_model_(camera_model) {
+  FlowBookKeeper(CameraModel camera_model, size_t max_history)
+      : max_history_(max_history), camera_model_(camera_model) {
     cv::RNG rng;
     for (int i = 0; i < 1000; ++i) {
       colors_.push_back(cv::Scalar(rng.uniform(0, 255), rng.uniform(0, 255),
@@ -226,16 +227,18 @@ class FlowBookKeeper {
     }
     int image_width = camera_model_.image_width();
     int image_height = camera_model_.image_height();
+    std::string mask_path =
+        (GetBlobstoreRoot() / "configurations/tracking_mask.png").string();
+    lens_exclusion_mask_ = cv::imread(mask_path,
 
-    lens_exclusion_mask_ = cv::imread(
-        (GetBlobstoreRoot() / "configurations/tracking_mask.png").string(),
-        cv::IMREAD_GRAYSCALE);
+                                      cv::IMREAD_GRAYSCALE);
     if (lens_exclusion_mask_.empty()) {
       lens_exclusion_mask_ =
           cv::Mat::zeros(cv::Size(image_width, image_height), CV_8UC1);
       cv::circle(lens_exclusion_mask_,
                  cv::Point(image_width / 2, image_height / 2),
                  (image_width / 2.0) * 0.8, cv::Scalar::all(255), -1);
+      cv::imwrite(mask_path, lens_exclusion_mask_);
     }
   }
 
@@ -259,7 +262,31 @@ class FlowBookKeeper {
     }
     DetectGoodCorners(&flow_image);
     flow_images_.insert(std::make_pair(flow_image.id, flow_image));
+    flow_image_ids_.insert(flow_image.id);
+    while (flow_images_.size() > max_history_) {
+      uint64_t earliest_image_id = *flow_image_ids_.begin();
+      RemoveFlowImage(earliest_image_id);
+    }
     return flow_image.id;
+  }
+
+  void RemoveFlowImage(uint64_t id) {
+    auto id_it = flow_image_ids_.find(id);
+    CHECK(id_it != flow_image_ids_.end());
+    flow_image_ids_.erase(id_it);
+    auto image_it = flow_images_.find(id);
+    CHECK(image_it != flow_images_.end());
+    for (const auto& flow_pt : image_it->second.flow_points) {
+      auto flow_point_world = flow_points_world_.find(flow_pt.first);
+      CHECK(flow_point_world != flow_points_world_.end());
+      auto fimage_id = flow_point_world->second.image_ids.find(id);
+      CHECK(fimage_id != flow_point_world->second.image_ids.end());
+      flow_point_world->second.image_ids.erase(fimage_id);
+      if (flow_point_world->second.image_ids.empty()) {
+        RemovePointWorld(flow_point_world->second.id);
+      }
+    }
+    flow_images_.erase(image_it);
   }
 
   std::pair<std::vector<cv::Point2f>, std::vector<uint64_t>> GetFlowCvPoints(
@@ -519,6 +546,9 @@ class FlowBookKeeper {
   cv::Scalar Color(uint64_t id) const { return colors_[id % colors_.size()]; }
 
  private:
+  // Maximum number of images to keep in memory
+  size_t max_history_;
+
   CameraModel camera_model_;
   cv::Mat lens_exclusion_mask_;
   std::vector<cv::Scalar> colors_;
@@ -526,6 +556,7 @@ class FlowBookKeeper {
   uint64_t flow_id_gen_ = 0;
   std::unordered_map<uint64_t, FlowPointWorld> flow_points_world_;
   std::unordered_map<uint64_t, FlowImage> flow_images_;
+  std::set<uint64_t> flow_image_ids_;
 };
 
 void SavePly(std::string ply_path, const std::vector<Eigen::Vector3d>& points) {
@@ -547,9 +578,10 @@ void SavePly(std::string ply_path, const std::vector<Eigen::Vector3d>& points) {
 class VisualOdometer {
  public:
   VisualOdometer(const CameraModel& camera_model,
-                 const BaseToCameraModel& base_to_camera_model)
+                 const BaseToCameraModel& base_to_camera_model,
+                 size_t max_history)
       : camera_model_(camera_model),
-        flow_(camera_model),
+        flow_(camera_model, max_history),
         base_to_camera_model_(base_to_camera_model),
         odometry_pose_base_(Sophus::SE3d::rotX(0.0)) {
     ProtoToSophus(base_to_camera_model_.base_pose_camera().a_pose_b(),
@@ -912,8 +944,8 @@ class TrackingStudyProgram {
         Image image;
         if (event.data().UnpackTo(&image) && skip_frame_counter++ % 1 == 0) {
           if (!vo) {
-            vo.reset(
-                new VisualOdometer(image.camera_model(), base_to_camera_model));
+            vo.reset(new VisualOdometer(image.camera_model(),
+                                        base_to_camera_model, 100));
           }
           cv::Mat gray = image_loader.LoadImage(image);
 
