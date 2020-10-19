@@ -64,6 +64,7 @@ class FlowBookKeeper {
 
   uint64_t LastImageId() const;
 
+  const FlowImage* EarliestFlowImage() const;
   const FlowImage* PreviousFlowImage() const;
   FlowImage* MutablePreviousFlowImage();
 

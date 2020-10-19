@@ -167,7 +167,7 @@ void FlowBookKeeper::FlowFromPrevious(FlowImage* flow_image, bool debug) {
     // Crowding tends to occur when moving backwards,negatively along the
     // camera Z axis, as points that were close the camera get farther away
     // and closer together.
-    int crowd_window = 41;
+    int crowd_window = 31;
     cv::rectangle(crowding_mask,
                   cv::Rect(curr_points[i].x - crowd_window / 2,
                            curr_points[i].y - crowd_window / 2, crowd_window,
@@ -266,7 +266,7 @@ void FlowBookKeeper::DetectGoodCorners(FlowImage* flow_image) {
   double k = 0.04;
 
   cv::Mat mask = lens_exclusion_mask_.clone();
-  RenderMaskOfFlowPoints(*flow_image, &mask, 80);
+  RenderMaskOfFlowPoints(*flow_image, &mask, 60);
 
   // cv::imshow("mask", mask);
   /// Apply corner detection
@@ -290,6 +290,10 @@ void FlowBookKeeper::DetectGoodCorners(FlowImage* flow_image) {
   for (auto& point : points) {
     GenFlowPoint(flow_image, point);
   }
+}
+const FlowImage* FlowBookKeeper::EarliestFlowImage() const {
+  uint64_t earliest_image_id = *flow_image_ids_.begin();
+  return const_cast<FlowBookKeeper*>(this)->MutableFlowImage(earliest_image_id);
 }
 
 uint64_t FlowBookKeeper::LastImageId() const {

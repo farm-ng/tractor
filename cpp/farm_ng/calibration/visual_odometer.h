@@ -36,6 +36,8 @@ class VisualOdometer {
 
   void SetGoal();
 
+  cv::Mat GetDebugImage() const { return debug_image_; }
+
  private:
   void AddFlowBlockToProblem(ceres::Problem* problem,
                              const FlowBlock& flow_block);
@@ -53,11 +55,7 @@ class VisualOdometer {
   Sophus::SE3d camera_pose_base_goal_;
   TimeSeries<BaseToCameraModel::WheelMeasurement> wheel_measurements_;
 
-  std::string video_writer_dev =
-      std::string("appsrc !") + " videoconvert ! x264enc ! " +
-      " mp4mux ! filesink location=" + "/tmp/out.mp4";
-
-  std::unique_ptr<cv::VideoWriter> writer;
+  cv::Mat debug_image_;
 };
 
 }  // namespace farm_ng

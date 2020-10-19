@@ -59,6 +59,16 @@ class TimeSeries {
 
   size_t size() const { return series_.size(); }
 
+  void RemoveBefore(google::protobuf::Timestamp begin_stamp) {
+    if (series_.empty()) {
+      return;
+    }
+    if (begin()->stamp() > begin_stamp) {
+      return;
+    }
+    series_.erase(begin(), lower_bound(begin_stamp));
+  }
+
  private:
   ContainerT series_;
 };

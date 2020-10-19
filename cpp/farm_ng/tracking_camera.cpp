@@ -16,6 +16,7 @@
 #include "apriltag_pose.h"
 #include "tag36h11.h"
 
+#include <farm_ng/calibration/visual_odometer.h>
 #include <farm_ng/init.h>
 #include <farm_ng/ipc.h>
 #include <farm_ng/sophus_protobuf.h>
@@ -24,12 +25,15 @@
 #include <farm_ng_proto/tractor/v1/geometry.pb.h>
 #include <farm_ng_proto/tractor/v1/tracking_camera.pb.h>
 
+#include <farm_ng_proto/tractor/v1/calibrate_base_to_camera.pb.h>
+
 typedef farm_ng_proto::tractor::v1::Event EventPb;
 
 using farm_ng_proto::tractor::v1::ApriltagConfig;
 using farm_ng_proto::tractor::v1::ApriltagDetection;
 using farm_ng_proto::tractor::v1::ApriltagDetections;
 using farm_ng_proto::tractor::v1::BUCKET_CONFIGURATIONS;
+using farm_ng_proto::tractor::v1::CalibrateBaseToCameraResult;
 using farm_ng_proto::tractor::v1::CameraModel;
 using farm_ng_proto::tractor::v1::Image;
 using farm_ng_proto::tractor::v1::NamedSE3Pose;
@@ -621,7 +625,7 @@ class VideoFileWriter {
 
     // zero index base for the frame_number, set after send.
     image_pb_.mutable_frame_number()->set_value(
-    image_pb_.frame_number().value() + 1);
+        image_pb_.frame_number().value() + 1);
 
     if (image_pb_.frame_number().value() >= k_max_frames_) {
       writer_.reset();
@@ -645,7 +649,19 @@ class TrackingCameraClient {
     event_bus_.GetEventSignal()->connect(std::bind(
         &TrackingCameraClient::on_event, this, std::placeholders::_1));
 
-    event_bus_.AddSubscriptions({"^tracking_camera/command$"});
+    event_bus_.AddSubscriptions({std::string("^tracking_camera/command$"),
+                                 std::string("^tractor_state$")});
+
+    auto base_to_camera_path =
+        GetBlobstoreRoot() / "base_to_camera_models/base_to_camera.json";
+    if (boost::filesystem::exists(base_to_camera_path)) {
+      auto base_to_camera_result =
+          ReadProtobufFromJsonFile<CalibrateBaseToCameraResult>(
+              base_to_camera_path);
+
+      base_to_camera_model_ = ReadProtobufFromResource<BaseToCameraModel>(
+          base_to_camera_result.base_to_camera_model_solved());
+    }
 
     // TODO(ethanrublee) look up image size from realsense profile.
 
@@ -676,14 +692,14 @@ class TrackingCameraClient {
                                       0,   // fourcc
                                       10,  // fps
                                       cv::Size(848, 800),
-                                      false  // isColor
+                                      true  // isColor
                                       ));
 
     // Create a configuration for configuring the pipeline with a non default
     // profile
     rs2::config cfg;
     // Add pose stream
-    cfg.enable_stream(RS2_STREAM_POSE, RS2_FORMAT_6DOF);
+    // cfg.enable_stream(RS2_STREAM_POSE, RS2_FORMAT_6DOF);
     // Enable both image streams
     // Note: It is not currently possible to enable only one
     cfg.enable_stream(RS2_STREAM_FISHEYE, 1, RS2_FORMAT_Y8);
@@ -691,7 +707,7 @@ class TrackingCameraClient {
 
     auto profile = cfg.resolve(pipe_);
     auto tm2 = profile.get_device().as<rs2::tm2>();
-    auto pose_sensor = tm2.first<rs2::pose_sensor>();
+    //    auto pose_sensor = tm2.first<rs2::pose_sensor>();
 
     // Start pipe and get camera calibrations
     const int fisheye_sensor_idx = 1;  // for the left fisheye lens of T265
@@ -716,8 +732,8 @@ class TrackingCameraClient {
     // relocalization and jumping. This may avoid the conflict with
     // RTabMap while still giving good results."
 
-    pose_sensor.set_option(RS2_OPTION_ENABLE_POSE_JUMPING, 0);
-    pose_sensor.set_option(RS2_OPTION_ENABLE_RELOCALIZATION, 0);
+    // pose_sensor.set_option(RS2_OPTION_ENABLE_POSE_JUMPING, 0);
+    // pose_sensor.set_option(RS2_OPTION_ENABLE_RELOCALIZATION, 0);
 
     // Start pipeline with chosen configuration
     pipe_.start(cfg, std::bind(&TrackingCameraClient::frame_callback, this,
@@ -791,10 +807,7 @@ class TrackingCameraClient {
 
       // lock for rest of scope, so we can edit some member state.
       std::lock_guard<std::mutex> lock(mtx_realsense_state_);
-      count_ = (count_ + 1) % 3;
-      if (count_ == 0) {
-        writer_->write(frame_0);
-      }
+
       // we only want to schedule detection if we're not currently
       // detecting.  Apriltag detection takes >30ms on the nano.
       if (!detection_in_progress_) {
@@ -805,13 +818,35 @@ class TrackingCameraClient {
 
         // schedule april tag detection, do it as frequently as possible.
         io_service_.post([this, fisheye_frame, stamp] {
+          // note this function is called later, in main thread, via
+          // io_service_.run();
+
           ScopeGuard guard([this] {
             // signal that we're done detecting, so can post another frame for
             // detection.
             std::lock_guard<std::mutex> lock(mtx_realsense_state_);
             detection_in_progress_ = false;
           });
+          if (!vo_ && base_to_camera_model_) {
+            vo_.reset(new VisualOdometer(left_camera_model_,
+                                         *base_to_camera_model_, 1000));
+          }
+          cv::Mat frame_0 = RS2FrameToMat(fisheye_frame);
+          cv::Mat send_frame;
 
+          if (vo_) {
+            vo_->AddImage(frame_0, stamp);
+            send_frame = vo_->GetDebugImage();
+          }
+
+          if (send_frame.empty()) {
+            cv::cvtColor(frame_0, send_frame, cv::COLOR_GRAY2BGR);
+          }
+
+          count_ = (count_ + 1) % 3;
+          if (count_ == 0) {
+            writer_->write(send_frame);
+          }
           if (!latest_command_.has_record_start()) {
             // Close may be called regardless of state.  If we were recording,
             // it closes the video file on the last chunk.
@@ -820,9 +855,7 @@ class TrackingCameraClient {
             detector_->Close();
             return;
           }
-          // note this function is called later, in main thread, via
-          // io_service_.run();
-          cv::Mat frame_0 = RS2FrameToMat(fisheye_frame);
+
           switch (latest_command_.record_start().mode()) {
             case TrackingCameraCommand::RecordStart::MODE_EVERY_FRAME:
               record_every_frame(frame_0, stamp);
@@ -866,6 +899,9 @@ class TrackingCameraClient {
   ApriltagsFilter tag_filter_;
   std::unique_ptr<VideoFileWriter> frame_video_writer_;
   CameraModel left_camera_model_;
+
+  std::optional<BaseToCameraModel> base_to_camera_model_;
+  std::unique_ptr<VisualOdometer> vo_;
 };
 }  // namespace farm_ng
 

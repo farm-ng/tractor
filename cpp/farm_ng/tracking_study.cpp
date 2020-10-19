@@ -63,6 +63,11 @@ class TrackingStudyProgram {
 
     std::unique_ptr<VisualOdometer> vo;
     ImageLoader image_loader(FLAGS_zero_indexed);
+    std::string video_writer_dev =
+        std::string("appsrc !") + " videoconvert ! x264enc ! " +
+        " mp4mux ! filesink location=" + "/tmp/out.mp4";
+
+    std::unique_ptr<cv::VideoWriter> writer;
 
     int skip_frame_counter = 0;
     while (true) {
@@ -84,23 +89,30 @@ class TrackingStudyProgram {
 
           cv::cvtColor(gray, gray, cv::COLOR_BGR2GRAY);
 
-          google::protobuf::Timestamp last_stamp = MakeTimestampNow();
           vo->AddImage(gray, event.stamp());
-          auto now = MakeTimestampNow();
-          LOG(INFO) << google::protobuf::util::TimeUtil::DurationToMilliseconds(
-                           now - last_stamp)
-                    << " ms";
+          cv::Mat reprojection_image = vo->GetDebugImage();
+          if (!reprojection_image.empty()) {
+            cv::flip(reprojection_image, reprojection_image, -1);
+            if (!writer) {
+              writer.reset(new cv::VideoWriter(video_writer_dev,
+                                               0,   // fourcc
+                                               30,  // fps
+                                               reprojection_image.size(),
+                                               true));
+            }
+            writer->write(reprojection_image);
+            cv::imshow("reprojection", reprojection_image);
 
-          int key = cv::waitKey(1) & 0xff;
-          if (key == ' ') {
-            vo->SetGoal();
-          }
-          if (key == 'q') {
-            break;
+            int key = cv::waitKey(10) & 0xff;
+            if (key == ' ') {
+              vo->SetGoal();
+            }
+            if (key == 'q') {
+              break;
+            }
           }
         }
         bus_.get_io_service().poll();
-
       } catch (std::runtime_error& e) {
         LOG(INFO) << e.what();
         bus_.get_io_service().stop();

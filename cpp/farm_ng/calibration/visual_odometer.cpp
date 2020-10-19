@@ -8,6 +8,7 @@
 #include <ceres/ceres.h>
 
 #include "farm_ng/blobstore.h"
+#include "farm_ng/ipc.h"
 #include "farm_ng/sophus_protobuf.h"
 
 #include "farm_ng/calibration/camera_model.h"
@@ -115,9 +116,24 @@ void VisualOdometer::AddImage(cv::Mat image,
 
     odometry_pose_base_ = odometry_pose_base_wheel_only;
     if (base_pose_basep.log().norm() > 0.001) {
+      auto start = MakeTimestampNow();
+
       flow_.AddImage(image, stamp,
                      odometry_pose_base_wheel_only * base_pose_camera_);
-      SolvePose();
+      auto after_flow = MakeTimestampNow();
+      SolvePose(true);
+      wheel_measurements_.RemoveBefore(flow_.EarliestFlowImage()->stamp);
+      auto after_solve = MakeTimestampNow();
+      LOG(INFO) << "VO took: "
+                << google::protobuf::util::TimeUtil::DurationToMilliseconds(
+                       after_solve - start)
+                << " ms flow: "
+                << google::protobuf::util::TimeUtil::DurationToMilliseconds(
+                       after_flow - start)
+                << " ms solve: "
+                << google::protobuf::util::TimeUtil::DurationToMilliseconds(
+                       after_solve - after_flow);
+
       if (flow_.LastImageId() % 100 == 0) {
         DumpFlowPointsWorld("/tmp/flow_points_world." +
                             std::to_string(flow_.LastImageId()) + ".ply");
@@ -160,11 +176,12 @@ void VisualOdometer::AddFlowImageToProblem(FlowImage* flow_image,
     if (flow_point_world->image_ids.size() < 5) {
       continue;
     }
-    if (flow_blocks->size() < 250 || flow_blocks->count(flow_point_world->id)) {
-      FlowBlock flow_block({flow_image, flow_point_world, flow_point});
-      (*flow_blocks)[flow_point_world->id].push_back(flow_block);
-      AddFlowBlockToProblem(problem, flow_block);
-    }
+    // if (flow_blocks->size() < 250 ||
+    // flow_blocks->count(flow_point_world->id)) {
+    FlowBlock flow_block({flow_image, flow_point_world, flow_point});
+    (*flow_blocks)[flow_point_world->id].push_back(flow_block);
+    AddFlowBlockToProblem(problem, flow_block);
+    //}
   }
 }
 void VisualOdometer::SolvePose(bool debug) {
@@ -361,18 +378,7 @@ void VisualOdometer::SolvePose(bool debug) {
                EigenToCvPoint(ProjectPointToPixel(camera_model_, ap2)),
                cv::Scalar(0, 0, 255), 1);
     }
-
-    cv::flip(reprojection_image, reprojection_image, -1);
-    if (!writer) {
-      writer.reset(new cv::VideoWriter(
-          video_writer_dev,
-          0,   // fourcc
-          30,  // fps
-          cv::Size(camera_model_.image_width(), camera_model_.image_height()),
-          true));
-    }
-    writer->write(reprojection_image);
-    cv::imshow("reprojection", reprojection_image);
+    debug_image_ = reprojection_image;
   }
 }
 
