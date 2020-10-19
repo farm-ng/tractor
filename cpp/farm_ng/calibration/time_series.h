@@ -1,5 +1,6 @@
 #ifndef FARM_NG_CALIBRATION_TIME_SERIES_H_
 #define FARM_NG_CALIBRATION_TIME_SERIES_H_
+#include <glog/logging.h>
 #include <google/protobuf/timestamp.pb.h>
 #include <google/protobuf/util/time_util.h>
 #include <deque>

@@ -1,16 +1,18 @@
 add_library(farm-ng-ipc SHARED
-  ipc.h
-  ipc.cpp
-  event_log.h
-  event_log.cpp
-  event_log_reader.h
-  event_log_reader.cpp
-  blobstore.h
   blobstore.cpp
-  init.h
+  blobstore.h
+  event_log_reader.cpp
+  event_log_reader.h
+  event_log.cpp
+  event_log.h
+  image_loader.cpp
+  image_loader.h
   init.cpp
-  )
-target_link_libraries(farm-ng-ipc farm-ng-protobuf gflags dl ${Boost_FILESYSTEM_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${GLOG_LIBRARIES})
+  init.h
+  ipc.cpp
+  ipc.h
+)
+target_link_libraries(farm-ng-ipc farm-ng-protobuf gflags dl ${OpenCV_LIBS} ${Boost_FILESYSTEM_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${GLOG_LIBRARIES})
 
 add_subdirectory(calibration)
 
