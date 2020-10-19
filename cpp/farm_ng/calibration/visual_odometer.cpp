@@ -228,6 +228,9 @@ void VisualOdometer::SolvePose(bool debug) {
 
     auto wheel_measurements = wheel_measurements_.find_range(
         flow_image_start->stamp, flow_image_end->stamp);
+    LOG(INFO) << std::distance(wheel_measurements.first,
+                               wheel_measurements.second)
+              << " Wheel measurements";
 
     Sophus::SE3d base_start_pose_base_end = TractorStartPoseTractorEnd(
         base_to_camera_model_.wheel_radius(),

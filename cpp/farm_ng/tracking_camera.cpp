@@ -16,6 +16,7 @@
 #include "apriltag_pose.h"
 #include "tag36h11.h"
 
+#include <farm_ng/calibration/base_to_camera_calibrator.h>
 #include <farm_ng/calibration/visual_odometer.h>
 #include <farm_ng/init.h>
 #include <farm_ng/ipc.h>
@@ -24,6 +25,7 @@
 #include <farm_ng_proto/tractor/v1/apriltag.pb.h>
 #include <farm_ng_proto/tractor/v1/geometry.pb.h>
 #include <farm_ng_proto/tractor/v1/tracking_camera.pb.h>
+#include <farm_ng_proto/tractor/v1/tractor.pb.h>
 
 #include <farm_ng_proto/tractor/v1/calibrate_base_to_camera.pb.h>
 
@@ -752,6 +754,12 @@ class TrackingCameraClient {
       TrackingCameraCommand command;
       CHECK(event.data().UnpackTo(&command));
       on_command(command);
+    }
+    TractorState state;
+    if (event.data().UnpackTo(&state) && vo_) {
+      BaseToCameraModel::WheelMeasurement wheel_measurement;
+      CopyTractorStateToWheelState(state, &wheel_measurement);
+      vo_->AddWheelMeasurements(wheel_measurement);
     }
   }
 
