@@ -19,10 +19,12 @@ DEFINE_string(name, "default",
 DEFINE_bool(detect_apriltags, false, "Detect apriltags.");
 
 typedef farm_ng_proto::tractor::v1::Event EventPb;
+using farm_ng_proto::tractor::v1::BUCKET_VIDEO_DATASETS;
 using farm_ng_proto::tractor::v1::CaptureVideoDatasetConfiguration;
 using farm_ng_proto::tractor::v1::CaptureVideoDatasetResult;
 using farm_ng_proto::tractor::v1::CaptureVideoDatasetStatus;
 using farm_ng_proto::tractor::v1::Image;
+using farm_ng_proto::tractor::v1::Subscription;
 using farm_ng_proto::tractor::v1::TrackingCameraCommand;
 
 void Cleanup(farm_ng::EventBus& bus) {
@@ -44,6 +46,9 @@ class CaptureVideoDatasetProgram {
     } else {
       set_configuration(configuration);
     }
+    bus_.AddSubscriptions(
+        {bus_.GetName(), "tracking_camera/front/left/image", "logger/status"});
+
     bus_.GetEventSignal()->connect(std::bind(
         &CaptureVideoDatasetProgram::on_event, this, std::placeholders::_1));
     on_timer(boost::system::error_code());
@@ -80,7 +85,7 @@ class CaptureVideoDatasetProgram {
       ArchiveProtobufAsJsonResource(configuration_.name(), result);
 
       status_.mutable_result()->CopyFrom(WriteProtobufAsJsonResource(
-          BucketId::kVideoDatasets, configuration_.name(), result));
+          BUCKET_VIDEO_DATASETS, configuration_.name(), result));
       LOG(INFO) << "Complete:\n" << status_.DebugString();
       send_status();
       return 0;

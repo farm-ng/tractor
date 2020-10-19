@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"regexp"
 	"sync"
 	"syscall"
 	"time"
@@ -20,6 +21,7 @@ const (
 	maxDatagramSize = 65507
 )
 
+// EventBus ...
 type EventBus struct {
 	multicastGroup       net.UDPAddr
 	serviceName          string
@@ -30,9 +32,10 @@ type EventBus struct {
 	publishAnnouncements bool
 	receiveConn          *net.UDPConn
 	sendConn             *net.UDPConn
+	subscriptions        []pb.Subscription
 }
 
-// EventBusConfig configures an EventBus
+// EventBusConfig ...
 type EventBusConfig struct {
 	MulticastGroup net.UDPAddr
 	ServiceName    string
@@ -49,19 +52,29 @@ func NewEventBus(config *EventBusConfig) *EventBus {
 	}
 }
 
+// EventChannelConfig ...
 type EventChannelConfig struct {
 	Channel chan<- *pb.Event
 	// If true, the channel will receive announcement events too.
 	PublishAnnouncements bool
 }
 
-// A channel may be provided for event callbacks. This channel must be serviced, or the bus will hang.
+// WithEventChannel allows the caller to provide a channel that will receive all events.
+// This channel must be serviced, or the bus will hang.
 func (bus *EventBus) WithEventChannel(config *EventChannelConfig) *EventBus {
 	bus.eventChan = config.Channel
 	bus.publishAnnouncements = config.PublishAnnouncements
 	return bus
 }
 
+// AddSubscriptions ...
+func (bus *EventBus) AddSubscriptions(names []string) {
+	for _, name := range names {
+		bus.subscriptions = append(bus.subscriptions, pb.Subscription{Name: name})
+	}
+}
+
+// Start ...
 func (bus *EventBus) Start() {
 	// Shared socket configuration
 	socketConfig := net.ListenConfig{
@@ -131,25 +144,51 @@ func (bus *EventBus) Start() {
 	select {}
 }
 
-// SendBytes sends a serialized event on the eventbus
-func (bus *EventBus) SendBytes(bytes []byte) {
+var compiled = make(map[string]*regexp.Regexp)
+
+func compileRegex(s string) *regexp.Regexp {
+	if _, ok := compiled[s]; !ok {
+		var err error
+		compiled[s], err = regexp.Compile(s)
+		if err != nil {
+			log.Fatalf("could not compile regex %v -- %v:", s, err)
+		}
+	}
+	return compiled[s]
+}
+
+func (bus *EventBus) recipients(e *pb.Event) []*pb.Announce {
+	var recipientsList []*pb.Announce
 	bus.announcementsMutex.Lock()
+	defer bus.announcementsMutex.Unlock()
 	for _, a := range bus.Announcements {
+		for _, s := range a.Subscriptions {
+			re := compileRegex(s.Name)
+			if re.Match([]byte(e.Name)) {
+				recipientsList = append(recipientsList, a)
+				continue
+			}
+		}
+	}
+	return recipientsList
+}
+
+// SendEvent serializes an event, then sends it on the eventbus
+func (bus *EventBus) SendEvent(e *pb.Event) {
+	recipientsList := bus.recipients(e)
+	if len(recipientsList) == 0 {
+		return
+	}
+	bytes, err := proto.Marshal(e)
+	if err != nil {
+		log.Fatalln("Could not marshal event: ", e)
+	}
+	for _, a := range recipientsList {
 		bus.sendConn.WriteToUDP(bytes, &net.UDPAddr{
 			IP:   net.ParseIP(a.Host),
 			Port: int(a.Port),
 		})
 	}
-	bus.announcementsMutex.Unlock()
-}
-
-// SendEvent serializes an event, then sends it on the eventbus
-func (bus *EventBus) SendEvent(e *pb.Event) {
-	bytes, err := proto.Marshal(e)
-	if err != nil {
-		log.Fatalln("Could not marshal event: ", e)
-	}
-	bus.SendBytes(bytes)
 }
 
 func (bus *EventBus) announce() {
@@ -160,6 +199,9 @@ func (bus *EventBus) announce() {
 		Port:    int32(bus.sendConn.LocalAddr().(*net.UDPAddr).Port),
 		Service: bus.serviceName,
 		Stamp:   ptypes.TimestampNow(),
+	}
+	for i := range bus.subscriptions {
+		announce.Subscriptions = append(announce.Subscriptions, &bus.subscriptions[i])
 	}
 	announceBytes, err := proto.Marshal(announce)
 	if err != nil {

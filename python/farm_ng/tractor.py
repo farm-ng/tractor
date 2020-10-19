@@ -1,15 +1,18 @@
-import asyncio
 import bisect
 import logging
-import os
 import sys
 from collections import deque
 
 import numpy as np
+from google.protobuf.text_format import MessageToString
+from google.protobuf.timestamp_pb2 import Timestamp
+from liegroups import SE3
+
 from farm_ng.canbus import CANSocket
-from farm_ng.config import default_config
+from farm_ng.config import TractorConfigManager
 from farm_ng.controller import TractorMoveToGoalController
-from farm_ng.ipc import get_event_bus, EventBus
+from farm_ng.ipc import EventBus
+from farm_ng.ipc import get_event_bus
 from farm_ng.ipc import make_event
 from farm_ng.kinematics import TractorKinematics
 from farm_ng.motor import HubMotor
@@ -21,9 +24,6 @@ from farm_ng_proto.tractor.v1.geometry_pb2 import NamedSE3Pose
 from farm_ng_proto.tractor.v1.steering_pb2 import SteeringCommand
 from farm_ng_proto.tractor.v1.tractor_pb2 import TractorConfig
 from farm_ng_proto.tractor.v1.tractor_pb2 import TractorState
-from google.protobuf.text_format import MessageToString
-from google.protobuf.timestamp_pb2 import Timestamp
-from liegroups import SE3
 
 logger = logging.getLogger('tractor')
 logger.setLevel(logging.INFO)
@@ -54,8 +54,7 @@ class TimeSeries:
 
 
 class TractorController:
-    def __init__(self, event_bus):
-        self.event_loop = event_bus.event_loop()
+    def __init__(self, event_bus: EventBus):
         self.command_rate_hz = 50
         self.command_period_seconds = 1.0 / self.command_rate_hz
         self.n_cycle = 0
@@ -63,18 +62,18 @@ class TractorController:
         # self.record_counter = 0
         # self.recording = False
         self.event_bus = event_bus
+        self.event_bus.add_subscriptions(['pose/tractor/base/goal'])
         self.event_bus.add_event_callback(self._on_event)
 
         self.lock_out = False
-        self.can_socket = CANSocket('can0', self.event_loop)
+        self.can_socket = CANSocket('can0', self.event_bus.event_loop())
         self.steering = SteeringClient(self.event_bus)
         self.tractor_state = TractorState()
 
         self.odom_poses_tractor = TimeSeries(1.0)
         self.odom_pose_tractor = SE3.identity()
 
-        # TODO(ethanrublee|isherman) load from disk somehow.
-        self.config = default_config()
+        self.config = TractorConfigManager.saved()
 
         self.kinematics = TractorKinematics(tractor_config=self.config)
         self.move_to_goal_controller = TractorMoveToGoalController()
@@ -83,24 +82,16 @@ class TractorController:
         gear_ratio = self.config.hub_motor_gear_ratio.value
         poll_pairs = self.config.hub_motor_poll_pairs.value
         self.right_motor = HubMotor(
-            self.event_bus,
             'right_motor',
             radius, gear_ratio, poll_pairs, 7, self.can_socket,
         )
         self.left_motor = HubMotor(
-            self.event_bus,
             'left_motor',
             radius, gear_ratio, poll_pairs, 9, self.can_socket,
         )
-        # TODO(isherman|ethanruble) add to configuration system
-        # to enable four motors, just do:
-        # $ mkdir -p /home/farmer/tractor-data/config
-        # $ touch /home/farmer/tractor-data/config/HAS_FOUR_WHEELS
-        has_four_motors = os.path.exists('/home/farmer/tractor-data/config/HAS_FOUR_WHEELS')
-        self.config.topology = TractorConfig.TOPOLOGY_TWO_MOTOR_DIFF_DRIVE
-        if has_four_motors:
+
+        if self.config.topology == TractorConfig.TOPOLOGY_FOUR_MOTOR_SKID_STEER:
             logger.info('Four Motor Skid Steer Mode')
-            self.config.topology = TractorConfig.TOPOLOGY_FOUR_MOTOR_SKID_STEER
             self.right_motor_aft = HubMotor(
                 'right_motor_aft',
                 radius, gear_ratio, poll_pairs, 8, self.can_socket,
@@ -111,7 +102,7 @@ class TractorController:
             )
 
         self.control_timer = Periodic(
-            self.command_period_seconds, self.event_loop,
+            self.command_period_seconds, self.event_bus.event_loop(),
             self._command_loop, name='control_loop',
         )
 
@@ -231,7 +222,8 @@ class TractorController:
 
 def main():
     logging.basicConfig(stream=sys.stdout, level=logging.INFO)
-    event_bus = EventBus('farm_ng.tractor', subscribe_service_names=['steering'])
+
+    event_bus = get_event_bus('farm_ng.tractor')
     controller = TractorController(event_bus)
     logger.info('Created controller %s', controller)
     event_bus.event_loop().run_forever()

@@ -26,11 +26,15 @@ repos:
     rev: v2.7.1
     hooks:
     -   id: validate_manifest
--   repo: https://github.com/asottile/reorder_python_imports
-    rev: v1.9.0
+-   repo: https://github.com/PyCQA/isort
+    rev: 5.6.4
     hooks:
-    -   id: reorder-python-imports
-        args: [--py3-plus]
+    -   id: isort
+        name: sort python imports
+        args: [--force-single-line-imports,
+        --line-length=160,
+        --project=farm_ng,
+        --project=farm_ng_proto]
 -   repo: https://github.com/asottile/pyupgrade
     rev: v2.0.1
     hooks:

@@ -1,11 +1,12 @@
-# loads all the protos for the type registry
+import numpy as np
+from liegroups import SE3
+
+# loads all the protos for the type registry (isort:skip)
 import farm_ng_proto.tractor.v1.io_pb2  # noqa: F401
 import farm_ng_proto.tractor.v1.motor_pb2  # noqa: F401
 import farm_ng_proto.tractor.v1.steering_pb2  # noqa: F401
 import farm_ng_proto.tractor.v1.tracking_camera_pb2  # noqa: F401
-import numpy as np
 from farm_ng_proto.tractor.v1 import geometry_pb2
-from liegroups import SE3
 
 
 def se3_to_proto(pose: SE3) -> geometry_pb2.SE3Pose:

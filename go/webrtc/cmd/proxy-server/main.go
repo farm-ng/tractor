@@ -41,6 +41,9 @@ func main() {
 		Channel:              eventChan,
 		PublishAnnouncements: true,
 	})
+	// Currently we forward all eventbus traffic over the webRTC proxy.
+	// TODO: Allow webRTC peers to dynamically adjust subscriptions
+	eventBus.AddSubscriptions([]string{".*"})
 
 	eventBusProxy := proxy.NewEventBusProxy((&proxy.EventBusProxyConfig{EventBus: eventBus, EventSource: eventChan}))
 

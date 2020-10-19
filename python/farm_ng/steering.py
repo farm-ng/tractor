@@ -1,9 +1,10 @@
-import asyncio
 import logging
 import sys
 import time
 
 import numpy as np
+
+from farm_ng.ipc import EventBus
 from farm_ng.ipc import get_event_bus
 from farm_ng.ipc import make_event
 from farm_ng.joystick import MaybeJoystick
@@ -31,6 +32,7 @@ class SteeringClient:
         SetStopCommand(self._stop_command)
         self.lockout = True
         self._event_bus = event_bus
+        self._event_bus.add_subscriptions([_g_message_name])
 
     def get_steering_command(self):
         event = self._event_bus.get_last_event(_g_message_name)
@@ -163,17 +165,17 @@ class CruiseControlSteering(BaseSteering):
 
 
 class SteeringSenderJoystick:
-    def __init__(self):
-        loop = asyncio.get_event_loop()
+    def __init__(self, event_bus: EventBus):
+        self._event_bus = event_bus
         self.rate_hz = 50.0
         self.period = 1.0/self.rate_hz
 
         # whether the tractor is executing a motion primitive (e.g. cruise control, indexing)
         self._executing_motion_primitive = False
 
-        self.joystick = MaybeJoystick('/dev/input/js0',  loop)
+        self.joystick = MaybeJoystick('/dev/input/js0',  self._event_bus.event_loop())
         self.joystick.set_button_callback(self.on_button)
-        self._periodic = Periodic(self.period, loop, self.send)
+        self._periodic = Periodic(self.period, self._event_bus.event_loop(), self.send)
 
         self.joystick_manual_steer = JoystickManualSteering(self.rate_hz, self.joystick)
         self.cruise_control_steer = CruiseControlSteering(self.rate_hz, self.joystick)
@@ -211,14 +213,14 @@ class SteeringSenderJoystick:
             command = self.cruise_control_steer.update()
         else:
             command = self.joystick_manual_steer.update()
-        get_event_bus('steering').send(make_event(_g_message_name, command))
+        self._event_bus.send(make_event(_g_message_name, command))
 
 
 def main():
     logging.basicConfig(stream=sys.stdout, level=logging.INFO)
-    event_loop = asyncio.get_event_loop()
-    _ = SteeringSenderJoystick()
-    event_loop.run_forever()
+    event_bus = get_event_bus('steering')
+    _ = SteeringSenderJoystick(event_bus)
+    event_bus.event_loop().run_forever()
 
 
 if __name__ == '__main__':

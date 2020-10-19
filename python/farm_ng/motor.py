@@ -6,13 +6,14 @@ import sys
 
 import linuxfd
 import numpy as np
-from farm_ng.canbus import CANSocket
-from farm_ng.config import default_config
-from farm_ng.ipc import EventBus, get_event_bus
-from farm_ng.ipc import make_event
-from farm_ng_proto.tractor.v1 import motor_pb2
 from google.protobuf.text_format import MessageToString
 from google.protobuf.timestamp_pb2 import Timestamp
+
+from farm_ng.canbus import CANSocket
+from farm_ng.config import TractorConfigManager
+from farm_ng.ipc import get_event_bus
+from farm_ng.ipc import make_event
+from farm_ng_proto.tractor.v1 import motor_pb2
 
 logger = logging.getLogger('farm_ng.motor')
 
@@ -134,10 +135,9 @@ g_vesc_msg_parsers = {
 
 class HubMotor:
     def __init__(
-            self, event_bus : EventBus, name, wheel_radius, gear_ratio, poll_pairs,
+            self, name, wheel_radius, gear_ratio, poll_pairs,
             can_node_id, can_socket,
     ):
-        self._bus = event_bus
         self.name = name
         self.can_node_id = can_node_id
         self.can_socket = can_socket
@@ -145,6 +145,7 @@ class HubMotor:
         self.gear_ratio = gear_ratio
         self.poll_pairs = poll_pairs
         self.max_current = 20
+        self._event_bus = get_event_bus(self.name)
         self._latest_state = motor_pb2.MotorControllerState()
         self._latest_stamp = Timestamp()
         self.can_socket.add_reader(self._handle_can_message)
@@ -178,7 +179,7 @@ class HubMotor:
 
             # only log on the 5th vesc message, as we have complete state at that point.
             event = make_event('%s/state' % self.name, self._latest_state, stamp=self._latest_stamp)
-            self._bus.send(event)
+            self._event_bus.send(event)
 
     def _send_can_command(self, command, data):
         cob_id = int(self.can_node_id) | (command << 8)
@@ -263,17 +264,15 @@ def main():
         can_socket = CANSocket('can0')
     except OSError as e:
         sys.stderr.write(
-            f'Could not listen on interface can0\n',
+            'Could not listen on interface can0\n',
         )
         sys.exit(e.errno)
 
-    print(f'Listening on can0')
-    event_bus = get_event_bus('motor')
-    loop = event_bus.event_loop()
+    print('Listening on can0')
+    loop = asyncio.get_event_loop()
 
-    config = default_config()
+    config = TractorConfigManager.saved()
     right_motor = HubMotor(
-        event_bus,
         'right_motor',
         config.wheel_radius.value,
         config.hub_motor_gear_ratio.value,
@@ -286,7 +285,6 @@ def main():
         config.hub_motor_poll_pairs.value, 8, can_socket,
     )
     left_motor = HubMotor(
-        event_bus,
         'left_motor',
         config.wheel_radius.value,
         config.hub_motor_gear_ratio.value,

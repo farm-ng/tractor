@@ -21,6 +21,7 @@
 typedef farm_ng_proto::tractor::v1::Event EventPb;
 using farm_ng_proto::tractor::v1::ApriltagDetections;
 using farm_ng_proto::tractor::v1::BaseToCameraModel;
+using farm_ng_proto::tractor::v1::BUCKET_BASE_TO_CAMERA_MODELS;
 using farm_ng_proto::tractor::v1::CalibrateApriltagRigResult;
 using farm_ng_proto::tractor::v1::CalibrateBaseToCameraConfiguration;
 using farm_ng_proto::tractor::v1::CalibrateBaseToCameraResult;
@@ -30,6 +31,7 @@ using farm_ng_proto::tractor::v1::CaptureCalibrationDatasetResult;
 using farm_ng_proto::tractor::v1::MonocularApriltagRigModel;
 using farm_ng_proto::tractor::v1::SolverStatus;
 using farm_ng_proto::tractor::v1::SolverStatus_Name;
+using farm_ng_proto::tractor::v1::Subscription;
 using farm_ng_proto::tractor::v1::ViewDirection;
 using farm_ng_proto::tractor::v1::ViewDirection_Name;
 using farm_ng_proto::tractor::v1::ViewDirection_Parse;
@@ -79,6 +81,7 @@ class CalibrateBaseToCameraProgram {
     } else {
       set_configuration(configuration);
     }
+    bus_.AddSubscriptions({"^" + bus_.GetName() + "/"});
     bus_.GetEventSignal()->connect(std::bind(
         &CalibrateBaseToCameraProgram::on_event, this, std::placeholders::_1));
     on_timer(boost::system::error_code());
@@ -150,7 +153,7 @@ class CalibrateBaseToCameraProgram {
     ArchiveProtobufAsJsonResource(configuration_.name(), result);
 
     status_.mutable_result()->CopyFrom(WriteProtobufAsJsonResource(
-        BucketId::kBaseToCameraModels, configuration_.name(), result));
+        BUCKET_BASE_TO_CAMERA_MODELS, configuration_.name(), result));
     LOG(INFO) << "Complete:\n" << status_.DebugString();
     send_status();
     return 0;
@@ -189,9 +192,7 @@ class CalibrateBaseToCameraProgram {
   }
 
   void on_event(const EventPb& event) {
-    if (!event.name().rfind(bus_.GetName() + "/", 0) == 0) {
-      return;
-    }
+    CHECK(event.name().rfind(bus_.GetName() + "/", 0) == 0);
     if (on_configuration(event)) {
       return;
     }

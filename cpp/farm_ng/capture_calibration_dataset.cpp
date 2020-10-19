@@ -19,10 +19,13 @@ DEFINE_string(name, "default",
 DEFINE_int32(num_frames, 16, "number of frames to capture");
 
 typedef farm_ng_proto::tractor::v1::Event EventPb;
+
 using farm_ng_proto::tractor::v1::ApriltagDetections;
+using farm_ng_proto::tractor::v1::BUCKET_CALIBRATION_DATASETS;
 using farm_ng_proto::tractor::v1::CaptureCalibrationDatasetConfiguration;
 using farm_ng_proto::tractor::v1::CaptureCalibrationDatasetResult;
 using farm_ng_proto::tractor::v1::CaptureCalibrationDatasetStatus;
+using farm_ng_proto::tractor::v1::Subscription;
 using farm_ng_proto::tractor::v1::TrackingCameraCommand;
 
 namespace farm_ng {
@@ -37,6 +40,8 @@ class CaptureCalibrationDatasetProgram {
     } else {
       set_configuration(configuration);
     }
+    bus_.AddSubscriptions(
+        std::vector<std::string>{"^calibrator/", "logger/status"});
     bus_.GetEventSignal()->connect(
         std::bind(&CaptureCalibrationDatasetProgram::on_event, this,
                   std::placeholders::_1));
@@ -69,7 +74,7 @@ class CaptureCalibrationDatasetProgram {
     ArchiveProtobufAsJsonResource(configuration_.name(), result);
 
     status_.mutable_result()->CopyFrom(WriteProtobufAsJsonResource(
-        BucketId::kCalibrationDatasets, configuration_.name(), result));
+        BUCKET_CALIBRATION_DATASETS, configuration_.name(), result));
     LOG(INFO) << "Complete:\n" << status_.DebugString();
     send_status();
     return 0;

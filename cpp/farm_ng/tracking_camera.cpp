@@ -26,16 +26,19 @@
 
 typedef farm_ng_proto::tractor::v1::Event EventPb;
 
-using farm_ng_proto::tractor::v1::Image;
-using farm_ng_proto::tractor::v1::NamedSE3Pose;
-using farm_ng_proto::tractor::v1::Vec2;
-
+using farm_ng_proto::tractor::v1::ApriltagConfig;
 using farm_ng_proto::tractor::v1::ApriltagDetection;
 using farm_ng_proto::tractor::v1::ApriltagDetections;
-
+using farm_ng_proto::tractor::v1::BUCKET_CONFIGURATIONS;
 using farm_ng_proto::tractor::v1::CameraModel;
+using farm_ng_proto::tractor::v1::Image;
+using farm_ng_proto::tractor::v1::NamedSE3Pose;
+using farm_ng_proto::tractor::v1::Subscription;
+using farm_ng_proto::tractor::v1::TagConfig;
+using farm_ng_proto::tractor::v1::TagLibrary;
 using farm_ng_proto::tractor::v1::TrackingCameraCommand;
 using farm_ng_proto::tractor::v1::TrackingCameraPoseFrame;
+using farm_ng_proto::tractor::v1::Vec2;
 
 DEFINE_bool(jetson, false, "Use jetson hardware encoding.");
 
@@ -315,19 +318,6 @@ bool ComputeHomography(const double c[4][4], matd_t* H) {
   return true;
 }
 
-class TagLibrary {
- public:
-  double TagSize(int tag_id) const {
-    if (tag_id >= 200 && tag_id < 300) {
-      return 0.2;
-    }
-    if (tag_id >= 400 && tag_id < 500) {
-      return 0.4;
-    }
-    return 0.1;
-  }
-};
-
 void deproject(double pt[2], const rs2_intrinsics& intr, const double px[2]) {
   float fpt[3], fpx[2] = {(float)px[0], (float)px[1]};
   rs2_deproject_pixel_to_point(fpt, &intr, fpx, 1.0f);
@@ -371,6 +361,18 @@ Sophus::SE3d ApriltagPoseToSE3d(const apriltag_pose_t& pose) {
       Eigen::Vector3d(pose.t->data[0], pose.t->data[1], pose.t->data[2]));
 }
 
+double TagSize(const TagLibrary& tag_library, int tag_id) {
+  auto it = std::find_if(tag_library.tags().begin(), tag_library.tags().end(),
+                         [tag_id](const TagConfig& tag_config) {
+                           return tag_config.id() == tag_id;
+                         });
+
+  if (it != tag_library.tags().end()) {
+    return it->size();
+  }
+  return 1;
+}
+
 // https://github.com/IntelRealSense/librealsense/blob/master/examples/pose-apriltag/rs-pose-apriltag.cpp
 // Note this function mutates detection, by undistorting the points and
 // populating the homography
@@ -381,9 +383,10 @@ boost::optional<Sophus::SE3d> EstimateCameraPoseTag(
   info.fx = info.fy = 1;  // undistorted image with focal length = 1
   info.cx = info.cy = 0;  // undistorted image with principal point at (0,0)
   info.det = detection;
-  info.tagsize = tag_library.TagSize(info.det->id);
-  // recompute tag corners on an undistorted image focal length = 1
-  // this also populates the homography
+  info.tagsize = TagSize(tag_library, info.det->id);
+
+  // recompute tag corners on an undistorted image focal
+  // length = 1 this also populates the homography
   if (!undistort(*info.det, intr)) {
     LOG(WARNING) << "Tag with id: " << info.det->id << " can not compute pose.";
     return boost::none;
@@ -419,7 +422,13 @@ class ApriltagDetector {
     tag36h11_destroy(tag_family_);
   }
 
+  void Close() { apriltag_config_.reset(); }
+
   ApriltagDetections Detect(cv::Mat gray, google::protobuf::Timestamp stamp) {
+    if (!apriltag_config_) {
+      LoadApriltagConfig();
+    }
+
     CHECK_EQ(gray.channels(), 1);
     CHECK_EQ(gray.type(), CV_8UC1);
 
@@ -449,14 +458,17 @@ class ApriltagDetector {
         p_j->set_x(det->p[j][0]);
         p_j->set_y(det->p[j][1]);
       }
-      detection->set_tag_size(TagLibrary().TagSize(det->id));
+      CHECK(apriltag_config_.has_value());
+      detection->set_tag_size(
+          TagSize(apriltag_config_.value().tag_library(), det->id));
       detection->mutable_c()->set_x(det->c[0]);
       detection->mutable_c()->set_y(det->c[1]);
       detection->set_id(det->id);
       detection->set_hamming(static_cast<uint8_t>(det->hamming));
       detection->set_decision_margin(det->decision_margin);
       // estimation comes last because this mutates det
-      auto pose = EstimateCameraPoseTag(intrinsics_, TagLibrary(), det);
+      auto pose = EstimateCameraPoseTag(
+          intrinsics_, apriltag_config_.value().tag_library(), det);
       if (pose) {
         auto* named_pose = detection->mutable_pose();
         SophusToProto(*pose, named_pose->mutable_a_pose_b());
@@ -480,8 +492,16 @@ class ApriltagDetector {
   }
 
  private:
+  void LoadApriltagConfig() {
+    apriltag_config_ = ReadProtobufFromJsonFile<ApriltagConfig>(
+        GetBucketAbsolutePath(BUCKET_CONFIGURATIONS) / "apriltag.json");
+    LOG(INFO) << " apriltag config: "
+              << apriltag_config_.value().ShortDebugString();
+  }
+
   EventBus* event_bus_;
   rs2_intrinsics intrinsics_;
+  std::optional<ApriltagConfig> apriltag_config_;
   CameraModel camera_model_;
   apriltag_family_t* tag_family_;
   apriltag_detector_t* tag_detector_;
@@ -624,13 +644,15 @@ class TrackingCameraClient {
       : io_service_(bus.get_io_service()), event_bus_(bus) {
     event_bus_.GetEventSignal()->connect(std::bind(
         &TrackingCameraClient::on_event, this, std::placeholders::_1));
+
+    event_bus_.AddSubscriptions({"^tracking_camera/command$"});
+
     // TODO(ethanrublee) look up image size from realsense profile.
 
     std::string encoder_x264 =
         std::string(
             " x264enc bitrate=600 speed-preset=ultrafast tune=zerolatency ") +
-        "key-int-max=15 ! video/x-h264,profile=constrained-baseline ! "
-        "queue " +
+        "key-int-max=15 ! video/x-h264,profile=constrained-baseline ! queue " +
         "max-size-time=100000000 ! h264parse ! ";
 
     std::string encoder_omxh264 =
@@ -794,6 +816,8 @@ class TrackingCameraClient {
             // Close may be called regardless of state.  If we were recording,
             // it closes the video file on the last chunk.
             frame_video_writer_->Close();
+            // Disposes of apriltag config (tag library, etc.)
+            detector_->Close();
             return;
           }
           // note this function is called later, in main thread, via
@@ -815,21 +839,19 @@ class TrackingCameraClient {
           }
         });
       }
-    }
-    /*else if (rs2::pose_frame pose_frame = frame.as<rs2::pose_frame>()) {
+    } /* else if (rs2::pose_frame pose_frame = frame.as<rs2::pose_frame>()) {
       // HACK disable for now, this harms the ipc perfomance.
-
-       auto pose_data = pose_frame.get_pose_data();
+      auto pose_data = pose_frame.get_pose_data();
       // Print the x, y, z values of the translation, relative to initial
       // position
-      // std::cout << "\r Device Position: " << std::setprecision(3) <<
-      // std::fixed << pose_data.translation.x << " " <<
-     pose_data.translation.y
-      // << " " << pose_data.translation.z << " (meters)";
+      std::cout << "\r Device Position: " << std::setprecision(3) << std::fixed
+                << pose_data.translation.x << " " << pose_data.translation.y
+                << " " << pose_data.translation.z << " (meters)";
       event_bus_.Send(farm_ng::MakeEvent("tracking_camera/front/pose",
                                          ToPoseFrame(pose_frame)));
       event_bus_.Send(ToNamedPoseEvent(pose_frame));
-     }*/
+
+  } */
   }
   boost::asio::io_service& io_service_;
   EventBus& event_bus_;
@@ -850,8 +872,6 @@ class TrackingCameraClient {
 void Cleanup(farm_ng::EventBus& bus) {}
 
 int Main(farm_ng::EventBus& bus) {
-  // Declare RealSense pipeline, encapsulating the actual device and sensors
-  rs2::pipeline pipe;
   farm_ng::TrackingCameraClient client(bus);
   try {
     bus.get_io_service().run();
