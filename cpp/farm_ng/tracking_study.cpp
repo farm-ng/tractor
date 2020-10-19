@@ -1,13 +1,10 @@
 /*
-
-~/code/tractor/build/cpp/farm_ng/tracking_study \
- --apriltag_rig_result \
- ~/code/tractor-data/apriltag_rig_models/field_tags_rig_1010.json \
+tractor/build/cpp/farm_ng/tracking_study \
  --base_to_camera_result \
- ~/code/tractor-data/base_to_camera_models/base_to_camera.json \
+ tractor-data/base_to_camera_models/base_to_camera.json \
  --video_dataset_result \
- ~/code/tractor-data/video_datasets/tractor0003_20201011_field_tags_01_video02.json
-
+ tractor-data/video_datasets/tractor0003_20201011_field_loop_01_notags.json \
+  --zero_indexed=False
  */
 #include <iostream>
 #include <optional>
@@ -69,8 +66,6 @@ using farm_ng_proto::tractor::v1::ViewDirection_Parse;
 
 DEFINE_string(video_dataset_result, "",
               "The path to a serialized CaptureVideoDatasetResult");
-DEFINE_string(apriltag_rig_result, "",
-              "The path to a serialized ApriltagRigCalibrationResult");
 DEFINE_string(base_to_camera_result, "",
               "The path to a serialized CalibrateBaseToCameraResult");
 
@@ -159,64 +154,6 @@ template <typename Scalar>
 inline cv::Point EigenToCvPoint(const Eigen::Matrix<Scalar, 2, 1>& x) {
   return cv::Point(int(x.x() + 0.5), int(x.y() + 0.5));
 }
-
-template <typename Scalar>
-Eigen::Matrix<Scalar, 3, 3> SkewMatrix(const Eigen::Matrix<Scalar, 3, 1>& x) {
-  Eigen::Matrix<Scalar, 3, 3> c;
-  c << Scalar(0), -x.z(), x.y(),  //
-      x.z(), Scalar(0), -x.x(),   //
-      -x.y(), x.x(), Scalar(0);   //
-  return c;
-}
-
-// https://web.stanford.edu/class/cs231a/course_notes/03-epipolar-geometry.pdf
-//
-// Given b_pose_a, point_b = b_pose_a*point_a
-// Returns Essential matrix (b_E_a) such that:
-//
-//   point_b.transpose().dot(b_E_a.dot(point_a)) == 0
-template <typename Scalar>
-Eigen::Matrix<Scalar, 3, 3> EssentionalMatrix(
-    const Sophus::SE3<Scalar>& b_pose_a) {
-  Eigen::Matrix<Scalar, 3, 3> b_E_a =
-      SkewMatrix(b_pose_a.translation()) * b_pose_a.rotationMatrix();
-  return b_E_a;
-}
-
-template <typename Scalar>
-Scalar EpipolarDistance(const Eigen::Matrix<Scalar, 3, 1>& point_a,
-                        const Eigen::Matrix<Scalar, 3, 1>& point_b,
-                        const Sophus::SE3<Scalar>& a_pose_b) {
-  Eigen::Matrix<Scalar, 3, 3> a_E_b = EssentionalMatrix(a_pose_b);
-  Eigen::Matrix<Scalar, 3, 1> epiline_a = a_E_b * point_b;
-  Scalar norm = epiline_a.template head<2>().norm();
-  if (norm > Scalar(1e-5)) {
-    epiline_a /= norm;
-    return point_a.dot(epiline_a);
-  } else {
-    return (point_a - point_b).norm();
-  }
-}
-
-struct EpipolarCostFunctor {
-  EpipolarCostFunctor(Eigen::Vector3d point_image_rect_start,
-                      Eigen::Vector3d point_image_rect_end)
-      : point_image_rect_start_(point_image_rect_start),
-        point_image_rect_end_(point_image_rect_end) {}
-  template <class T>
-  bool operator()(T const* const raw_camera_start_pose_camera_end,
-                  T* raw_residuals) const {
-    Eigen::Map<Sophus::SE3<T> const> const camera_start_pose_camera_end(
-        raw_camera_start_pose_camera_end);
-    raw_residuals[0] = EpipolarDistance<T>(point_image_rect_start_.cast<T>(),
-                                           point_image_rect_end_.cast<T>(),
-                                           camera_start_pose_camera_end);
-    return true;
-  }
-
-  Eigen::Vector3d point_image_rect_start_;
-  Eigen::Vector3d point_image_rect_end_;
-};
 
 struct ProjectionCostFunctor {
   ProjectionCostFunctor(const CameraModel& camera_model,
@@ -653,28 +590,6 @@ class VisualOdometer {
     }
   }
 
-  void AddFlowPointWorldToBlocks(FlowPointWorld* flow_point_world,
-                                 FlowBlocks* flow_blocks,
-                                 std::set<uint64_t>* flow_image_ids) {
-    if (flow_point_world->image_ids.size() < 5) {
-      return;
-    }
-    size_t n_images = flow_point_world->image_ids.size();
-    int skip = n_images / 5;
-    int count = 0;
-    for (auto image_id : flow_point_world->image_ids) {
-      if (count++ % skip != 0) {
-        continue;
-      }
-      FlowImage* flow_image = flow_.MutableFlowImage(image_id);
-      auto flow_point = flow_image->flow_points.find(flow_point_world->id);
-      CHECK(flow_point != flow_image->flow_points.end());
-      flow_image_ids->insert(flow_image->id);
-      (*flow_blocks)[flow_point_world->id].push_back(
-          {flow_image, flow_point_world, flow_point->second});
-    }
-  }
-
   void AddFlowBlockToProblem(ceres::Problem* problem,
                              const FlowBlock& flow_block) {
     ceres::CostFunction* cost_function1 =
@@ -713,7 +628,7 @@ class VisualOdometer {
       }
     }
   }
-  void SolvePose() {
+  void SolvePose(bool debug = true) {
     ceres::Problem problem;
 
     std::set<uint64_t> flow_image_ids;
@@ -740,14 +655,16 @@ class VisualOdometer {
       FlowImage* flow_image = flow_.MutableFlowImage(image_id);
       AddFlowImageToProblem(flow_image, &problem, &flow_blocks);
     }
-    std::stringstream ss;
-    for (auto id : flow_image_ids) {
-      ss << " " << id;
-    }
-    LOG(INFO) << "Num images: " << flow_image_ids.size() << ss.str();
 
-    // auto start = flow_image_ids.begin();
-    // auto end = ++flow_image_ids.begin();
+    // debugging which images are used.
+    if (false) {
+      std::stringstream ss;
+      for (auto id : flow_image_ids) {
+        ss << " " << id;
+      }
+      LOG(INFO) << "Num images: " << flow_image_ids.size() << ss.str();
+    }
+
     for (auto start = flow_image_ids.begin(), end = ++flow_image_ids.begin();
          end != flow_image_ids.end(); ++start, ++end) {
       FlowImage* flow_image_start = flow_.MutableFlowImage(*start);
@@ -771,7 +688,6 @@ class VisualOdometer {
               new PoseCostFunctor(camera_start_pose_camera_end));
 
       problem.AddResidualBlock(cost_function1, new ceres::CauchyLoss(1.0),
-
                                flow_image_start->camera_pose_world.data(),
                                flow_image_end->camera_pose_world.data());
     }
@@ -794,7 +710,9 @@ class VisualOdometer {
     // options.logging_type = ceres::PER_MINIMIZER_ITERATION;
     options.minimizer_progress_to_stdout = false;
     ceres::Solve(options, &problem, &summary);
-    LOG(INFO) << summary.BriefReport();
+    if (!summary.IsSolutionUsable()) {
+      LOG(INFO) << summary.FullReport();
+    }
 
     double all_rmse = 0;
     double all_n = 0;
@@ -837,41 +755,10 @@ class VisualOdometer {
         all_n += n;
       }
     }
-    LOG(INFO) << "RMSE: " << std::sqrt(all_rmse / std::max(all_n, 1.0))
-              << " N: " << all_n;
-    // LOG(INFO) << summary.FullReport();
+    VLOG(2) << "RMSE: " << std::sqrt(all_rmse / std::max(all_n, 1.0))
+            << " N: " << all_n;
 
-    /* for (auto id : flow_image_ids) {
-      problem.SetParameterBlockVariable(
-          flow_.MutableFlowImage(id)->camera_pose_world.data());
-    }
-    ceres::Solve(options, &problem, &summary); */
-    // LOG(INFO) << "re solve:" << summary.FullReport();
-
-    cv::Mat reprojection_image;
     FlowImage* flow_image = flow_.MutablePreviousFlowImage();
-    cv::cvtColor(*(flow_image->image), reprojection_image, cv::COLOR_GRAY2BGR);
-
-    for (const auto& id_flow_point : flow_image->flow_points) {
-      const auto& flow_point = id_flow_point.second;
-      FlowPointWorld* flow_point_world =
-          flow_.MutableFlowPointWorld(flow_point.flow_point_id);
-      if (flow_point_world->rmse == 0.0) {
-        continue;
-      }
-      Eigen::Vector2d point_image_proj =
-          ProjectPointToPixel(camera_model_, flow_image->camera_pose_world *
-                                                 flow_point_world->point_world);
-      cv::line(reprojection_image, EigenToCvPoint(flow_point.image_coordinates),
-               EigenToCvPoint(point_image_proj),
-               flow_.Color(flow_point.flow_point_id));
-
-      cv::circle(reprojection_image, EigenToCvPoint(point_image_proj), 2,
-                 flow_.Color(flow_point.flow_point_id), -1);
-      cv::circle(reprojection_image,
-                 EigenToCvPoint(flow_point.image_coordinates), 5,
-                 flow_.Color(flow_point.flow_point_id));
-    }
 
     if (goal_image_id_) {
       auto base_pose_world_goal =
@@ -883,42 +770,73 @@ class VisualOdometer {
 
       goal_image_id_ = flow_image->id;
       camera_pose_base_goal_ = camera_pose_base_goal;
-      for (int i = 0; i < 1000; ++i) {
-        Eigen::Vector3d p1 =
-            camera_pose_base_goal * Eigen::Vector3d(0.1 * i, 0.0, 0.0);
-        Eigen::Vector3d p2 =
-            camera_pose_base_goal * Eigen::Vector3d(0.1 * (i + 1), 0.0, 0.0);
-        if (p1.z() > 0.0 && p2.z() > 0.00) {
-          cv::line(reprojection_image,
-                   EigenToCvPoint(ProjectPointToPixel(camera_model_, p1)),
-                   EigenToCvPoint(ProjectPointToPixel(camera_model_, p2)),
-                   cv::Scalar(0, 255, 0), 3);
-        }
-      }
-    }
-    auto camera_pose_base = base_pose_camera_.inverse();
-    for (int i = 0; i < 1000; ++i) {
-      Eigen::Vector3d ap1 =
-          camera_pose_base * Eigen::Vector3d(0.1 * i, 0.0, 0.0);
-      Eigen::Vector3d ap2 =
-          camera_pose_base * Eigen::Vector3d(0.1 * (i + 1), 0.0, 0.0);
-      cv::line(reprojection_image,
-               EigenToCvPoint(ProjectPointToPixel(camera_model_, ap1)),
-               EigenToCvPoint(ProjectPointToPixel(camera_model_, ap2)),
-               cv::Scalar(0, 0, 255), 1);
     }
 
-    cv::flip(reprojection_image, reprojection_image, -1);
-    if (!writer) {
-      writer.reset(new cv::VideoWriter(
-          video_writer_dev,
-          0,   // fourcc
-          30,  // fps
-          cv::Size(camera_model_.image_width(), camera_model_.image_height()),
-          true));
+    if (debug) {
+      cv::Mat reprojection_image;
+
+      cv::cvtColor(*(flow_image->image), reprojection_image,
+                   cv::COLOR_GRAY2BGR);
+
+      for (const auto& id_flow_point : flow_image->flow_points) {
+        const auto& flow_point = id_flow_point.second;
+        FlowPointWorld* flow_point_world =
+            flow_.MutableFlowPointWorld(flow_point.flow_point_id);
+        if (flow_point_world->rmse == 0.0) {
+          continue;
+        }
+        Eigen::Vector2d point_image_proj = ProjectPointToPixel(
+            camera_model_,
+            flow_image->camera_pose_world * flow_point_world->point_world);
+        cv::line(reprojection_image,
+                 EigenToCvPoint(flow_point.image_coordinates),
+                 EigenToCvPoint(point_image_proj),
+                 flow_.Color(flow_point.flow_point_id));
+
+        cv::circle(reprojection_image, EigenToCvPoint(point_image_proj), 2,
+                   flow_.Color(flow_point.flow_point_id), -1);
+        cv::circle(reprojection_image,
+                   EigenToCvPoint(flow_point.image_coordinates), 5,
+                   flow_.Color(flow_point.flow_point_id));
+      }
+      if (goal_image_id_) {
+        for (int i = 0; i < 1000; ++i) {
+          Eigen::Vector3d p1 =
+              camera_pose_base_goal_ * Eigen::Vector3d(0.1 * i, 0.0, 0.0);
+          Eigen::Vector3d p2 =
+              camera_pose_base_goal_ * Eigen::Vector3d(0.1 * (i + 1), 0.0, 0.0);
+          if (p1.z() > 0.0 && p2.z() > 0.00) {
+            cv::line(reprojection_image,
+                     EigenToCvPoint(ProjectPointToPixel(camera_model_, p1)),
+                     EigenToCvPoint(ProjectPointToPixel(camera_model_, p2)),
+                     cv::Scalar(0, 255, 0), 3);
+          }
+        }
+      }
+      auto camera_pose_base = base_pose_camera_.inverse();
+      for (int i = 0; i < 1000; ++i) {
+        Eigen::Vector3d ap1 =
+            camera_pose_base * Eigen::Vector3d(0.1 * i, 0.0, 0.0);
+        Eigen::Vector3d ap2 =
+            camera_pose_base * Eigen::Vector3d(0.1 * (i + 1), 0.0, 0.0);
+        cv::line(reprojection_image,
+                 EigenToCvPoint(ProjectPointToPixel(camera_model_, ap1)),
+                 EigenToCvPoint(ProjectPointToPixel(camera_model_, ap2)),
+                 cv::Scalar(0, 0, 255), 1);
+      }
+
+      cv::flip(reprojection_image, reprojection_image, -1);
+      if (!writer) {
+        writer.reset(new cv::VideoWriter(
+            video_writer_dev,
+            0,   // fourcc
+            30,  // fps
+            cv::Size(camera_model_.image_width(), camera_model_.image_height()),
+            true));
+      }
+      writer->write(reprojection_image);
+      cv::imshow("reprojection", reprojection_image);
     }
-    writer->write(reprojection_image);
-    cv::imshow("reprojection", reprojection_image);
   }
 
   void DumpFlowPointsWorld(std::string ply_path) {
@@ -969,9 +887,6 @@ class TrackingStudyProgram {
     auto dataset_result = ReadProtobufFromJsonFile<CaptureVideoDatasetResult>(
         FLAGS_video_dataset_result);
 
-    auto rig_result = ReadProtobufFromJsonFile<CalibrateApriltagRigResult>(
-        FLAGS_apriltag_rig_result);
-
     auto base_to_camera_result =
         ReadProtobufFromJsonFile<CalibrateBaseToCameraResult>(
             FLAGS_base_to_camera_result);
@@ -979,22 +894,7 @@ class TrackingStudyProgram {
     auto base_to_camera_model = ReadProtobufFromResource<BaseToCameraModel>(
         base_to_camera_result.base_to_camera_model_solved());
 
-    auto rig_model = ReadProtobufFromResource<MonocularApriltagRigModel>(
-        rig_result.monocular_apriltag_rig_solved());
-
     EventLogReader log_reader(dataset_result.dataset());
-
-    TimeSeries<BaseToCameraModel::WheelMeasurement> wheel_measurements;
-    TimeSeries<farm_ng_proto::tractor::v1::Event> images;
-
-    double wheel_baseline = base_to_camera_model.wheel_baseline();
-    double wheel_radius = base_to_camera_model.wheel_radius();
-    LOG(INFO) << "wheel baseline=" << wheel_baseline
-              << " wheel_radius=" << wheel_radius;
-    auto base_pose_camera_pb = base_to_camera_model.base_pose_camera();
-    LOG(INFO) << base_pose_camera_pb.ShortDebugString();
-    Sophus::SE3d base_pose_camera;
-    ProtoToSophus(base_pose_camera_pb.a_pose_b(), &base_pose_camera);
 
     std::unique_ptr<VisualOdometer> vo;
     ImageLoader image_loader;
@@ -1004,16 +904,13 @@ class TrackingStudyProgram {
       try {
         auto event = log_reader.ReadNext();
         TractorState state;
-        if (event.data().UnpackTo(&state)) {
+        if (event.data().UnpackTo(&state) && vo) {
           BaseToCameraModel::WheelMeasurement wheel_measurement;
           CopyTractorStateToWheelState(state, &wheel_measurement);
-          wheel_measurements.insert(wheel_measurement);
-          if (vo) {
-            vo->AddWheelMeasurements(wheel_measurement);
-          }
+          vo->AddWheelMeasurements(wheel_measurement);
         }
         Image image;
-        if (event.data().UnpackTo(&image) && skip_frame_counter++ % 2 == 0) {
+        if (event.data().UnpackTo(&image) && skip_frame_counter++ % 1 == 0) {
           if (!vo) {
             vo.reset(
                 new VisualOdometer(image.camera_model(), base_to_camera_model));
@@ -1024,7 +921,6 @@ class TrackingStudyProgram {
 
           google::protobuf::Timestamp last_stamp = MakeTimestampNow();
           vo->AddImage(gray, event.stamp());
-          images.insert(event);
           auto now = MakeTimestampNow();
           LOG(INFO) << google::protobuf::util::TimeUtil::DurationToMilliseconds(
                            now - last_stamp)
@@ -1049,96 +945,6 @@ class TrackingStudyProgram {
     }
 
     vo->DumpFlowPointsWorld("/tmp/flow_points_world.final.ply");
-    return 0;
-    std::optional<google::protobuf::Timestamp> last_image_stamp;
-
-    auto begin_event = images.begin();
-    auto end_event = images.end();
-
-    std::string encoder_x264(" x264enc ! ");
-
-    std::string video_writer_dev =
-        std::string("appsrc !") + " videoconvert ! " + encoder_x264 +
-        " mp4mux ! filesink location=" + "/tmp/out.mp4";
-    LOG(INFO) << "writing video with: " << video_writer_dev;
-
-    std::unique_ptr<cv::VideoWriter> writer;
-
-    std::unique_ptr<FlowBookKeeper> flow;
-
-    Sophus::SE3d world_pose_base = Sophus::SE3d::rotX(0.0);
-    for (auto& event : images) {
-      Image image;
-
-      if (event.data().UnpackTo(&image)) {
-        if (!writer) {
-          writer.reset(
-              new cv::VideoWriter(video_writer_dev,
-                                  0,   // fourcc
-                                  30,  // fps
-                                  cv::Size(image.camera_model().image_width(),
-                                           image.camera_model().image_height()),
-                                  true));
-        }
-        if (!flow) {
-          flow.reset(new FlowBookKeeper(image.camera_model()));
-        }
-
-        cv::Mat gray = image_loader.LoadImage(image);
-        cv::Mat frame;
-        if (gray.channels() == 1) {
-          cv::cvtColor(gray.clone(), frame, cv::COLOR_GRAY2RGB);
-        } else {
-          frame = gray;
-          cv::cvtColor(frame.clone(), gray, cv::COLOR_RGB2GRAY);
-        }
-
-        auto last_image_stamp = event.stamp();
-
-        flow->AddImage(gray, event.stamp(), world_pose_base * base_pose_camera);
-
-        Eigen::Vector2d last_point_image = ProjectPointToPixel(
-            image.camera_model(),
-            base_pose_camera.inverse() * Eigen::Vector3d(0, 0, 0));
-        Sophus::SE3d odometry_pose_base = Sophus::SE3d::rotX(0.0);
-        for (auto it = begin_event;
-             it != end_event && std::distance(begin_event, it) < 1000; ++it) {
-          auto next_stamp = it->stamp();
-          auto states =
-              wheel_measurements.find_range(last_image_stamp, next_stamp);
-
-          auto base_pose_basep = TractorStartPoseTractorEnd(
-              wheel_radius, wheel_baseline, states.first, states.second);
-          odometry_pose_base = odometry_pose_base * base_pose_basep;
-          Eigen::Vector3d point_camera =
-              base_pose_camera.inverse() *
-              (odometry_pose_base * Eigen::Vector3d(0.0, 0.0, 0.0));
-          if (point_camera.z() > 0) {
-            Eigen::Vector2d point_image =
-                ProjectPointToPixel(image.camera_model(), point_camera);
-            cv::circle(frame, cv::Point(point_image.x(), point_image.y()), 2,
-                       cv::Scalar(0, 0, 255));
-
-            cv::line(frame,
-                     cv::Point(last_point_image.x(), last_point_image.y()),
-                     cv::Point(point_image.x(), point_image.y()),
-                     cv::Scalar(255, 255, 0));
-
-            last_point_image = point_image;
-          }
-          last_image_stamp = next_stamp;
-        }
-
-        last_image_stamp = event.stamp();
-        cv::flip(frame, frame, -1);
-        cv::imshow(event.name(), frame);
-        writer->write(frame);
-        cv::waitKey(1);
-        bus_.get_io_service().poll();
-        begin_event++;
-      }
-    }
-
     return 0;
   }
 
