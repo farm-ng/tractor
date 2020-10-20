@@ -56,7 +56,7 @@ class FlowBookKeeper {
   // meaning from the same consecutive time series of images captured from the
   // camera.
   uint64_t AddImage(cv::Mat image, google::protobuf::Timestamp stamp,
-                    Sophus::SE3d world_pose_camera);
+                    Sophus::SE3d world_pose_camera, bool debug);
 
   void RemoveBlock(const FlowBlock& block);
   void RemovePointWorld(uint64_t id);
@@ -75,6 +75,8 @@ class FlowBookKeeper {
   const std::unordered_map<uint64_t, FlowPointWorld>& FlowPointsWorld() const;
 
   cv::Scalar Color(uint64_t id) const;
+
+  cv::Mat GetDebugImage() const { return debug_image_; }
 
  private:
   void FlowFromPrevious(FlowImage* flow_image, bool debug = false);
@@ -97,6 +99,7 @@ class FlowBookKeeper {
   std::unordered_map<uint64_t, FlowPointWorld> flow_points_world_;
   std::unordered_map<uint64_t, FlowImage> flow_images_;
   std::set<uint64_t> flow_image_ids_;
+  cv::Mat debug_image_;
 };
 }  // namespace farm_ng
 #endif

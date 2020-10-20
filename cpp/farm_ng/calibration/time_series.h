@@ -16,6 +16,7 @@ class TimeSeries {
     return lhs.stamp() < rhs.stamp();
   }
 
+bool empty() const { return series_.empty();}
   const_iterator lower_bound(const google::protobuf::Timestamp& stamp) const {
     ValueT x;
     x.mutable_stamp()->CopyFrom(stamp);

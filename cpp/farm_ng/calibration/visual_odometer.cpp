@@ -115,13 +115,15 @@ void VisualOdometer::AddImage(cv::Mat image,
         base_pose_basep;
 
     odometry_pose_base_ = odometry_pose_base_wheel_only;
-    if (base_pose_basep.log().norm() > 0.001) {
+    if ((base_pose_basep.log().norm() > 0.001) && !wheel_measurements_.empty()) {
       auto start = MakeTimestampNow();
 
       flow_.AddImage(image, stamp,
-                     odometry_pose_base_wheel_only * base_pose_camera_);
+                     odometry_pose_base_wheel_only * base_pose_camera_, true);
+      debug_image_ = flow_.GetDebugImage();                     
       auto after_flow = MakeTimestampNow();
-      SolvePose(true);
+
+      //SolvePose(true);
       wheel_measurements_.RemoveBefore(flow_.EarliestFlowImage()->stamp);
       auto after_solve = MakeTimestampNow();
       LOG(INFO) << "VO took: "
@@ -134,14 +136,16 @@ void VisualOdometer::AddImage(cv::Mat image,
                 << google::protobuf::util::TimeUtil::DurationToMilliseconds(
                        after_solve - after_flow);
 
-      if (flow_.LastImageId() % 100 == 0) {
+      if (false && flow_.LastImageId() % 100 == 0) {
         DumpFlowPointsWorld("/tmp/flow_points_world." +
                             std::to_string(flow_.LastImageId()) + ".ply");
       }
     }
 
   } else {
-    flow_.AddImage(image, stamp, odometry_pose_base_ * base_pose_camera_);
+    flow_.AddImage(image, stamp, odometry_pose_base_ * base_pose_camera_, true);
+          debug_image_ = flow_.GetDebugImage();                     
+
   }
 }
 

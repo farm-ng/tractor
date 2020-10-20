@@ -41,7 +41,7 @@ FlowBookKeeper::FlowBookKeeper(CameraModel camera_model, size_t max_history)
 // camera.
 uint64_t FlowBookKeeper::AddImage(cv::Mat image,
                                   google::protobuf::Timestamp stamp,
-                                  Sophus::SE3d world_pose_camera) {
+                                  Sophus::SE3d world_pose_camera, bool debug) {
   CHECK_EQ(camera_model_.image_width(), image.size().width);
   CHECK_EQ(camera_model_.image_height(), image.size().height);
   CHECK_EQ(1, image.channels()) << "Expecting gray image.";
@@ -51,7 +51,7 @@ uint64_t FlowBookKeeper::AddImage(cv::Mat image,
   flow_image.stamp = stamp;
   flow_image.id = image_id_gen_++;
   if (flow_image.id > 0) {
-    FlowFromPrevious(&flow_image, false);
+    FlowFromPrevious(&flow_image, debug);
     flow_images_.at(flow_image.id - 1).image.reset();
     flow_images_.at(flow_image.id - 1).debug_trails = cv::Mat();
   }
@@ -201,8 +201,7 @@ void FlowBookKeeper::FlowFromPrevious(FlowImage* flow_image, bool debug) {
   }
 
   if (debug) {
-    debug_image = debug_image + flow_image->debug_trails;
-    cv::imshow("debug flow", debug_image);
+    debug_image_ = debug_image + flow_image->debug_trails;
   }
 }
 
@@ -259,14 +258,14 @@ void FlowBookKeeper::DetectGoodCorners(FlowImage* flow_image) {
   /// Parameters for Shi-Tomasi algorithm
   int max_corners = 400;
 
-  double quality_level = 0.01;
+  double quality_level = 0.005;
   double min_distance = 10;
   int block_size = 3, gradient_size = 3;
   bool use_harris_detector = false;
   double k = 0.04;
 
   cv::Mat mask = lens_exclusion_mask_.clone();
-  RenderMaskOfFlowPoints(*flow_image, &mask, 60);
+  RenderMaskOfFlowPoints(*flow_image, &mask, 80);
 
   // cv::imshow("mask", mask);
   /// Apply corner detection

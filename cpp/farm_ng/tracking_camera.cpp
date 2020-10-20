@@ -651,7 +651,9 @@ class TrackingCameraClient {
     event_bus_.GetEventSignal()->connect(std::bind(
         &TrackingCameraClient::on_event, this, std::placeholders::_1));
 
-    event_bus_.AddSubscriptions({std::string("^tracking_camera/command$"),
+    event_bus_.AddSubscriptions({
+      std::string("^logger/.*"), // subscribe to logger commands for resource archive path changes, should this just be default?
+      std::string("^tracking_camera/command$"),
                                  std::string("^tractor_state$")});
 
     auto base_to_camera_path =
@@ -663,6 +665,7 @@ class TrackingCameraClient {
 
       base_to_camera_model_ = ReadProtobufFromResource<BaseToCameraModel>(
           base_to_camera_result.base_to_camera_model_solved());
+      LOG(INFO) << "Loaded base_to_camera_model_" << base_to_camera_model_->ShortDebugString();
     }
 
     // TODO(ethanrublee) look up image size from realsense profile.
@@ -759,6 +762,7 @@ class TrackingCameraClient {
     if (event.data().UnpackTo(&state) && vo_) {
       BaseToCameraModel::WheelMeasurement wheel_measurement;
       CopyTractorStateToWheelState(state, &wheel_measurement);
+      //LOG(INFO) <<wheel_measurement.ShortDebugString();
       vo_->AddWheelMeasurements(wheel_measurement);
     }
   }
@@ -837,7 +841,8 @@ class TrackingCameraClient {
           });
           if (!vo_ && base_to_camera_model_) {
             vo_.reset(new VisualOdometer(left_camera_model_,
-                                         *base_to_camera_model_, 1000));
+                                         *base_to_camera_model_, 100));
+                                         LOG(INFO) << "Starting VO.";
           }
           cv::Mat frame_0 = RS2FrameToMat(fisheye_frame);
           cv::Mat send_frame;
@@ -845,14 +850,18 @@ class TrackingCameraClient {
           if (vo_) {
             vo_->AddImage(frame_0, stamp);
             send_frame = vo_->GetDebugImage();
+            if(count_ == 0) {
+              vo_->SetGoal();
+            }
           }
 
           if (send_frame.empty()) {
             cv::cvtColor(frame_0, send_frame, cv::COLOR_GRAY2BGR);
           }
+          cv::flip(send_frame, send_frame, -1);
+          count_ = (count_ + 1) % 100;
 
-          count_ = (count_ + 1) % 3;
-          if (count_ == 0) {
+          if (count_ % 3 == 0) {
             writer_->write(send_frame);
           }
           if (!latest_command_.has_record_start()) {
