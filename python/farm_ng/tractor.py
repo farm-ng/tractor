@@ -214,7 +214,7 @@ class TractorController:
 
             self.move_to_goal_controller.reset()
         elif steering_command.mode in (SteeringCommand.MODE_SERVO,):
-            self._servo()
+            self._servo(steering_command)
         elif steering_command.mode in (SteeringCommand.MODE_JOYSTICK_MANUAL, SteeringCommand.MODE_JOYSTICK_CRUISE_CONTROL):
             self._command_velocity(steering_command.velocity, steering_command.angular_velocity)
         self.event_bus.send(make_event('tractor_state', self.tractor_state))

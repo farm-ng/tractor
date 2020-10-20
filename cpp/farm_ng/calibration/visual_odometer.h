@@ -20,6 +20,11 @@ namespace farm_ng {
 using farm_ng_proto::tractor::v1::BaseToCameraModel;
 using farm_ng_proto::tractor::v1::CameraModel;
 
+struct VisualOdometerResult {
+  NamedSE3Pose odometry_vo_pose_base;
+  NamedSE3Pose base_pose_goal;
+};
+
 class VisualOdometer {
  public:
   VisualOdometer(const CameraModel& camera_model,
@@ -29,9 +34,9 @@ class VisualOdometer {
   void AddWheelMeasurements(
       const BaseToCameraModel::WheelMeasurement& measurements);
 
-  void AddImage(cv::Mat image, google::protobuf::Timestamp stamp);
+  VisualOdometerResult AddImage(cv::Mat image,
+                                google::protobuf::Timestamp stamp);
 
-  void SolvePose(bool debug = true);
   void DumpFlowPointsWorld(std::string ply_path);
 
   void SetGoal();
@@ -39,6 +44,8 @@ class VisualOdometer {
   cv::Mat GetDebugImage() const { return debug_image_; }
 
  private:
+  void SolvePose(bool debug = true);
+
   void AddFlowBlockToProblem(ceres::Problem* problem,
                              const FlowBlock& flow_block);
 

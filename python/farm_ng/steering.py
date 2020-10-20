@@ -193,6 +193,7 @@ class SteeringSenderJoystick:
         self._start_cruise_control()
 
     def stop(self):
+        self.servo_active = False
         self.cruise_control_active = False
         self.joystick_manual_steer.stop()
         self.cruise_control_steer.stop()
@@ -222,7 +223,7 @@ class SteeringSenderJoystick:
             command.CopyFrom(self.joystick_manual_steer.update())
 
         if self.servo_active:
-            command.mode = SteeringCommand.MODE_SERVO
+            # command.mode = SteeringCommand.MODE_SERVO
             if self.new_goal:
                 command.reset_goal = True
                 self.new_goal = False

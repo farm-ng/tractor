@@ -100,8 +100,9 @@ void VisualOdometer::AddWheelMeasurements(
   wheel_measurements_.insert(measurements);
 }
 
-void VisualOdometer::AddImage(cv::Mat image,
-                              google::protobuf::Timestamp stamp) {
+VisualOdometerResult VisualOdometer::AddImage(
+    cv::Mat image, google::protobuf::Timestamp stamp) {
+  VisualOdometerResult result;
   if (const FlowImage* prev_flow_image = flow_.PreviousFlowImage()) {
     auto wheel_measurements =
         wheel_measurements_.find_range(prev_flow_image->stamp, stamp);
@@ -121,10 +122,14 @@ void VisualOdometer::AddImage(cv::Mat image,
 
       flow_.AddImage(image, stamp,
                      odometry_pose_base_wheel_only * base_pose_camera_, true);
-      debug_image_ = flow_.GetDebugImage();
+      // debug_image_ = flow_.GetDebugImage();
       auto after_flow = MakeTimestampNow();
 
       SolvePose(true);
+      odometry_pose_base_ =
+          (base_pose_camera_ * flow_.PreviousFlowImage()->camera_pose_world)
+              .inverse();
+
       wheel_measurements_.RemoveBefore(flow_.EarliestFlowImage()->stamp);
       auto after_solve = MakeTimestampNow();
       LOG(INFO) << "VO took: "
@@ -147,6 +152,29 @@ void VisualOdometer::AddImage(cv::Mat image,
     flow_.AddImage(image, stamp, odometry_pose_base_ * base_pose_camera_, true);
     debug_image_ = flow_.GetDebugImage();
   }
+
+
+  if(goal_image_id) {
+    // here the base_pose_goal is the start of the planned path (x+ axis of this frame). For convenience downstream,
+    // we'll project the tractor's goal onto this path.
+    SE3d base_pose_goal = base_pose_camera_*camera_pose_base_goal_;
+    auto path_base = Eigen::ParameterizedLine3d::Through(base_pose_goal.translation(), base_pose_goal*Eigen::Vector3d(1.0,0,0));
+    Eigen::Vector3d closest_path_point_goal = base_pose_goal.inverse()*path_base.projection(Eigen::Vector3d(0,0,0));
+    LOG(INFO) << "Closest point on path: " <<closest_path_point_goal.tranpose();
+    SophusToProto(base_pose_goal * Sophus::SE3d::transX(closest_path_point_goal.x() + 3.0), result.base_pose_goal.mutable_a_pose_b());
+  } else {
+SophusToProto(Sophus::SE3d::rotZ(0.0), result.base_pose_goal.mutable_a_pose_b());
+  }
+        result.base_pose_goal.mutable_a_pose_b()->mutable_stamp()->CopyFrom(stamp);
+        result.base_pose_goal.set_frame_a("tractor/base");
+        result.base_pose_goal.set_frame_b("goal");
+
+    SophusToProto(odometry_pose_base_, result.odometry_vo_pose_base.mutable_a_pose_b());
+        result.odometry_vo_pose_base.mutable_a_pose_b()->mutable_stamp()->CopyFrom(stamp);
+        result.odometry_vo_pose_base.set_frame_a("odometry/vo");
+        result.odometry_vo_pose_base.set_frame_b("tractor/base");
+
+  return result;
 }
 
 void VisualOdometer::AddFlowBlockToProblem(ceres::Problem* problem,
@@ -198,7 +226,8 @@ void VisualOdometer::SolvePose(bool debug) {
     if (image_id < 5) {
       return;
     }
-    uint64_t begin_id = std::max(0, int(image_id) - 50);
+    uint64_t begin_id =
+        std::max(int(flow_.EarliestFlowImage()->id), int(image_id) - 50);
     flow_image_ids.insert(image_id);
     if (goal_image_id_) {
       if (int(image_id) - int(*goal_image_id_) < 50) {
@@ -211,18 +240,18 @@ void VisualOdometer::SolvePose(bool debug) {
       begin_id += skip;
     }
   }
-  for (auto image_id : flow_image_ids) {
-    FlowImage* flow_image = flow_.MutableFlowImage(image_id);
-    AddFlowImageToProblem(flow_image, &problem, &flow_blocks);
-  }
-
   // debugging which images are used.
-  if (false) {
+  if (true) {
     std::stringstream ss;
     for (auto id : flow_image_ids) {
       ss << " " << id;
     }
     LOG(INFO) << "Num images: " << flow_image_ids.size() << ss.str();
+  }
+
+  for (auto image_id : flow_image_ids) {
+    FlowImage* flow_image = flow_.MutableFlowImage(image_id);
+    AddFlowImageToProblem(flow_image, &problem, &flow_blocks);
   }
 
   for (auto start = flow_image_ids.begin(), end = ++flow_image_ids.begin();
@@ -266,12 +295,12 @@ void VisualOdometer::SolvePose(bool debug) {
   options.gradient_tolerance = 1e-4;
   options.function_tolerance = 1e-4;
   options.parameter_tolerance = 1e-4;
-  options.num_threads = 3;
-  options.max_num_iterations = 200;
+  // options.num_threads = 3;
+  options.max_num_iterations = 30;
 
   // Solve
   ceres::Solver::Summary summary;
-  // options.logging_type = ceres::PER_MINIMIZER_ITERATION;
+  options.logging_type = ceres::PER_MINIMIZER_ITERATION;
   options.minimizer_progress_to_stdout = false;
   ceres::Solve(options, &problem, &summary);
   if (!summary.IsSolutionUsable()) {
@@ -319,8 +348,8 @@ void VisualOdometer::SolvePose(bool debug) {
       all_n += n;
     }
   }
-  VLOG(2) << "RMSE: " << std::sqrt(all_rmse / std::max(all_n, 1.0))
-          << " N: " << all_n;
+  LOG(INFO) << "RMSE: " << std::sqrt(all_rmse / std::max(all_n, 1.0))
+            << " N: " << all_n;
 
   FlowImage* flow_image = flow_.MutablePreviousFlowImage();
 

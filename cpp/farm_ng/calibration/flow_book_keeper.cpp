@@ -276,15 +276,44 @@ void FlowBookKeeper::DetectGoodCorners(FlowImage* flow_image) {
   int fast_threshold = 5;
   cv::Mat mask = lens_exclusion_mask_.clone();
   RenderMaskOfFlowPoints(*flow_image, &mask, 80);
+  cv::Mat detect_image = *(flow_image->image) & mask;
 
   std::vector<cv::KeyPoint> keypoints;
-  cv::FAST(*(flow_image->image), keypoints, fast_threshold, non_max);
-  cv::KeyPointsFilter filter;
-  filter.runByPixelsMask(keypoints, mask);
+  cv::FAST(detect_image, keypoints, fast_threshold, non_max);
+  LOG(INFO) << "keypoints.size() " << keypoints.size();
 
+
+      size_t fast_count = 0;
   for (const auto& kpt : keypoints) {
+   
+    
+    // here we check if the curr_point[i] is not crowded by other flow points,
+    // greedily.
+    cv::Point pt(kpt.pt.x + 0.5f, kpt.pt.y+0.5f);
+    if(!cv::Rect(0,0, mask.size().width, mask.size().height).contains(pt)) {
+      continue;
+
+    }
+    if (!mask.at<uint8_t>(pt)) {
+      continue;
+    }
+  
+++fast_count;
+    // Mark a 20x20 pixel region as occupied in the crowding mask so that no
+    // other points near this one may be added.
+    // Crowding tends to occur when moving backwards,negatively along the
+    // camera Z axis, as points that were close the camera get farther away
+    // and closer together.
+    int crowd_window = 11;
+    cv::rectangle(mask,
+                  cv::Rect(pt.x - crowd_window / 2,
+                           pt.y - crowd_window / 2, crowd_window,
+                           crowd_window),
+                  cv::Scalar::all(0), -1);
     GenFlowPoint(flow_image, kpt.pt);
   }
+    LOG(INFO) << "keypoints.size() after filter " << fast_count;
+
   return;
   // cv::imshow("mask", mask);
   /// Apply corner detection
