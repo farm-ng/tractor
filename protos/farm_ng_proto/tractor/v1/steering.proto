@@ -5,8 +5,7 @@ option go_package = "github.com/farm_ng/genproto";
 
 message SteeringCommand {
   enum Mode {
-    MODE_UNSPECIFIED = 0;
-    MODE_JOYSTICK_MANUAL = 1;
+    MODE_UNSPECIFIED = 0; MODE_JOYSTICK_MANUAL = 1;
     MODE_JOYSTICK_CRUISE_CONTROL = 2;
     MODE_SERVO = 3;
   }
@@ -15,4 +14,5 @@ message SteeringCommand {
   double velocity = 3;
   double angular_velocity = 4;
   Mode mode = 5;
+  bool reset_goal = 6;
 }

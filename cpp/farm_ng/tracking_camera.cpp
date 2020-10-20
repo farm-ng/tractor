@@ -24,6 +24,7 @@
 
 #include <farm_ng_proto/tractor/v1/apriltag.pb.h>
 #include <farm_ng_proto/tractor/v1/geometry.pb.h>
+#include <farm_ng_proto/tractor/v1/steering.pb.h>
 #include <farm_ng_proto/tractor/v1/tracking_camera.pb.h>
 #include <farm_ng_proto/tractor/v1/tractor.pb.h>
 
@@ -39,6 +40,7 @@ using farm_ng_proto::tractor::v1::CalibrateBaseToCameraResult;
 using farm_ng_proto::tractor::v1::CameraModel;
 using farm_ng_proto::tractor::v1::Image;
 using farm_ng_proto::tractor::v1::NamedSE3Pose;
+using farm_ng_proto::tractor::v1::SteeringCommand;
 using farm_ng_proto::tractor::v1::Subscription;
 using farm_ng_proto::tractor::v1::TagConfig;
 using farm_ng_proto::tractor::v1::TagLibrary;
@@ -651,10 +653,16 @@ class TrackingCameraClient {
     event_bus_.GetEventSignal()->connect(std::bind(
         &TrackingCameraClient::on_event, this, std::placeholders::_1));
 
-    event_bus_.AddSubscriptions({
-      std::string("^logger/.*"), // subscribe to logger commands for resource archive path changes, should this just be default?
-      std::string("^tracking_camera/command$"),
-                                 std::string("^tractor_state$")});
+    event_bus_.AddSubscriptions(
+        {// subscribe to logger commands for resource archive path changes,
+         // should this just be default?
+         std::string("^logger/.*"),
+         // subscribe to steering commands to toggle new goals for VO
+         std::string("^steering$"),
+         // tracking camera commands, recording, etc.
+         std::string("^tracking_camera/command$"),
+         // tractor states for VO
+         std::string("^tractor_state$")});
 
     auto base_to_camera_path =
         GetBlobstoreRoot() / "base_to_camera_models/base_to_camera.json";
@@ -665,7 +673,8 @@ class TrackingCameraClient {
 
       base_to_camera_model_ = ReadProtobufFromResource<BaseToCameraModel>(
           base_to_camera_result.base_to_camera_model_solved());
-      LOG(INFO) << "Loaded base_to_camera_model_" << base_to_camera_model_->ShortDebugString();
+      LOG(INFO) << "Loaded base_to_camera_model_"
+                << base_to_camera_model_->ShortDebugString();
     }
 
     // TODO(ethanrublee) look up image size from realsense profile.
@@ -751,19 +760,24 @@ class TrackingCameraClient {
   }
 
   void on_event(const EventPb& event) {
-    if (event.data().type_url() ==
-        "type.googleapis.com/" +
-            TrackingCameraCommand::descriptor()->full_name()) {
-      TrackingCameraCommand command;
-      CHECK(event.data().UnpackTo(&command));
+    TrackingCameraCommand command;
+    if (event.data().UnpackTo(&command)) {
       on_command(command);
+      return;
     }
     TractorState state;
     if (event.data().UnpackTo(&state) && vo_) {
       BaseToCameraModel::WheelMeasurement wheel_measurement;
       CopyTractorStateToWheelState(state, &wheel_measurement);
-      //LOG(INFO) <<wheel_measurement.ShortDebugString();
+      // LOG(INFO) <<wheel_measurement.ShortDebugString();
       vo_->AddWheelMeasurements(wheel_measurement);
+      return;
+    }
+    SteeringCommand steering;
+    if (event.data().UnpackTo(&steering)) {
+      if (vo_ && steering.reset_goal()) {
+        vo_->SetGoal();
+      }
     }
   }
 
@@ -842,7 +856,7 @@ class TrackingCameraClient {
           if (!vo_ && base_to_camera_model_) {
             vo_.reset(new VisualOdometer(left_camera_model_,
                                          *base_to_camera_model_, 100));
-                                         LOG(INFO) << "Starting VO.";
+            LOG(INFO) << "Starting VO.";
           }
           cv::Mat frame_0 = RS2FrameToMat(fisheye_frame);
           cv::Mat send_frame;
@@ -850,9 +864,6 @@ class TrackingCameraClient {
           if (vo_) {
             vo_->AddImage(frame_0, stamp);
             send_frame = vo_->GetDebugImage();
-            if(count_ == 0) {
-              vo_->SetGoal();
-            }
           }
 
           if (send_frame.empty()) {

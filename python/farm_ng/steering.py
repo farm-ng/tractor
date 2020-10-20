@@ -169,10 +169,6 @@ class SteeringSenderJoystick:
         self._event_bus = event_bus
         self.rate_hz = 50.0
         self.period = 1.0/self.rate_hz
-
-        # whether the tractor is executing a motion primitive (e.g. cruise control, indexing)
-        self._executing_motion_primitive = False
-
         self.joystick = MaybeJoystick('/dev/input/js0',  self._event_bus.event_loop())
         self.joystick.set_button_callback(self.on_button)
         self._periodic = Periodic(self.period, self._event_bus.event_loop(), self.send)
@@ -180,6 +176,8 @@ class SteeringSenderJoystick:
         self.joystick_manual_steer = JoystickManualSteering(self.rate_hz, self.joystick)
         self.cruise_control_steer = CruiseControlSteering(self.rate_hz, self.joystick)
         self.cruise_control_active = False
+        self.servo_active = False
+        self.new_goal = False
 
         self.stop()
 
@@ -188,6 +186,11 @@ class SteeringSenderJoystick:
             self.cruise_control_steer.command.velocity = self.joystick_manual_steer.command.velocity
             self.cruise_control_steer.command.angular_velocity = self.joystick_manual_steer.command.angular_velocity
         self.cruise_control_active = True
+
+    def _start_servo(self):
+        self.new_goal = True
+        self.servo_active = True
+        self._start_cruise_control()
 
     def stop(self):
         self.cruise_control_active = False
@@ -198,21 +201,31 @@ class SteeringSenderJoystick:
         if button == 'touch' and value:
             self.stop()
 
+        if button == 'triangle' and value:
+            self._start_servo()
+
         if button in ('hat0x', 'hat0y') and value:
             self._start_cruise_control()
 
     def send(self, n_periods):
+        command = SteeringCommand()
         if n_periods > self.rate_hz:
             self.stop()
-            command = self.joystick_manual_steer.command
+            command.CopyFrom(self.joystick_manual_steer.command)
 
         if self.cruise_control_steer.cruise_control_axis_active():
             self._start_cruise_control()
 
         if self.cruise_control_active:
-            command = self.cruise_control_steer.update()
+            command.CopyFrom(self.cruise_control_steer.update())
         else:
-            command = self.joystick_manual_steer.update()
+            command.CopyFrom(self.joystick_manual_steer.update())
+
+        if self.servo_active:
+            command.mode = SteeringCommand.MODE_SERVO
+            if self.new_goal:
+                command.reset_goal = True
+                self.new_goal = False
         self._event_bus.send(make_event(_g_message_name, command))
 
 

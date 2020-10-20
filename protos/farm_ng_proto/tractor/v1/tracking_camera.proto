@@ -23,9 +23,7 @@ message TrackingCameraPoseFrame {
   Vec3 angular_acceleration = 7;
 
   enum Confidence {
-    CONFIDENCE_UNSPECIFIED = 0;
-    CONFIDENCE_FAILED = 1;
-    CONFIDENCE_LOW = 2;
+    CONFIDENCE_UNSPECIFIED = 0; CONFIDENCE_FAILED = 1; CONFIDENCE_LOW = 2;
     CONFIDENCE_MEDIUM = 3;
     CONFIDENCE_HIGH = 4;
   }
@@ -37,9 +35,7 @@ message TrackingCameraMotionFrame {
   int32 frame_number = 1;
   google.protobuf.Timestamp stamp_motion = 2;
   enum MotionType {
-    MOTION_TYPE_UNSPECIFIED = 0;
-    MOTION_TYPE_GYRO = 1;
-    MOTION_TYPE_ACCEL = 2;
+    MOTION_TYPE_UNSPECIFIED = 0; MOTION_TYPE_GYRO = 1; MOTION_TYPE_ACCEL = 2;
   };
   MotionType motion_type = 3;
   // X, Y, Z values of velocity, in meters/sec
@@ -47,13 +43,10 @@ message TrackingCameraMotionFrame {
 }
 
 message TrackingCameraCommand {
-  message RecordStop {
-  }
+  message RecordStop {}
   message RecordStart {
     enum Mode {
-      MODE_UNSPECIFIED = 0;
-      MODE_EVERY_FRAME = 1;
-      MODE_EVERY_APRILTAG_FRAME = 2;
+      MODE_UNSPECIFIED = 0; MODE_EVERY_FRAME = 1; MODE_EVERY_APRILTAG_FRAME = 2;
       MODE_APRILTAG_STABLE = 3;
     }
     Mode mode = 1;
