@@ -19,6 +19,7 @@
 namespace farm_ng {
 using farm_ng_proto::tractor::v1::BaseToCameraModel;
 using farm_ng_proto::tractor::v1::CameraModel;
+using farm_ng_proto::tractor::v1::NamedSE3Pose;
 
 struct VisualOdometerResult {
   NamedSE3Pose odometry_vo_pose_base;

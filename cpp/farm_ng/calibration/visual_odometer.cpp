@@ -5,6 +5,8 @@
 #include <opencv2/imgproc.hpp>
 #include <opencv2/video.hpp>
 
+#include <Eigen/Geometry>
+
 #include <ceres/ceres.h>
 
 #include "farm_ng/blobstore.h"
@@ -153,26 +155,67 @@ VisualOdometerResult VisualOdometer::AddImage(
     debug_image_ = flow_.GetDebugImage();
   }
 
+  if (goal_image_id_) {
+    // TODO(ethanrublee) this is goal pose stuff here is a HACK, should be moved
+    // somewhere else, tracking camera can produce some generic poses which can
+    // be used for a variety of control and path following modes.
+    //
+    // Here the base_pose_goal is the start of the planned path (parameterized
+    // as the x+ axis of this frame). For convenience downstream, we'll project
+    // the tractor's goal (nearest point on this path + some reasonable
+    // distance) onto this path.
+    Sophus::SE3d base_pose_goal = base_pose_camera_ * camera_pose_base_goal_;
+    // The path is the parameterized line passing through the origin of goal
+    // frame and along the X axis.
+    // This line is in the base frame.
+    auto path_base = Eigen::ParametrizedLine<double, 3>::Through(
+        base_pose_goal.translation(),
+        base_pose_goal * Eigen::Vector3d(1.0, 0, 0));
 
-  if(goal_image_id) {
-    // here the base_pose_goal is the start of the planned path (x+ axis of this frame). For convenience downstream,
-    // we'll project the tractor's goal onto this path.
-    SE3d base_pose_goal = base_pose_camera_*camera_pose_base_goal_;
-    auto path_base = Eigen::ParameterizedLine3d::Through(base_pose_goal.translation(), base_pose_goal*Eigen::Vector3d(1.0,0,0));
-    Eigen::Vector3d closest_path_point_goal = base_pose_goal.inverse()*path_base.projection(Eigen::Vector3d(0,0,0));
-    LOG(INFO) << "Closest point on path: " <<closest_path_point_goal.tranpose();
-    SophusToProto(base_pose_goal * Sophus::SE3d::transX(closest_path_point_goal.x() + 3.0), result.base_pose_goal.mutable_a_pose_b());
+    // Project the origin of the base frame onto the line, this is the closest
+    // point on the path. Here we transform the point into the goal's reference
+    // frame. We expect this point to be non zero in X, and zero in y,z as it
+    // lies on the X-axis of the goal reference frame.
+    Eigen::Vector3d closest_path_point_goal =
+        base_pose_goal.inverse() *
+        path_base.projection(Eigen::Vector3d(0, 0, 0));
+    CHECK_NEAR(closest_path_point_goal.y(), 0.0, 1e-6);
+    CHECK_NEAR(closest_path_point_goal.z(), 0.0, 1e-6);
+
+    // Here we add 3 meters to the nearest point on the line.  Think of this
+    // like a carrot on a stick hanging 3 meters front of the robot on the
+    // planned path line.
+    // NOTE this distance will effect the move to goal controller behavior.  If
+    // its large, then the heading corrections will be less and the tractor will
+    // gradually correct to get onto the path.  If its too small, the tractor
+    // will pivot dramatically trying to stay on the line.
+
+    Sophus::SE3d base_pose_goal_carrot =
+        base_pose_goal *
+        Sophus::SE3d::transX(closest_path_point_goal.x() + 3.0);
+    SophusToProto(base_pose_goal_carrot,
+                  result.base_pose_goal.mutable_a_pose_b());
+    if (!debug_image_.empty()) {
+      cv::circle(debug_image_,
+                 EigenToCvPoint(ProjectPointToPixel(
+                     camera_model_, base_pose_camera_.inverse() *
+                                        base_pose_goal_carrot.translation())),
+                 10, cv::Scalar(255, 0, 0), 3);
+    }
   } else {
-SophusToProto(Sophus::SE3d::rotZ(0.0), result.base_pose_goal.mutable_a_pose_b());
+    SophusToProto(Sophus::SE3d::rotZ(0.0),
+                  result.base_pose_goal.mutable_a_pose_b());
   }
-        result.base_pose_goal.mutable_a_pose_b()->mutable_stamp()->CopyFrom(stamp);
-        result.base_pose_goal.set_frame_a("tractor/base");
-        result.base_pose_goal.set_frame_b("goal");
+  result.base_pose_goal.mutable_a_pose_b()->mutable_stamp()->CopyFrom(stamp);
+  result.base_pose_goal.set_frame_a("tractor/base");
+  result.base_pose_goal.set_frame_b("goal");
 
-    SophusToProto(odometry_pose_base_, result.odometry_vo_pose_base.mutable_a_pose_b());
-        result.odometry_vo_pose_base.mutable_a_pose_b()->mutable_stamp()->CopyFrom(stamp);
-        result.odometry_vo_pose_base.set_frame_a("odometry/vo");
-        result.odometry_vo_pose_base.set_frame_b("tractor/base");
+  SophusToProto(odometry_pose_base_,
+                result.odometry_vo_pose_base.mutable_a_pose_b());
+  result.odometry_vo_pose_base.mutable_a_pose_b()->mutable_stamp()->CopyFrom(
+      stamp);
+  result.odometry_vo_pose_base.set_frame_a("odometry/vo");
+  result.odometry_vo_pose_base.set_frame_b("tractor/base");
 
   return result;
 }
@@ -241,7 +284,7 @@ void VisualOdometer::SolvePose(bool debug) {
     }
   }
   // debugging which images are used.
-  if (true) {
+  if (false) {
     std::stringstream ss;
     for (auto id : flow_image_ids) {
       ss << " " << id;
@@ -261,9 +304,9 @@ void VisualOdometer::SolvePose(bool debug) {
 
     auto wheel_measurements = wheel_measurements_.find_range(
         flow_image_start->stamp, flow_image_end->stamp);
-    LOG(INFO) << std::distance(wheel_measurements.first,
-                               wheel_measurements.second)
-              << " Wheel measurements";
+    VLOG(2) << std::distance(wheel_measurements.first,
+                             wheel_measurements.second)
+            << " Wheel measurements";
 
     Sophus::SE3d base_start_pose_base_end = TractorStartPoseTractorEnd(
         base_to_camera_model_.wheel_radius(),

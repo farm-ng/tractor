@@ -112,8 +112,8 @@ class TractorController:
         if event.name == 'pose/tractor/base/goal':
             pose = NamedSE3Pose()
             event.data.Unpack(pose)
-            odom_pose_tractor, stamp = self.odom_poses_tractor.find_nearest(event.stamp)
             assert pose.frame_a == 'tractor/base'
+            odom_pose_tractor, stamp = self.odom_poses_tractor.find_nearest(event.stamp)
             tractor_pose_goal = proto_to_se3(pose.a_pose_b)
             odom_pose_goal = odom_pose_tractor.dot(tractor_pose_goal)
             self.move_to_goal_controller.set_goal(odom_pose_goal)
@@ -214,7 +214,7 @@ class TractorController:
 
             self.move_to_goal_controller.reset()
         elif steering_command.mode in (SteeringCommand.MODE_SERVO,):
-            self._servo(steering_command)
+            self._servo()
         elif steering_command.mode in (SteeringCommand.MODE_JOYSTICK_MANUAL, SteeringCommand.MODE_JOYSTICK_CRUISE_CONTROL):
             self._command_velocity(steering_command.velocity, steering_command.angular_velocity)
         self.event_bus.send(make_event('tractor_state', self.tractor_state))

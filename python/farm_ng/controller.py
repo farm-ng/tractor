@@ -15,7 +15,7 @@ class TractorMoveToGoalController:
         self.w = 0.0
         self.w_acc = (np.pi/2)/50
         self.world_pose_tractor_goal = None
-        self.max_v = 0.25
+        self.max_v = 0.5
         self.max_w = np.pi/16
 
     def reset(self):

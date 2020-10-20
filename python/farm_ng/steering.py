@@ -223,7 +223,7 @@ class SteeringSenderJoystick:
             command.CopyFrom(self.joystick_manual_steer.update())
 
         if self.servo_active:
-            # command.mode = SteeringCommand.MODE_SERVO
+            command.mode = SteeringCommand.MODE_SERVO
             if self.new_goal:
                 command.reset_goal = True
                 self.new_goal = False

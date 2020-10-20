@@ -862,11 +862,10 @@ class TrackingCameraClient {
           cv::Mat send_frame;
 
           if (vo_) {
-              VisualOdometryResult result = vo_->AddImage(frame_0, stamp);
-          event_bus_->Send(MakeEvent(
-            "pose/tractor/base/goal"
-              result.base_pose_goal, result.stamp));
-        
+            VisualOdometerResult result = vo_->AddImage(frame_0, stamp);
+            event_bus_.Send(MakeEvent("pose/tractor/base/goal",
+                                      result.base_pose_goal, stamp));
+
             send_frame = vo_->GetDebugImage();
           }
 
