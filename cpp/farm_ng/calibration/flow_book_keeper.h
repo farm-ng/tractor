@@ -36,6 +36,7 @@ class FlowImage {
   google::protobuf::Timestamp stamp;
   Sophus::SE3d camera_pose_world;
   std::optional<cv::Mat> image;
+  std::optional<std::vector<cv::Mat>> pyramid;
   cv::Mat debug_trails;
   std::unordered_map<uint64_t, FlowPointImage> flow_points;
 };
@@ -100,6 +101,8 @@ class FlowBookKeeper {
   std::unordered_map<uint64_t, FlowImage> flow_images_;
   std::set<uint64_t> flow_image_ids_;
   cv::Mat debug_image_;
+  cv::Size flow_window_;
+  int flow_max_levels_;
 };
 }  // namespace farm_ng
 #endif

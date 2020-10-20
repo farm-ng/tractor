@@ -115,15 +115,16 @@ void VisualOdometer::AddImage(cv::Mat image,
         base_pose_basep;
 
     odometry_pose_base_ = odometry_pose_base_wheel_only;
-    if ((base_pose_basep.log().norm() > 0.001) && !wheel_measurements_.empty()) {
+    if ((base_pose_basep.log().norm() > 0.001) &&
+        !wheel_measurements_.empty()) {
       auto start = MakeTimestampNow();
 
       flow_.AddImage(image, stamp,
                      odometry_pose_base_wheel_only * base_pose_camera_, true);
-      debug_image_ = flow_.GetDebugImage();                     
+      debug_image_ = flow_.GetDebugImage();
       auto after_flow = MakeTimestampNow();
 
-      //SolvePose(true);
+      SolvePose(true);
       wheel_measurements_.RemoveBefore(flow_.EarliestFlowImage()->stamp);
       auto after_solve = MakeTimestampNow();
       LOG(INFO) << "VO took: "
@@ -144,8 +145,7 @@ void VisualOdometer::AddImage(cv::Mat image,
 
   } else {
     flow_.AddImage(image, stamp, odometry_pose_base_ * base_pose_camera_, true);
-          debug_image_ = flow_.GetDebugImage();                     
-
+    debug_image_ = flow_.GetDebugImage();
   }
 }
 
@@ -266,6 +266,7 @@ void VisualOdometer::SolvePose(bool debug) {
   options.gradient_tolerance = 1e-4;
   options.function_tolerance = 1e-4;
   options.parameter_tolerance = 1e-4;
+  options.num_threads = 3;
   options.max_num_iterations = 200;
 
   // Solve

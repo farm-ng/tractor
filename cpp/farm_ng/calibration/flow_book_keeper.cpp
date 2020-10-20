@@ -1,5 +1,6 @@
 #include "farm_ng/calibration/flow_book_keeper.h"
 
+#include <opencv2/features2d.hpp>
 #include <opencv2/highgui.hpp>
 #include <opencv2/imgcodecs.hpp>
 #include <opencv2/imgproc.hpp>
@@ -13,7 +14,10 @@
 namespace farm_ng {
 
 FlowBookKeeper::FlowBookKeeper(CameraModel camera_model, size_t max_history)
-    : max_history_(max_history), camera_model_(camera_model) {
+    : max_history_(max_history),
+      camera_model_(camera_model),
+      flow_window_(21, 21),
+      flow_max_levels_(3) {
   cv::RNG rng;
   for (int i = 0; i < 1000; ++i) {
     colors_.push_back(cv::Scalar(rng.uniform(0, 255), rng.uniform(0, 255),
@@ -48,11 +52,16 @@ uint64_t FlowBookKeeper::AddImage(cv::Mat image,
   FlowImage flow_image;
   flow_image.camera_pose_world = world_pose_camera.inverse();
   flow_image.image = image;
+  std::vector<cv::Mat> pyramid;
+  cv::buildOpticalFlowPyramid(image, pyramid, flow_window_, flow_max_levels_);
+  flow_image.pyramid = pyramid;
+
   flow_image.stamp = stamp;
   flow_image.id = image_id_gen_++;
   if (flow_image.id > 0) {
     FlowFromPrevious(&flow_image, debug);
     flow_images_.at(flow_image.id - 1).image.reset();
+    flow_images_.at(flow_image.id - 1).pyramid.reset();
     flow_images_.at(flow_image.id - 1).debug_trails = cv::Mat();
   }
   DetectGoodCorners(&flow_image);
@@ -114,12 +123,12 @@ void FlowBookKeeper::FlowFromPrevious(FlowImage* flow_image, bool debug) {
   std::vector<cv::Point2f> curr_points;
   std::vector<cv::Point2f> prev_bwd_points;
 
-  cv::calcOpticalFlowPyrLK(*prev.image, *flow_image->image, prev_points,
+  cv::calcOpticalFlowPyrLK(*prev.pyramid, *flow_image->pyramid, prev_points,
                            curr_points, status, err);
 
   std::vector<uchar> bwd_status;
 
-  cv::calcOpticalFlowPyrLK(*flow_image->image, *prev.image, curr_points,
+  cv::calcOpticalFlowPyrLK(*flow_image->pyramid, *prev.pyramid, curr_points,
                            prev_bwd_points, bwd_status, err);
 
   CHECK_EQ(curr_points.size(), prev_points.size());
@@ -263,10 +272,20 @@ void FlowBookKeeper::DetectGoodCorners(FlowImage* flow_image) {
   int block_size = 3, gradient_size = 3;
   bool use_harris_detector = false;
   double k = 0.04;
-
+  bool non_max = true;
+  int fast_threshold = 5;
   cv::Mat mask = lens_exclusion_mask_.clone();
   RenderMaskOfFlowPoints(*flow_image, &mask, 80);
 
+  std::vector<cv::KeyPoint> keypoints;
+  cv::FAST(*(flow_image->image), keypoints, fast_threshold, non_max);
+  cv::KeyPointsFilter filter;
+  filter.runByPixelsMask(keypoints, mask);
+
+  for (const auto& kpt : keypoints) {
+    GenFlowPoint(flow_image, kpt.pt);
+  }
+  return;
   // cv::imshow("mask", mask);
   /// Apply corner detection
   std::vector<cv::Point2f> points;

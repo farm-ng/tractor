@@ -90,7 +90,7 @@ class TrackingStudyProgram {
           cv::cvtColor(gray, gray, cv::COLOR_BGR2GRAY);
 
           vo->AddImage(gray, event.stamp());
-          cv::Mat reprojection_image = vo->GetDebugImage();
+          cv::Mat reprojection_image = vo->GetDebugImage().clone();
           if (!reprojection_image.empty()) {
             cv::flip(reprojection_image, reprojection_image, -1);
             if (!writer) {
