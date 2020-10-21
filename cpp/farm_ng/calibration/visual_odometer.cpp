@@ -123,11 +123,11 @@ VisualOdometerResult VisualOdometer::AddImage(
       auto start = MakeTimestampNow();
 
       flow_.AddImage(image, stamp,
-                     odometry_pose_base_wheel_only * base_pose_camera_, true);
+                     odometry_pose_base_wheel_only * base_pose_camera_, false);
       // debug_image_ = flow_.GetDebugImage();
       auto after_flow = MakeTimestampNow();
 
-      SolvePose(true);
+      SolvePose(false);
       odometry_pose_base_ =
           (base_pose_camera_ * flow_.PreviousFlowImage()->camera_pose_world)
               .inverse();
@@ -192,7 +192,7 @@ VisualOdometerResult VisualOdometer::AddImage(
 
     Sophus::SE3d base_pose_goal_carrot =
         base_pose_goal *
-        Sophus::SE3d::transX(closest_path_point_goal.x() + 3.0);
+        Sophus::SE3d::transX(closest_path_point_goal.x() + 10.0);
     SophusToProto(base_pose_goal_carrot,
                   result.base_pose_goal.mutable_a_pose_b());
     if (!debug_image_.empty()) {
@@ -251,12 +251,12 @@ void VisualOdometer::AddFlowImageToProblem(FlowImage* flow_image,
     if (flow_point_world->image_ids.size() < 5) {
       continue;
     }
-    // if (flow_blocks->size() < 250 ||
-    // flow_blocks->count(flow_point_world->id)) {
+    if (flow_blocks->size() < 100 ||
+     flow_blocks->count(flow_point_world->id)) {
     FlowBlock flow_block({flow_image, flow_point_world, flow_point});
     (*flow_blocks)[flow_point_world->id].push_back(flow_block);
     AddFlowBlockToProblem(problem, flow_block);
-    //}
+    }
   }
 }
 void VisualOdometer::SolvePose(bool debug) {
@@ -334,18 +334,19 @@ void VisualOdometer::SolvePose(bool debug) {
 
   // Set solver options (precision / method)
   ceres::Solver::Options options;
-  // options.linear_solver_type = ceres::DENSE_SCHUR;
+  options.linear_solver_type = ceres::SPARSE_SCHUR;
   options.gradient_tolerance = 1e-4;
-  options.function_tolerance = 1e-4;
+  options.function_tolerance = 1e-3;
   options.parameter_tolerance = 1e-4;
-  // options.num_threads = 3;
-  options.max_num_iterations = 30;
+  //options.num_threads = 1;
+  options.max_num_iterations = 10;
 
   // Solve
   ceres::Solver::Summary summary;
-  options.logging_type = ceres::PER_MINIMIZER_ITERATION;
+  //  options.logging_type = ceres::PER_MINIMIZER_ITERATION;
   options.minimizer_progress_to_stdout = false;
   ceres::Solve(options, &problem, &summary);
+  LOG(INFO) << summary.BriefReport();
   if (!summary.IsSolutionUsable()) {
     LOG(INFO) << summary.FullReport();
   }

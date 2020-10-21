@@ -273,7 +273,7 @@ void FlowBookKeeper::DetectGoodCorners(FlowImage* flow_image) {
   bool use_harris_detector = false;
   double k = 0.04;
   bool non_max = true;
-  int fast_threshold = 5;
+  int fast_threshold = 9;
   cv::Mat mask = lens_exclusion_mask_.clone();
   RenderMaskOfFlowPoints(*flow_image, &mask, 80);
   cv::Mat detect_image = *(flow_image->image) & mask;

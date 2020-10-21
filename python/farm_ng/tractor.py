@@ -39,7 +39,7 @@ class TimeSeriesItem:
 
 
 class TimeSeries:
-    def __init__(self, time_window=1.0):
+    def __init__(self, time_window=10.0):
         self._items = deque()
         self._time_window = time_window
 
@@ -114,6 +114,9 @@ class TractorController:
             event.data.Unpack(pose)
             assert pose.frame_a == 'tractor/base'
             odom_pose_tractor, stamp = self.odom_poses_tractor.find_nearest(event.stamp)
+            # now = Timestamp()
+            # now.GetCurrentTime()
+            # logger.info('Got goal: %f delayed', (now.ToMicroseconds() - event.stamp.ToMicroseconds())*1e-6)
             tractor_pose_goal = proto_to_se3(pose.a_pose_b)
             odom_pose_goal = odom_pose_tractor.dot(tractor_pose_goal)
             self.move_to_goal_controller.set_goal(odom_pose_goal)
