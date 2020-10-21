@@ -866,7 +866,7 @@ class TrackingCameraClient {
             event_bus_.Send(MakeEvent("pose/tractor/base/goal",
                                       result.base_pose_goal, stamp));
 
-            send_frame = vo_->GetDebugImage();
+            send_frame = vo_->GetDebugImage().clone();
           }
 
           if (send_frame.empty()) {
