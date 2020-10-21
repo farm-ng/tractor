@@ -481,4 +481,11 @@ void VisualOdometer::SetGoal() {
   camera_pose_base_goal_ = base_pose_camera_.inverse();
 }
 
+void VisualOdometer::AdjustGoalAngle(double theta) {
+  if (!goal_image_id_) {
+    return;
+  }
+  camera_pose_base_goal_ = camera_pose_base_goal_ * Sophus::SE3d::rotZ(theta);
+}
+
 }  // namespace farm_ng

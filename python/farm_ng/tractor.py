@@ -138,8 +138,8 @@ class TractorController:
             self.right_motor_aft.send_velocity_command_rads(right)
             self.left_motor_aft.send_velocity_command_rads(left)
 
-    def _servo(self):
-        v, w = self.move_to_goal_controller.update(self.odom_pose_tractor)
+    def _servo(self, steering_command: SteeringCommand):
+        v, w = self.move_to_goal_controller.update(self.odom_pose_tractor, max(steering_command.velocity, 0))
         self._command_velocity(v, w)
 
     def _command_loop(self, n_periods):
@@ -217,7 +217,7 @@ class TractorController:
 
             self.move_to_goal_controller.reset()
         elif steering_command.mode in (SteeringCommand.MODE_SERVO,):
-            self._servo()
+            self._servo(steering_command)
         elif steering_command.mode in (SteeringCommand.MODE_JOYSTICK_MANUAL, SteeringCommand.MODE_JOYSTICK_CRUISE_CONTROL):
             self._command_velocity(steering_command.velocity, steering_command.angular_velocity)
         self.event_bus.send(make_event('tractor_state', self.tractor_state))

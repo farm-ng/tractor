@@ -42,6 +42,8 @@ class VisualOdometer {
 
   void SetGoal();
 
+  void AdjustGoalAngle(double theta);
+
   cv::Mat GetDebugImage() const { return debug_image_; }
 
  private:

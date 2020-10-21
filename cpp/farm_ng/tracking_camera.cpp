@@ -774,9 +774,12 @@ class TrackingCameraClient {
       return;
     }
     SteeringCommand steering;
-    if (event.data().UnpackTo(&steering)) {
-      if (vo_ && steering.reset_goal()) {
+    if (vo_ && event.data().UnpackTo(&steering)) {
+      if (steering.reset_goal()) {
         vo_->SetGoal();
+      }
+      if (std::abs(steering.angular_velocity()) > 0.0) {
+        vo_->AdjustGoalAngle(steering.angular_velocity() * 1 / 50.0);
       }
     }
   }

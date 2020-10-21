@@ -33,7 +33,8 @@ class TractorMoveToGoalController:
         self.v = np.clip(self.v, -self.max_v, self.max_v)
         return self.v, self.w
 
-    def update(self, world_pose_tractor_est) -> Tuple[float, float]:
+    def update(self, world_pose_tractor_est: SE3, velocity: float) -> Tuple[float, float]:
+        self.max_v = velocity
         if self.world_pose_tractor_goal is None:
             return self.update_vw(0, 0)
 
