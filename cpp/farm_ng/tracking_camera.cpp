@@ -802,7 +802,8 @@ class TrackingCameraClient {
           if (send_frame.empty()) {
             cv::cvtColor(frame_0, send_frame, cv::COLOR_GRAY2BGR);
           }
-          cv::flip(send_frame, send_frame, -1);
+	  // TODO(ethanrublee) base this on view direction?
+          // cv::flip(send_frame, send_frame, -1);
           count_ = (count_ + 1) % 100;
 
           if (count_ % 3 == 0) {

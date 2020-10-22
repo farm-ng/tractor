@@ -118,16 +118,16 @@ VisualOdometerResult VisualOdometer::AddImage(
         base_pose_basep;
 
     odometry_pose_base_ = odometry_pose_base_wheel_only;
-    if ((base_pose_basep.log().norm() > 0.001) &&
+    if ((true || base_pose_basep.log().norm() > 0.001) &&
         !wheel_measurements_.empty()) {
       auto start = MakeTimestampNow();
 
       flow_.AddImage(image, stamp,
-                     odometry_pose_base_wheel_only * base_pose_camera_, false);
-      // debug_image_ = flow_.GetDebugImage();
+                     odometry_pose_base_wheel_only * base_pose_camera_, true);
+      debug_image_ = flow_.GetDebugImage();
       auto after_flow = MakeTimestampNow();
 
-      SolvePose(true);
+      SolvePose(false);
       odometry_pose_base_ =
           (base_pose_camera_ * flow_.PreviousFlowImage()->camera_pose_world)
               .inverse();
@@ -192,7 +192,7 @@ VisualOdometerResult VisualOdometer::AddImage(
 
     Sophus::SE3d base_pose_goal_carrot =
         base_pose_goal *
-        Sophus::SE3d::transX(closest_path_point_goal.x() + 3.0);
+        Sophus::SE3d::transX(closest_path_point_goal.x() + 5.0);
     SophusToProto(base_pose_goal_carrot,
                   result.base_pose_goal.mutable_a_pose_b());
     if (!debug_image_.empty()) {
@@ -251,7 +251,7 @@ void VisualOdometer::AddFlowImageToProblem(FlowImage* flow_image,
     if (flow_point_world->image_ids.size() < 5) {
       continue;
     }
-    if (flow_blocks->size() < 100 || flow_blocks->count(flow_point_world->id)) {
+    if (true) { //flow_blocks->size() < 100 || flow_blocks->count(flow_point_world->id)) {
       FlowBlock flow_block({flow_image, flow_point_world, flow_point});
       (*flow_blocks)[flow_point_world->id].push_back(flow_block);
       AddFlowBlockToProblem(problem, flow_block);
