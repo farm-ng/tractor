@@ -251,11 +251,10 @@ void VisualOdometer::AddFlowImageToProblem(FlowImage* flow_image,
     if (flow_point_world->image_ids.size() < 5) {
       continue;
     }
-    if (flow_blocks->size() < 100 ||
-     flow_blocks->count(flow_point_world->id)) {
-    FlowBlock flow_block({flow_image, flow_point_world, flow_point});
-    (*flow_blocks)[flow_point_world->id].push_back(flow_block);
-    AddFlowBlockToProblem(problem, flow_block);
+    if (flow_blocks->size() < 100 || flow_blocks->count(flow_point_world->id)) {
+      FlowBlock flow_block({flow_image, flow_point_world, flow_point});
+      (*flow_blocks)[flow_point_world->id].push_back(flow_block);
+      AddFlowBlockToProblem(problem, flow_block);
     }
   }
 }
@@ -334,11 +333,11 @@ void VisualOdometer::SolvePose(bool debug) {
 
   // Set solver options (precision / method)
   ceres::Solver::Options options;
-  //options.linear_solver_type = ceres::SPARSE_SCHUR;
+  // options.linear_solver_type = ceres::SPARSE_SCHUR;
   options.gradient_tolerance = 1e-4;
   options.function_tolerance = 1e-4;
   options.parameter_tolerance = 1e-4;
-  //options.num_threads = 1;
+  // options.num_threads = 1;
   options.max_num_iterations = 30;
 
   // Solve

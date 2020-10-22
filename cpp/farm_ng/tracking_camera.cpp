@@ -16,9 +16,9 @@
 #include "apriltag_pose.h"
 #include "tag36h11.h"
 
+#include <farm_ng/calibration/apriltag.h>
 #include <farm_ng/calibration/base_to_camera_calibrator.h>
 #include <farm_ng/calibration/visual_odometer.h>
-#include <farm_ng/calibration/apriltag.h>
 
 #include <farm_ng/init.h>
 #include <farm_ng/ipc.h>
@@ -357,7 +357,6 @@ bool undistort(apriltag_detection_t& src, const rs2_intrinsics& intr) {
   return ComputeHomography(corr_arr, src.H);
 }
 
-
 void apriltag_pose_destroy(apriltag_pose_t* p) {
   matd_destroy(p->R);
   matd_destroy(p->t);
@@ -517,10 +516,6 @@ class ApriltagDetector {
   apriltag_family_t* tag_family_;
   apriltag_detector_t* tag_detector_;
 };
-
-
-
-
 
 class VideoFileWriter {
  public:

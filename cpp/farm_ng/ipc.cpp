@@ -23,8 +23,8 @@
 
 namespace farm_ng {
 using farm_ng_proto::tractor::v1::Announce;
-using farm_ng_proto::tractor::v1::Event;
 using farm_ng_proto::tractor::v1::BUCKET_LOGS;
+using farm_ng_proto::tractor::v1::Event;
 using farm_ng_proto::tractor::v1::LoggingCommand;
 using farm_ng_proto::tractor::v1::LoggingStatus;
 using farm_ng_proto::tractor::v1::Subscription;
