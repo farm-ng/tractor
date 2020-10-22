@@ -141,7 +141,7 @@ class TractorController:
     def _servo(self, steering_command: SteeringCommand):
         vel = max(steering_command.velocity, 0)
         v, w = self.move_to_goal_controller.update(self.odom_pose_tractor, vel)
-        #logger.info('servoing: %f %f %f', vel, v, w)
+        # logger.info('servoing: %f %f %f', vel, v, w)
         self._command_velocity(v, w)
 
     def _command_loop(self, n_periods):

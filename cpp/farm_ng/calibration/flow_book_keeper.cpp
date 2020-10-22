@@ -285,8 +285,8 @@ void FlowBookKeeper::DetectGoodCorners(FlowImage* flow_image) {
 
       size_t fast_count = 0;
   for (const auto& kpt : keypoints) {
-   
-    
+
+
     // here we check if the curr_point[i] is not crowded by other flow points,
     // greedily.
     cv::Point pt(kpt.pt.x + 0.5f, kpt.pt.y+0.5f);
@@ -297,7 +297,7 @@ void FlowBookKeeper::DetectGoodCorners(FlowImage* flow_image) {
     if (!mask.at<uint8_t>(pt)) {
       continue;
     }
-  
+
 ++fast_count;
     // Mark a 20x20 pixel region as occupied in the crowding mask so that no
     // other points near this one may be added.
