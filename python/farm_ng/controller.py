@@ -7,7 +7,7 @@ from liegroups import SE3
 class TractorMoveToGoalController:
     def __init__(self):
         self.K_w = 5
-        self.K_v = 0.25
+        self.K_v = 2.0
 
         self.v = 0.0
         self.v_acc = 2.0/50
@@ -16,7 +16,7 @@ class TractorMoveToGoalController:
         self.w_acc = (np.pi/2)/50
         self.world_pose_tractor_goal = None
         self.max_v = 0.5
-        self.max_w = np.pi/16
+        self.max_w = np.pi/4
 
     def reset(self):
         self.world_pose_tractor_goal = None

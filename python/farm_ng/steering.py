@@ -184,6 +184,7 @@ class ServoControlSteering(BaseSteering):
         super().stop()
 
     def update(self):
+
         self.command.brake = 0.0
         self.command.deadman = 0.0
         if self.joystick.get_axis_state('hat0y', 0.0) != 0:
@@ -208,6 +209,7 @@ class ServoControlSteering(BaseSteering):
             self.target_angular_velocity = 0.0
 
         self.update_vw(self.target_speed, self.target_angular_velocity)
+        # logger.info('servo control %f %f', self.command.velocity, self.command.angular_velocity)
         return self.command
 
 
@@ -239,6 +241,7 @@ class SteeringSenderJoystick:
 
     def _start_servo(self):
         self.new_goal = True
+        self.cruise_control_active = False
         self.servo_active = True
 
     def stop(self):
@@ -273,6 +276,7 @@ class SteeringSenderJoystick:
             command.CopyFrom(self.servo_control_steer.update())
             if self.new_goal:
                 command.reset_goal = True
+                logger.info('reset goal')
                 self.new_goal = False
         else:
             command.CopyFrom(self.joystick_manual_steer.update())

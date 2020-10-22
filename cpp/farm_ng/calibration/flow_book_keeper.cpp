@@ -304,7 +304,7 @@ void FlowBookKeeper::DetectGoodCorners(FlowImage* flow_image) {
     // Crowding tends to occur when moving backwards,negatively along the
     // camera Z axis, as points that were close the camera get farther away
     // and closer together.
-    int crowd_window = 11;
+    int crowd_window = 31;
     cv::rectangle(mask,
                   cv::Rect(pt.x - crowd_window / 2,
                            pt.y - crowd_window / 2, crowd_window,

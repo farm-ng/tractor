@@ -127,7 +127,7 @@ VisualOdometerResult VisualOdometer::AddImage(
       // debug_image_ = flow_.GetDebugImage();
       auto after_flow = MakeTimestampNow();
 
-      SolvePose(false);
+      SolvePose(true);
       odometry_pose_base_ =
           (base_pose_camera_ * flow_.PreviousFlowImage()->camera_pose_world)
               .inverse();
@@ -192,7 +192,7 @@ VisualOdometerResult VisualOdometer::AddImage(
 
     Sophus::SE3d base_pose_goal_carrot =
         base_pose_goal *
-        Sophus::SE3d::transX(closest_path_point_goal.x() + 10.0);
+        Sophus::SE3d::transX(closest_path_point_goal.x() + 3.0);
     SophusToProto(base_pose_goal_carrot,
                   result.base_pose_goal.mutable_a_pose_b());
     if (!debug_image_.empty()) {
@@ -334,12 +334,12 @@ void VisualOdometer::SolvePose(bool debug) {
 
   // Set solver options (precision / method)
   ceres::Solver::Options options;
-  options.linear_solver_type = ceres::SPARSE_SCHUR;
+  //options.linear_solver_type = ceres::SPARSE_SCHUR;
   options.gradient_tolerance = 1e-4;
-  options.function_tolerance = 1e-3;
+  options.function_tolerance = 1e-4;
   options.parameter_tolerance = 1e-4;
   //options.num_threads = 1;
-  options.max_num_iterations = 10;
+  options.max_num_iterations = 30;
 
   // Solve
   ceres::Solver::Summary summary;
