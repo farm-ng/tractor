@@ -5,11 +5,16 @@
 
 #include <glog/logging.h>
 #include <Eigen/Dense>
+#include <opencv2/core.hpp>
 
 #include "farm_ng_proto/tractor/v1/camera_model.pb.h"
 
 namespace farm_ng {
 using farm_ng_proto::tractor::v1::CameraModel;
+
+inline cv::Size GetCvSize(const CameraModel& model) {
+  return cv::Size(model.image_width(), model.image_height());
+}
 
 // Given a point in 3D space, compute the corresponding pixel coordinates in an
 //  image with no distortion or forward distortion coefficients produced by the

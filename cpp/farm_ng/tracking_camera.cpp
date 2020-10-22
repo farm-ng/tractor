@@ -18,6 +18,8 @@
 
 #include <farm_ng/calibration/base_to_camera_calibrator.h>
 #include <farm_ng/calibration/visual_odometer.h>
+#include <farm_ng/calibration/apriltag.h>
+
 #include <farm_ng/init.h>
 #include <farm_ng/ipc.h>
 #include <farm_ng/sophus_protobuf.h>
@@ -355,6 +357,7 @@ bool undistort(apriltag_detection_t& src, const rs2_intrinsics& intr) {
   return ComputeHomography(corr_arr, src.H);
 }
 
+
 void apriltag_pose_destroy(apriltag_pose_t* p) {
   matd_destroy(p->R);
   matd_destroy(p->t);
@@ -515,79 +518,9 @@ class ApriltagDetector {
   apriltag_detector_t* tag_detector_;
 };
 
-cv::Size GetCvSize(const CameraModel& model) {
-  return cv::Size(model.image_width(), model.image_height());
-}
 
-// This class is meant to help filter apriltags, returning true once after the
-// camera becomes relatively stationary.  To allow for a capture program which
-// automatically captures a sparse set of unique view points for calibration
-// after person or robot moves to position and stops for some reasonable period
-// and then continues. It uses a simple 2d accumulated mask based hueristic.
-//
-//   1. for each detected apriltag point, define a small ROI (e.g. 7x7)
-//       1. Construct a new mask the size of the detection image,
-//          which is set to 0 everywhere except for in the ROI
-//            mask = 0
-//            mask(ROI) = previous_mask(ROI) + 1
-//       2. Find the max count in the ROI, this is essentially the number of
-//       frames where this tag point has kept roughly within the ROI.
-//   2. Compute the mean of the max counts.
-//   3. If the mean is moves above a threshold, determined experimentally to
-//   mean stable, 5 at my desk lab, then this detection is considered stable. If
-//   the camera stays still, we're only interested in the transition, because we
-//   don't want duplicate frames.
-//
-//   NOTE If the camera moves slowly but constantly, this tends to capture every
-//   other frame.
-class ApriltagsFilter {
- public:
-  ApriltagsFilter() : once_(false) {}
-  void Reset() {
-    mask_ = cv::Mat();
-    once_ = false;
-  }
-  bool AddApriltags(const ApriltagDetections& detections) {
-    const int n_tags = detections.detections_size();
-    if (n_tags == 0) {
-      Reset();
-      return false;
-    }
 
-    if (mask_.empty()) {
-      mask_ =
-          cv::Mat::zeros(GetCvSize(detections.image().camera_model()), CV_8UC1);
-    }
 
-    cv::Mat new_mask = cv::Mat::zeros(mask_.size(), CV_8UC1);
-    const int window_size = 7;
-    double mean_count = 0.0;
-    for (const ApriltagDetection& detection : detections.detections()) {
-      for (const auto& p : detection.p()) {
-        cv::Rect roi(p.x() - window_size / 2, p.y() - window_size / 2,
-                     window_size, window_size);
-        new_mask(roi) = mask_(roi) + 1;
-        double max_val = 0.0;
-        cv::minMaxLoc(new_mask(roi), nullptr, &max_val);
-        mean_count += max_val / (4 * n_tags);
-      }
-    }
-    mask_ = new_mask;
-    const int kThresh = 5;
-    if (mean_count > kThresh && !once_) {
-      once_ = true;
-      return true;
-    }
-    if (mean_count < kThresh) {
-      once_ = false;
-    }
-    return false;
-  }
-
- private:
-  cv::Mat mask_;
-  bool once_;
-};
 
 class VideoFileWriter {
  public:
