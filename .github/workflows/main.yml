@@ -6,9 +6,9 @@ name: CI
 # events but only for the master branch
 on:
   push:
-    branches: [ master ]
+    branches: [master]
   pull_request:
-    branches: [ master ]
+    branches: [master]
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
@@ -19,29 +19,23 @@ jobs:
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
-    # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-    - uses: actions/checkout@v2
-      with:
-        submodules: 'recursive'
-    - uses: actions/setup-python@v2
-      with:
-        python-version: '3.6.9'
-    - name: set PY
-      run: echo "::set-env name=PY::$(python -c 'import hashlib, sys;print(hashlib.sha256(sys.version.encode()+sys.executable.encode()).hexdigest())')"
-    - uses: actions/setup-node@v1
-      with:
-        node-version: '12'
-    - run: yarn --cwd app/frontend install
-    - uses: actions/cache@v1
-      with:
-        path: ~/.cache/pre-commit
-        key: pre-commit|${{ env.PY }}|${{ hashFiles('.pre-commit-config.yaml') }}
-    - name: pre-commit
-      uses: pre-commit/action@v1.0.1
-    - name: Build protobuf generated code
-      run: make protos
-    - name: Install Python dependencies
-      run: |
-        sudo apt-get install -y network-manager libdbus-1-3 libdbus-1-dev
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt -r requirements-dev.txt
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v2
+        with:
+          submodules: "recursive"
+      - uses: actions/setup-python@v2
+        with:
+          python-version: "3.6.9"
+      - name: set PY
+        run: echo "::set-env name=PY::$(python -c 'import hashlib, sys;print(hashlib.sha256(sys.version.encode()+sys.executable.encode()).hexdigest())')"
+      - uses: actions/setup-node@v1
+        with:
+          node-version: "12"
+      - name: Install system dependencies
+        run: ./bootstrap-apt.sh
+      - uses: actions/cache@v1
+        with:
+          path: ~/.cache/pre-commit
+          key: pre-commit|${{ env.PY }}|${{ hashFiles('.pre-commit-config.yaml') }}
+      - name: pre-commit
+        uses: pre-commit/action@v1.0.1

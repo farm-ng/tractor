@@ -78,3 +78,10 @@ repos:
         language: docker_image
         pass_filenames: false
         entry: docker.io/bufbuild/buf:latest check lint
+    -   id: clang-tidy
+        name: clang-tidy
+        entry: bash -c 'mkdir -p build && cd build && cmake .. && run-clang-tidy cpp/farm_ng'
+        description: Find warnings/errors in C/CPP code
+        types: [c++]
+        language: system
+        pass_filenames: false

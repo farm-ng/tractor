@@ -1,0 +1,25 @@
+buildType:
+  default: debug
+  choices:
+    "debug":
+      short: Debug
+      long: Emit debug information
+      buildType: Debug
+    "release":
+      short: Release
+      long: Optimize generated code
+      buildType: Release
+
+static_analysis:
+  default: none
+  choices:
+    "none":
+      short: None
+      long: No static analysis
+    "clang-tidy":
+      short: clang-tidy
+      long: Run clang-tidy
+      settings:
+        CMAKE_CXX_CLANG_TIDY:
+          - clang-tidy
+          - -warnings-as-errors=-*

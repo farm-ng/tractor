@@ -9,6 +9,10 @@ while [ -h "$SOURCE" ]; do # resolve $SOURCE until the file is no longer a symli
 done
 export FARM_NG_ROOT=$( cd "$( dirname "${SOURCE}" )" >/dev/null 2>&1 && pwd )
 
+if ! pip3 show virtualenv > /dev/null 2>&1; then
+  pip3 install virtualenv
+fi
+
 if [ ! -f $FARM_NG_ROOT/env/bin/activate ]; then
     virtualenv $FARM_NG_ROOT/env
 fi
