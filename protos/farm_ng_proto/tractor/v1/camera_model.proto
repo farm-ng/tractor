@@ -24,6 +24,7 @@ message CameraModel {
     DISTORTION_MODEL_UNSPECIFIED = 0;
     // Intel Realsense T265 - Four parameter Kannala Brandt distortion model
     DISTORTION_MODEL_KANNALA_BRANDT4 = 1;
+    DISTORTION_MODEL_INVERSE_BROWN_CONRADY = 2;
   };
 
   // Specifies the distortion model.

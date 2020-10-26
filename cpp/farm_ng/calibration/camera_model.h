@@ -32,10 +32,24 @@ Eigen::Matrix<T, 2, 1> ProjectPointToPixel(
 
   T y = point.y() / point.z();
 
-  CHECK_EQ(camera.distortion_model(),
-           CameraModel::DISTORTION_MODEL_KANNALA_BRANDT4);
   if (camera.distortion_model() ==
-      CameraModel::DISTORTION_MODEL_KANNALA_BRANDT4) {
+      CameraModel::DISTORTION_MODEL_INVERSE_BROWN_CONRADY) {
+    // Model copied from librealsense:
+    // https://github.com/IntelRealSense/librealsense/blob/0adceb9dc6fce63c348346e1aef1b63c052a1db9/include/librealsense2/rsutil.h#L23
+    T r2 = x * x + y * y;
+    T f = T(1) + T(camera.distortion_coefficients(0)) * r2 +
+          T(camera.distortion_coefficients(1)) * r2 * r2 +
+          T(camera.distortion_coefficients(4)) * r2 * r2 * r2;
+    x *= f;
+    y *= f;
+    T dx = x + T(2) * T(camera.distortion_coefficients(2)) * x * y +
+           T(camera.distortion_coefficients(3)) * (r2 + T(2) * x * x);
+    T dy = y + T(2) * T(camera.distortion_coefficients(3)) * x * y +
+           T(camera.distortion_coefficients(2)) * (r2 + T(2) * y * y);
+    x = dx;
+    y = dy;
+  } else if (camera.distortion_model() ==
+             CameraModel::DISTORTION_MODEL_KANNALA_BRANDT4) {
     // Model copied from librealsense:
     // https://github.com/IntelRealSense/librealsense/blob/0adceb9dc6fce63c348346e1aef1b63c052a1db9/include/librealsense2/rsutil.h#L63
     T r = sqrt(x * x + y * y);
@@ -55,6 +69,8 @@ Eigen::Matrix<T, 2, 1> ProjectPointToPixel(
     T rd = theta * series;
     x *= rd / r;
     y *= rd / r;
+  } else {
+    LOG(FATAL) << "Unsupported distortion model: " << camera.ShortDebugString();
   }
 
   return Eigen::Matrix<T, 2, 1>(x * T(camera.fx()) + T(camera.cx()),
@@ -79,7 +95,21 @@ Eigen::Matrix<T, 3, 1> ReprojectPixelToPoint(
   T x = (pixel.x() - T(camera.cx())) / T(camera.fx());
   T y = (pixel.y() - T(camera.cy())) / T(camera.fy());
   if (camera.distortion_model() ==
-      CameraModel::DISTORTION_MODEL_KANNALA_BRANDT4) {
+      CameraModel::DISTORTION_MODEL_INVERSE_BROWN_CONRADY) {
+    const T dist[5] = {T(camera.distortion_coefficients(0)),
+                       T(camera.distortion_coefficients(1)),
+                       T(camera.distortion_coefficients(2)),
+                       T(camera.distortion_coefficients(3)),
+                       T(camera.distortion_coefficients(4))};
+    // https://github.com/IntelRealSense/librealsense/blob/0adceb9dc6fce63c348346e1aef1b63c052a1db9/include/librealsense2/rsutil.h#L90
+    T r2 = x * x + y * y;
+    T f = T(1) + dist[0] * r2 + dist[1] * r2 * r2 + dist[4] * r2 * r2 * r2;
+    T ux = x * f + T(2) * dist[2] * x * y + dist[3] * (r2 + T(2) * x * x);
+    T uy = y * f + T(2) * dist[3] * x * y + dist[2] * (r2 + T(2) * y * y);
+    x = ux;
+    y = uy;
+  } else if (camera.distortion_model() ==
+             CameraModel::DISTORTION_MODEL_KANNALA_BRANDT4) {
     // https://github.com/IntelRealSense/librealsense/blob/0adceb9dc6fce63c348346e1aef1b63c052a1db9/include/librealsense2/rsutil.h#L83
 
     T rd = sqrt(x * x + y * y);
@@ -117,6 +147,8 @@ Eigen::Matrix<T, 3, 1> ReprojectPixelToPoint(
     T r = tan(theta);
     x *= r / rd;
     y *= r / rd;
+  } else {
+    LOG(FATAL) << "Unsupported distortion model: " << camera.ShortDebugString();
   }
   return Eigen::Matrix<T, 3, 1>(depth * x, depth * y, depth);
 }
