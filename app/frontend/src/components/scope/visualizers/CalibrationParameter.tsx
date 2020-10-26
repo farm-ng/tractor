@@ -29,9 +29,10 @@ const CalibrationParameterForm: React.FC<IFormProps> = ({
         label="Constant"
         checked={value.constant}
         type="checkbox"
-        onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-          setValue((v) => ({ ...v, constant: Boolean(e.target.checked) }))
-        }
+        onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+          const constant = Boolean(e.target.checked);
+          setValue((v) => ({ ...v, constant }));
+        }}
       />
     </>
   );
