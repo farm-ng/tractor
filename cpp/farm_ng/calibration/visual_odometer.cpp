@@ -127,22 +127,23 @@ VisualOdometerResult VisualOdometer::AddImage(
       debug_image_ = flow_.GetDebugImage();
       auto after_flow = MakeTimestampNow();
 
-      SolvePose(false);
+      SolvePose(true);
       odometry_pose_base_ =
           (base_pose_camera_ * flow_.PreviousFlowImage()->camera_pose_world)
               .inverse();
 
       wheel_measurements_.RemoveBefore(flow_.EarliestFlowImage()->stamp);
       auto after_solve = MakeTimestampNow();
-      LOG(INFO) << "VO took: "
-                << google::protobuf::util::TimeUtil::DurationToMilliseconds(
-                       after_solve - start)
-                << " ms flow: "
-                << google::protobuf::util::TimeUtil::DurationToMilliseconds(
-                       after_flow - start)
-                << " ms solve: "
-                << google::protobuf::util::TimeUtil::DurationToMilliseconds(
-                       after_solve - after_flow);
+      LOG_EVERY_N(INFO, 100)
+          << "VO took: "
+          << google::protobuf::util::TimeUtil::DurationToMilliseconds(
+                 after_solve - start)
+          << " ms flow: "
+          << google::protobuf::util::TimeUtil::DurationToMilliseconds(
+                 after_flow - start)
+          << " ms solve: "
+          << google::protobuf::util::TimeUtil::DurationToMilliseconds(
+                 after_solve - after_flow);
 
       if (false && flow_.LastImageId() % 100 == 0) {
         DumpFlowPointsWorld("/tmp/flow_points_world." +
@@ -192,7 +193,7 @@ VisualOdometerResult VisualOdometer::AddImage(
 
     Sophus::SE3d base_pose_goal_carrot =
         base_pose_goal *
-        Sophus::SE3d::transX(closest_path_point_goal.x() + 5.0);
+        Sophus::SE3d::transX(closest_path_point_goal.x() + 10.0);
     SophusToProto(base_pose_goal_carrot,
                   result.base_pose_goal.mutable_a_pose_b());
     if (!debug_image_.empty()) {
@@ -251,7 +252,8 @@ void VisualOdometer::AddFlowImageToProblem(FlowImage* flow_image,
     if (flow_point_world->image_ids.size() < 5) {
       continue;
     }
-    if (true) { //flow_blocks->size() < 100 || flow_blocks->count(flow_point_world->id)) {
+    if (true) {  // flow_blocks->size() < 100 ||
+                 // flow_blocks->count(flow_point_world->id)) {
       FlowBlock flow_block({flow_image, flow_point_world, flow_point});
       (*flow_blocks)[flow_point_world->id].push_back(flow_block);
       AddFlowBlockToProblem(problem, flow_block);
@@ -345,7 +347,7 @@ void VisualOdometer::SolvePose(bool debug) {
   //  options.logging_type = ceres::PER_MINIMIZER_ITERATION;
   options.minimizer_progress_to_stdout = false;
   ceres::Solve(options, &problem, &summary);
-  LOG(INFO) << summary.BriefReport();
+  LOG_EVERY_N(INFO, 100) << summary.BriefReport();
   if (!summary.IsSolutionUsable()) {
     LOG(INFO) << summary.FullReport();
   }
@@ -391,8 +393,9 @@ void VisualOdometer::SolvePose(bool debug) {
       all_n += n;
     }
   }
-  LOG(INFO) << "RMSE: " << std::sqrt(all_rmse / std::max(all_n, 1.0))
-            << " N: " << all_n;
+  LOG_EVERY_N(INFO, 100) << "RMSE: "
+                         << std::sqrt(all_rmse / std::max(all_n, 1.0))
+                         << " N: " << all_n;
 
   FlowImage* flow_image = flow_.MutablePreviousFlowImage();
 
@@ -409,9 +412,11 @@ void VisualOdometer::SolvePose(bool debug) {
   }
 
   if (debug) {
-    cv::Mat reprojection_image;
-
-    cv::cvtColor(*(flow_image->image), reprojection_image, cv::COLOR_GRAY2BGR);
+    cv::Mat reprojection_image = debug_image_;
+    if (reprojection_image.empty()) {
+      cv::cvtColor(*(flow_image->image), reprojection_image,
+                   cv::COLOR_GRAY2BGR);
+    }
 
     for (const auto& id_flow_point : flow_image->flow_points) {
       const auto& flow_point = id_flow_point.second;

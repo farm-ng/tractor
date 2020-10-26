@@ -280,7 +280,7 @@ void FlowBookKeeper::DetectGoodCorners(FlowImage* flow_image) {
 
   std::vector<cv::KeyPoint> keypoints;
   cv::FAST(detect_image, keypoints, fast_threshold, non_max);
-  LOG(INFO) << "keypoints.size() " << keypoints.size();
+  LOG_EVERY_N(INFO, 100) << "keypoints.size() " << keypoints.size();
 
   size_t fast_count = 0;
   for (const auto& kpt : keypoints) {
@@ -307,7 +307,7 @@ void FlowBookKeeper::DetectGoodCorners(FlowImage* flow_image) {
                   cv::Scalar::all(0), -1);
     GenFlowPoint(flow_image, kpt.pt);
   }
-  LOG(INFO) << "keypoints.size() after filter " << fast_count;
+  LOG_EVERY_N(INFO, 100) << "keypoints.size() after filter " << fast_count;
 
   return;
   // cv::imshow("mask", mask);
