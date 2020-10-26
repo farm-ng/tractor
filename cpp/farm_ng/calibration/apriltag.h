@@ -6,14 +6,23 @@
 #include <opencv2/core.hpp>
 
 #include "farm_ng_proto/tractor/v1/apriltag.pb.h"
+#include "farm_ng_proto/tractor/v1/camera_model.pb.h"
 
 namespace farm_ng {
+
+using farm_ng_proto::tractor::v1::ApriltagConfig;
 using farm_ng_proto::tractor::v1::ApriltagDetection;
 using farm_ng_proto::tractor::v1::ApriltagDetections;
+using farm_ng_proto::tractor::v1::CameraModel;
+using farm_ng_proto::tractor::v1::TagLibrary;
+
+class EventBus;
 
 std::array<Eigen::Vector3d, 4> PointsTag(const ApriltagDetection& detection);
 
 std::array<Eigen::Vector2d, 4> PointsImage(const ApriltagDetection& detection);
+
+double TagSize(const TagLibrary& tag_library, int tag_id);
 
 // This class is meant to help filter apriltags, returning true once after the
 // camera becomes relatively stationary.  To allow for a capture program which
@@ -46,5 +55,22 @@ class ApriltagsFilter {
   cv::Mat mask_;
   bool once_;
 };
+class ApriltagDetector {
+ public:
+  ApriltagDetector(const CameraModel& camera_model,
+                   EventBus* event_bus = nullptr);
+
+  ~ApriltagDetector();
+
+  void Close();
+
+  ApriltagDetections Detect(const cv::Mat& gray,
+                            const google::protobuf::Timestamp& stamp);
+
+ private:
+  class Impl;
+  std::shared_ptr<Impl> impl_;
+};
+
 }  // namespace farm_ng
 #endif

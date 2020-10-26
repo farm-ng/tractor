@@ -25,7 +25,7 @@ add_library(farm-ng-calibration
 )
 
 target_link_libraries(farm-ng-calibration
-   ${CERES_LIBRARIES} ${GLOG_LIBRARIES} Sophus::Sophus opencv_imgcodecs farm-ng-protobuf farm-ng-ipc)
+   ${CERES_LIBRARIES} ${GLOG_LIBRARIES} Sophus::Sophus apriltag::apriltag opencv_imgcodecs farm-ng-protobuf farm-ng-ipc)
 
 
 add_executable(farm_ng_calibration_test
