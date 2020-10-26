@@ -1,4 +1,9 @@
+#ifndef FARM_NG_CALIBRATION_EPIPOLAR_H_
+#define FARM_NG_CALIBRATION_EPIPOLAR_H_
+#include <Eigen/Core>
+#include <sophus/se3.hpp>
 
+namespace farm_ng {
 template <typename Scalar>
 Eigen::Matrix<Scalar, 3, 3> SkewMatrix(const Eigen::Matrix<Scalar, 3, 1>& x) {
   Eigen::Matrix<Scalar, 3, 3> c;
@@ -15,7 +20,7 @@ Eigen::Matrix<Scalar, 3, 3> SkewMatrix(const Eigen::Matrix<Scalar, 3, 1>& x) {
 //
 //   point_b.transpose().dot(b_E_a.dot(point_a)) == 0
 template <typename Scalar>
-Eigen::Matrix<Scalar, 3, 3> EssentionalMatrix(
+Eigen::Matrix<Scalar, 3, 3> EssentialMatrix(
     const Sophus::SE3<Scalar>& b_pose_a) {
   Eigen::Matrix<Scalar, 3, 3> b_E_a =
       SkewMatrix(b_pose_a.translation()) * b_pose_a.rotationMatrix();
@@ -56,3 +61,5 @@ struct EpipolarCostFunctor {
   Eigen::Vector3d point_image_rect_start_;
   Eigen::Vector3d point_image_rect_end_;
 };
+}  // namespace farm_ng
+#endif

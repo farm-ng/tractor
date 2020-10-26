@@ -26,7 +26,9 @@ FlowBookKeeper::FlowBookKeeper(CameraModel camera_model, size_t max_history)
   int image_width = camera_model_.image_width();
   int image_height = camera_model_.image_height();
   std::string mask_path =
-      (GetBlobstoreRoot() / "configurations/tracking_mask.png").string();
+      (GetBucketRelativePath(Bucket::BUCKET_CONFIGURATIONS) /
+       "tracking_mask.png")
+          .string();
   lens_exclusion_mask_ = cv::imread(mask_path,
 
                                     cv::IMREAD_GRAYSCALE);
@@ -99,7 +101,7 @@ FlowBookKeeper::GetFlowCvPoints(const FlowImage& flow_image) const {
   std::vector<uint64_t> ids;
   points.reserve(flow_image.flow_points.size());
   for (const auto& sample : flow_image.flow_points) {
-    points.push_back(EigenToCvPoint2f(sample.second.image_coordinates));
+    points.push_back(EigenToCvPoint2f(sample.second.point_image));
     ids.push_back(sample.first);
   }
   return std::make_pair(points, ids);
@@ -186,7 +188,7 @@ void FlowBookKeeper::FlowFromPrevious(FlowImage* flow_image, bool debug) {
     curr_match.push_back(curr_points[i]);
 
     FlowPointImage flow_point = prev.flow_points.at(prev_points_ids.second[i]);
-    flow_point.image_coordinates =
+    flow_point.point_image =
         Eigen::Vector2f(curr_points[i].x, curr_points[i].y);
     curr_flow_points.push_back(flow_point);
   }
@@ -194,15 +196,15 @@ void FlowBookKeeper::FlowFromPrevious(FlowImage* flow_image, bool debug) {
   for (size_t i = 0; i < curr_flow_points.size(); ++i) {
     const auto& flow_point = curr_flow_points[i];
 
-    flow_image->flow_points[flow_point.flow_point_id] = flow_point;
-    auto world_it = flow_points_world_.find(flow_point.flow_point_id);
+    flow_image->flow_points[flow_point.id] = flow_point;
+    auto world_it = flow_points_world_.find(flow_point.id);
     CHECK(world_it != flow_points_world_.end());
 
     auto it_inserted = world_it->second.image_ids.insert(flow_image->id);
     CHECK(it_inserted.second);
     if (debug) {
       if (world_it->second.image_ids.size() >= 5) {
-        cv::Scalar color = Color(flow_point.flow_point_id);
+        cv::Scalar color = Color(flow_point.id);
         cv::line(flow_image->debug_trails, prev_match[i], curr_match[i], color);
         cv::circle(debug_image, curr_match[i], 3, color, -1);
       }
@@ -237,7 +239,7 @@ void FlowBookKeeper::RenderMaskOfFlowPoints(const FlowImage& flow_image,
             255;
   }
   for (const auto& flow_point : flow_image.flow_points) {
-    cv::Point tl = EigenToCvPoint(flow_point.second.image_coordinates) -
+    cv::Point tl = EigenToCvPoint(flow_point.second.point_image) -
                    cv::Point(window_size / 2, window_size / 2);
     cv::rectangle(*mask, cv::Rect(tl.x, tl.y, window_size, window_size),
                   cv::Scalar::all(0), -1);
@@ -246,19 +248,18 @@ void FlowBookKeeper::RenderMaskOfFlowPoints(const FlowImage& flow_image,
 FlowPointImage FlowBookKeeper::GenFlowPoint(FlowImage* flow_image,
                                             cv::Point2f x) {
   FlowPointImage flow_point_image;
-  flow_point_image.flow_point_id = flow_id_gen_++;
-  flow_point_image.image_coordinates = Eigen::Vector2f(x.x, x.y);
+  flow_point_image.id = flow_id_gen_++;
+  flow_point_image.point_image = Eigen::Vector2f(x.x, x.y);
   FlowPointWorld flow_point_world;
   flow_point_world.image_ids.insert(flow_image->id);
-  flow_point_world.id = flow_point_image.flow_point_id;
+  flow_point_world.id = flow_point_image.id;
   flow_point_world.point_world =
       flow_image->camera_pose_world.inverse() *
       ReprojectPixelToPoint<double>(
-          camera_model_, flow_point_image.image_coordinates.cast<double>(),
-          1.0);
+          camera_model_, flow_point_image.point_image.cast<double>(), 1.0);
   flow_points_world_.insert(
-      std::make_pair(flow_point_image.flow_point_id, flow_point_world));
-  flow_image->flow_points[flow_point_image.flow_point_id] = flow_point_image;
+      std::make_pair(flow_point_image.id, flow_point_world));
+  flow_image->flow_points[flow_point_image.id] = flow_point_image;
   return flow_point_image;
 }
 
@@ -295,8 +296,9 @@ void FlowBookKeeper::DetectGoodCorners(FlowImage* flow_image) {
     }
 
     ++fast_count;
-    // Mark a 20x20 pixel region as occupied in the crowding mask so that no
-    // other points near this one may be added.
+
+    // Mark a crowd_window X crowd_window pixel region as occupied in the
+    // crowding mask so that no other points near this one may be added.
     // Crowding tends to occur when moving backwards,negatively along the
     // camera Z axis, as points that were close the camera get farther away
     // and closer together.
@@ -308,31 +310,8 @@ void FlowBookKeeper::DetectGoodCorners(FlowImage* flow_image) {
     GenFlowPoint(flow_image, kpt.pt);
   }
   LOG_EVERY_N(INFO, 100) << "keypoints.size() after filter " << fast_count;
-
-  return;
-  // cv::imshow("mask", mask);
-  /// Apply corner detection
-  std::vector<cv::Point2f> points;
-  cv::goodFeaturesToTrack(*flow_image->image, points, max_corners,
-                          quality_level, min_distance, mask, block_size,
-                          gradient_size, use_harris_detector, k);
-
-  if (points.empty()) {
-    return;
-  }
-
-  if (false) {
-    cv::TermCriteria termcrit(cv::TermCriteria::COUNT | cv::TermCriteria::EPS,
-                              20, 0.03);
-    cv::Size subPixWinSize(10, 10);
-
-    cv::cornerSubPix(*flow_image->image, points, subPixWinSize,
-                     cv::Size(-1, -1), termcrit);
-  }
-  for (auto& point : points) {
-    GenFlowPoint(flow_image, point);
-  }
 }
+
 const FlowImage* FlowBookKeeper::EarliestFlowImage() const {
   uint64_t earliest_image_id = *flow_image_ids_.begin();
   return const_cast<FlowBookKeeper*>(this)->MutableFlowImage(earliest_image_id);
@@ -347,8 +326,7 @@ const FlowImage* FlowBookKeeper::PreviousFlowImage() const {
   if (flow_images_.empty()) {
     return nullptr;
   }
-  CHECK(image_id_gen_ > 0);
-  auto it = flow_images_.find(image_id_gen_ - 1);
+  auto it = flow_images_.find(LastImageId());
   CHECK(it != flow_images_.end()) << image_id_gen_;
   return &it->second;
 }
@@ -357,8 +335,7 @@ FlowImage* FlowBookKeeper::MutablePreviousFlowImage() {
   if (flow_images_.empty()) {
     return nullptr;
   }
-  CHECK(image_id_gen_ > 0);
-  auto it = flow_images_.find(image_id_gen_ - 1);
+  auto it = flow_images_.find(LastImageId());
   CHECK(it != flow_images_.end()) << image_id_gen_;
   return &it->second;
 }

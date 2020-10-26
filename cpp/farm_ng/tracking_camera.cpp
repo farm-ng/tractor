@@ -593,7 +593,9 @@ class TrackingCameraClient {
          std::string("^tractor_state$")});
 
     auto base_to_camera_path =
-        GetBlobstoreRoot() / "base_to_camera_models/base_to_camera.json";
+        GetBucketRelativePath(Bucket::BUCKET_BASE_TO_CAMERA_MODELS) /
+        "base_to_camera.json";
+
     if (boost::filesystem::exists(base_to_camera_path)) {
       auto base_to_camera_result =
           ReadProtobufFromJsonFile<CalibrateBaseToCameraResult>(
@@ -601,6 +603,7 @@ class TrackingCameraClient {
 
       base_to_camera_model_ = ReadProtobufFromResource<BaseToCameraModel>(
           base_to_camera_result.base_to_camera_model_solved());
+      base_to_camera_model_->clear_samples();
       LOG(INFO) << "Loaded base_to_camera_model_"
                 << base_to_camera_model_->ShortDebugString();
     }
@@ -802,7 +805,7 @@ class TrackingCameraClient {
           if (send_frame.empty()) {
             cv::cvtColor(frame_0, send_frame, cv::COLOR_GRAY2BGR);
           }
-	  // TODO(ethanrublee) base this on view direction?
+          // TODO(ethanrublee) base this on view direction?
           // cv::flip(send_frame, send_frame, -1);
           count_ = (count_ + 1) % 100;
 

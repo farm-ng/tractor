@@ -228,7 +228,7 @@ void VisualOdometer::AddFlowBlockToProblem(ceres::Problem* problem,
                                       Sophus::SE3d::num_parameters, 3>(
           new ProjectionCostFunctor(
               camera_model_,
-              flow_block.flow_point_image.image_coordinates.cast<double>()));
+              flow_block.flow_point_image.point_image.cast<double>()));
 
   problem->AddParameterBlock(flow_block.flow_point_world->point_world.data(),
                              3);
@@ -248,7 +248,7 @@ void VisualOdometer::AddFlowImageToProblem(FlowImage* flow_image,
     const FlowPointImage& flow_point = id_flow_point.second;
 
     FlowPointWorld* flow_point_world =
-        flow_.MutableFlowPointWorld(flow_point.flow_point_id);
+        flow_.MutableFlowPointWorld(flow_point.id);
     if (flow_point_world->image_ids.size() < 5) {
       continue;
     }
@@ -373,9 +373,9 @@ void VisualOdometer::SolvePose(bool debug) {
         flow_.RemoveBlock(block);
         continue;
       }
-      double err2 = (point_image_proj -
-                     block.flow_point_image.image_coordinates.cast<double>())
-                        .squaredNorm();
+      double err2 =
+          (point_image_proj - block.flow_point_image.point_image.cast<double>())
+              .squaredNorm();
       if (err2 > (4 * 4)) {
         flow_.RemoveBlock(block);
       } else {
@@ -421,22 +421,20 @@ void VisualOdometer::SolvePose(bool debug) {
     for (const auto& id_flow_point : flow_image->flow_points) {
       const auto& flow_point = id_flow_point.second;
       FlowPointWorld* flow_point_world =
-          flow_.MutableFlowPointWorld(flow_point.flow_point_id);
+          flow_.MutableFlowPointWorld(flow_point.id);
       if (flow_point_world->rmse == 0.0) {
         continue;
       }
       Eigen::Vector2d point_image_proj =
           ProjectPointToPixel(camera_model_, flow_image->camera_pose_world *
                                                  flow_point_world->point_world);
-      cv::line(reprojection_image, EigenToCvPoint(flow_point.image_coordinates),
-               EigenToCvPoint(point_image_proj),
-               flow_.Color(flow_point.flow_point_id));
+      cv::line(reprojection_image, EigenToCvPoint(flow_point.point_image),
+               EigenToCvPoint(point_image_proj), flow_.Color(flow_point.id));
 
       cv::circle(reprojection_image, EigenToCvPoint(point_image_proj), 2,
-                 flow_.Color(flow_point.flow_point_id), -1);
-      cv::circle(reprojection_image,
-                 EigenToCvPoint(flow_point.image_coordinates), 5,
-                 flow_.Color(flow_point.flow_point_id));
+                 flow_.Color(flow_point.id), -1);
+      cv::circle(reprojection_image, EigenToCvPoint(flow_point.point_image), 5,
+                 flow_.Color(flow_point.id));
     }
     if (goal_image_id_) {
       for (int i = 0; i < 1000; ++i) {

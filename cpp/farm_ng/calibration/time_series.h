@@ -1,9 +1,11 @@
 #ifndef FARM_NG_CALIBRATION_TIME_SERIES_H_
 #define FARM_NG_CALIBRATION_TIME_SERIES_H_
+#include <algorithm>
+#include <deque>
+
 #include <glog/logging.h>
 #include <google/protobuf/timestamp.pb.h>
 #include <google/protobuf/util/time_util.h>
-#include <deque>
 
 namespace farm_ng {
 template <typename ValueT>
@@ -21,9 +23,7 @@ class TimeSeries {
     ValueT x;
     x.mutable_stamp()->CopyFrom(stamp);
     return std::lower_bound(series_.begin(), series_.end(), x,
-                            [](const ValueT& lhs, const ValueT& rhs) {
-                              return lhs.stamp() < rhs.stamp();
-                            });
+                            &TimeSeries::Compare);
   }
 
   const_iterator upper_bound(const google::protobuf::Timestamp& stamp) const {

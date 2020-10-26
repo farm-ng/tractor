@@ -4,11 +4,14 @@ foreach(src_prefix
    apriltag_rig_calibrator
    base_to_camera_calibrator
    camera_model
+   epipolar
    flow_book_keeper
    local_parameterization
    pose_utils
    solver
+   time_series
    visual_odometer
+
 )
 list(APPEND cpp_files ${src_prefix}.cpp)
 list(APPEND h_files ${src_prefix}.h)
@@ -18,7 +21,6 @@ endforeach()
 add_library(farm-ng-calibration
   ${cpp_files}
   ${h_files}
-  time_series.h
   eigen_cv.h
 )
 

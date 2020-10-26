@@ -15,23 +15,32 @@
 namespace farm_ng {
 using farm_ng_proto::tractor::v1::CameraModel;
 
+// An image space measurement of a flow point.
 struct FlowPointImage {
-  uint64_t flow_point_id;
-  Eigen::Vector2f image_coordinates;
+  // This id is the global id of the 3d point which projects to produce this
+  // measurement, and matches the id in FlowPointWorld.
+  uint64_t id;
+  // Image space measurement in pixels.
+  Eigen::Vector2f point_image;
 };
 
-class FlowPointWorld {
- public:
+// 3D estimate of point observed across multiple views.
+struct FlowPointWorld {
+  // Globally unique id. FlowPointImage with the same id correspond to this
+  // FlowPointWorld.
   uint64_t id;
-
+  // The point in some world reference frame.  The world reference frame is
+  // defined by the solver/tracker.
   Eigen::Vector3d point_world;
-  // set because we want it ordered.
+  // FlowImage ids where this FlowPointWorld is observed. ``std::set`` because
+  // we want it ordered by ID which also happens to be chronologic.
   std::set<uint64_t> image_ids;
+  // The computed RMSE of the FlowPointWorld across all observations.  This is
+  // populated by the solver/tracker - if 0 assume it hasn't been set.
   double rmse = 0;
 };
 
-class FlowImage {
- public:
+struct FlowImage {
   uint64_t id;
   google::protobuf::Timestamp stamp;
   Sophus::SE3d camera_pose_world;
