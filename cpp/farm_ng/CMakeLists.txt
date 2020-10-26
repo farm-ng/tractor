@@ -11,6 +11,8 @@ add_library(farm-ng-ipc SHARED
   init.h
   ipc.cpp
   ipc.h
+  video_streamer.h
+  video_streamer.cpp
 )
 target_link_libraries(farm-ng-ipc farm-ng-protobuf gflags dl ${OpenCV_LIBS} ${Boost_FILESYSTEM_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${GLOG_LIBRARIES})
 

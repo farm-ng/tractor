@@ -18,6 +18,8 @@
 
 #include <farm_ng/init.h>
 #include <farm_ng/ipc.h>
+#include <farm_ng/video_streamer.h>
+
 #include <farm_ng/sophus_protobuf.h>
 
 #include <farm_ng_proto/tractor/v1/apriltag.pb.h>
@@ -45,8 +47,6 @@ using farm_ng_proto::tractor::v1::TagLibrary;
 using farm_ng_proto::tractor::v1::TrackingCameraCommand;
 using farm_ng_proto::tractor::v1::TrackingCameraPoseFrame;
 using farm_ng_proto::tractor::v1::Vec2;
-
-DEFINE_bool(jetson, false, "Use jetson hardware encoding.");
 
 namespace farm_ng {
 
@@ -107,6 +107,10 @@ void SetCameraModelFromRs(CameraModel* out, const rs2_intrinsics& intrinsics) {
   switch (intrinsics.model) {
     case RS2_DISTORTION_KANNALA_BRANDT4:
       out->set_distortion_model(CameraModel::DISTORTION_MODEL_KANNALA_BRANDT4);
+      break;
+    case RS2_DISTORTION_INVERSE_BROWN_CONRADY:
+      out->set_distortion_model(
+          CameraModel::DISTORTION_MODEL_INVERSE_BROWN_CONRADY);
       break;
     default:
       CHECK(false) << "Unhandled intrinsics model: "
@@ -180,63 +184,6 @@ EventPb ToNamedPoseEvent(const rs2::pose_frame& rs_pose_frame) {
   return event;
 }
 
-class VideoFileWriter {
- public:
-  VideoFileWriter(EventBus& bus, CameraModel camera_model) : bus_(bus) {
-    image_pb_.mutable_camera_model()->CopyFrom(camera_model);
-    image_pb_.mutable_fps()->set_value(30);
-    image_pb_.mutable_frame_number()->set_value(0);
-  }
-
-  void ResetVideoWriter() {
-    std::string encoder_x264(" x264enc ! ");
-    std::string encoder_omxh264(" omxh264enc bitrate=10000000 ! ");
-
-    auto resource_path = GetUniqueArchiveResource(
-        image_pb_.camera_model().frame_name(), "mp4", "video/mp4");
-    std::string video_writer_dev =
-        std::string("appsrc !") + " videoconvert ! " +
-        (FLAGS_jetson ? encoder_omxh264 : encoder_x264) +
-        " mp4mux ! filesink location=" + resource_path.second.string();
-    LOG(INFO) << "writing video with: " << video_writer_dev;
-    writer_ = std::make_shared<cv::VideoWriter>(
-        video_writer_dev,
-        0,                        // fourcc
-        image_pb_.fps().value(),  // fps
-        cv::Size(image_pb_.camera_model().image_width(),
-                 image_pb_.camera_model().image_height()),
-        false  // isColor
-    );
-    image_pb_.mutable_resource()->CopyFrom(resource_path.first);
-    image_pb_.mutable_frame_number()->set_value(0);
-  }
-  Image AddFrame(cv::Mat image, google::protobuf::Timestamp stamp) {
-    if (!writer_) {
-      ResetVideoWriter();
-    }
-    writer_->write(image);
-    bus_.Send(MakeEvent(image_pb_.camera_model().frame_name() + "/image",
-                        image_pb_, stamp));
-
-    // zero index base for the frame_number, set after send.
-    image_pb_.mutable_frame_number()->set_value(
-        image_pb_.frame_number().value() + 1);
-
-    if (image_pb_.frame_number().value() >= k_max_frames_) {
-      writer_.reset();
-    }
-    return image_pb_;
-  }
-
-  void Close() { writer_.reset(); }
-
- private:
-  EventBus& bus_;
-  Image image_pb_;
-  std::shared_ptr<cv::VideoWriter> writer_;
-  const uint k_max_frames_ = 300;
-};
-
 class TrackingCameraClient {
  public:
   TrackingCameraClient(EventBus& bus)
@@ -271,38 +218,6 @@ class TrackingCameraClient {
                 << base_to_camera_model_->ShortDebugString();
     }
 
-    // TODO(ethanrublee) look up image size from realsense profile.
-
-    std::string encoder_x264 =
-        std::string(
-            " x264enc bitrate=600 speed-preset=ultrafast tune=zerolatency ") +
-        "key-int-max=15 ! video/x-h264,profile=constrained-baseline ! queue " +
-        "max-size-time=100000000 ! h264parse ! ";
-
-    std::string encoder_omxh264 =
-        std::string(" omxh264enc control-rate=1 bitrate=1000000 ! ") +
-        " video/x-h264, stream-format=byte-stream !";
-
-    std::string cmd0 = std::string("appsrc !") + " videoconvert ! " +
-                       (FLAGS_jetson ? encoder_omxh264 : encoder_x264) +
-
-                       " rtph264pay pt=96 mtu=1400 config-interval=10 !" +
-                       " udpsink port=5000";
-    std::cerr << "Running gstreamer with pipeline:\n" << cmd0 << std::endl;
-    std::cerr << "To view streamer run:\n"
-              << "gst-launch-1.0 udpsrc port=5000 "
-                 "! application/x-rtp,encoding-name=H264,payload=96 ! "
-                 "rtph264depay ! h264parse ! queue ! avdec_h264 ! xvimagesink "
-                 "sync=false async=false -e"
-              << std::endl;
-
-    writer_.reset(new cv::VideoWriter(cmd0,
-                                      0,   // fourcc
-                                      10,  // fps
-                                      cv::Size(848, 800),
-                                      true  // isColor
-                                      ));
-
     // Create a configuration for configuring the pipeline with a non default
     // profile
     rs2::config cfg;
@@ -329,8 +244,11 @@ class TrackingCameraClient {
         "tracking_camera/front/left");  // TODO Pass in constructor.
     detector_.reset(new ApriltagDetector(left_camera_model_, &event_bus_));
     LOG(INFO) << " intrinsics model: " << left_camera_model_.ShortDebugString();
-    frame_video_writer_ =
-        std::make_unique<VideoFileWriter>(event_bus_, left_camera_model_);
+    frame_video_writer_ = std::make_unique<VideoStreamer>(
+        event_bus_, left_camera_model_, VideoStreamer::MODE_MP4_FILE);
+
+    udp_streamer_ = std::make_unique<VideoStreamer>(
+        event_bus_, left_camera_model_, VideoStreamer::MODE_MP4_UDP, 5000);
     // setting options for slam:
     // https://github.com/IntelRealSense/librealsense/issues/1011
     // and what to set:
@@ -472,7 +390,7 @@ class TrackingCameraClient {
           count_ = (count_ + 1) % 100;
 
           if (count_ % 3 == 0) {
-            writer_->write(send_frame);
+            udp_streamer_->AddFrame(send_frame, stamp);
           }
           if (!latest_command_.has_record_start()) {
             // Close may be called regardless of state.  If we were recording,
@@ -515,7 +433,7 @@ class TrackingCameraClient {
   }
   boost::asio::io_service& io_service_;
   EventBus& event_bus_;
-  std::unique_ptr<cv::VideoWriter> writer_;
+  std::unique_ptr<VideoStreamer> udp_streamer_;
   // Declare RealSense pipeline, encapsulating the actual device and sensors
   rs2::pipeline pipe_;
   std::mutex mtx_realsense_state_;
@@ -524,7 +442,7 @@ class TrackingCameraClient {
   std::unique_ptr<ApriltagDetector> detector_;
   TrackingCameraCommand latest_command_;
   ApriltagsFilter tag_filter_;
-  std::unique_ptr<VideoFileWriter> frame_video_writer_;
+  std::unique_ptr<VideoStreamer> frame_video_writer_;
   CameraModel left_camera_model_;
 
   std::optional<BaseToCameraModel> base_to_camera_model_;
@@ -534,7 +452,43 @@ class TrackingCameraClient {
 
 void Cleanup(farm_ng::EventBus& bus) {}
 
+void Enumerate() {
+  // Obtain a list of devices currently present on the system
+  rs2::context ctx;
+
+  auto devices_list = ctx.query_devices();
+  size_t device_count = devices_list.size();
+  if (!device_count) {
+    LOG(INFO) << "No device detected. Is it plugged in?";
+    return;
+  }
+  // Retrieve the viable devices
+  std::vector<rs2::device> devices;
+
+  for (auto i = 0u; i < device_count; i++) {
+    try {
+      auto dev = devices_list[i];
+      devices.emplace_back(dev);
+    } catch (const std::exception& e) {
+      std::cout << "Could not create device - " << e.what()
+                << " . Check SDK logs for details" << std::endl;
+    } catch (...) {
+      std::cout << "Failed to created device. Check SDK logs for details"
+                << std::endl;
+    }
+  }
+  for (auto i = 0u; i < devices.size(); ++i) {
+    auto dev = devices[i];
+
+    std::cout << std::left << std::setw(30)
+              << dev.get_info(RS2_CAMERA_INFO_NAME) << std::setw(20)
+              << dev.get_info(RS2_CAMERA_INFO_SERIAL_NUMBER) << std::setw(20)
+              << dev.get_info(RS2_CAMERA_INFO_FIRMWARE_VERSION) << std::endl;
+  }
+}
 int Main(farm_ng::EventBus& bus) {
+  Enumerate();
+  return 0;
   farm_ng::TrackingCameraClient client(bus);
   try {
     bus.get_io_service().run();
