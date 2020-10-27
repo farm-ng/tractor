@@ -17,19 +17,19 @@ void VideoStreamer::ResetVideoStreamer(bool is_color) {
   // TODO(ethanrublee) look up image size from realsense profile.
   std::string gst_pipeline;
   if (mode_ == MODE_MP4_UDP) {
-    image_pb_.mutable_fps()->set_value(10);
+    // image_pb_.mutable_fps()->set_value(30);
     std::string encoder;
     if (FLAGS_jetson) {
       encoder = std::string(" omxh264enc control-rate=1 bitrate=1000000 ! ") +
                 " video/x-h264, stream-format=byte-stream !";
 
     } else {
-      encoder =
-          std::string(
-              " x264enc bitrate=600 speed-preset=ultrafast tune=zerolatency ") +
-          "key-int-max=15 ! video/x-h264,profile=constrained-baseline ! "
-          "queue " +
-          "max-size-time=100000000 ! h264parse ! ";
+      encoder = std::string(
+                    " x264enc bitrate=10000 speed-preset=ultrafast "
+                    "tune=zerolatency ") +
+                "key-int-max=15 ! video/x-h264,profile=constrained-baseline ! "
+                "queue " +
+                "max-size-time=100000000 ! h264parse ! ";
     }
     gst_pipeline = std::string("appsrc !") + " videoconvert ! " + encoder +
                    " rtph264pay pt=96 mtu=1400 config-interval=10 !" +

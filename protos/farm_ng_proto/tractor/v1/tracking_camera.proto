@@ -1,7 +1,9 @@
 syntax = "proto3";
 
 import "google/protobuf/timestamp.proto";
+import "google/protobuf/wrappers.proto";
 import "farm_ng_proto/tractor/v1/geometry.proto";
+
 package farm_ng_proto.tractor.v1;
 option go_package = "github.com/farm_ng/genproto";
 
@@ -56,4 +58,23 @@ message TrackingCameraCommand {
     RecordStop record_stop = 3;
     RecordStart record_start = 1;
   }
+}
+
+message CameraConfig {
+  enum Model {
+    MODEL_UNSPECIFIED = 0;
+    MODEL_INTEL_T265 = 1;
+    MODEL_INTEL_D435I = 2;
+    MODEL_INTEL_D415 = 3;
+  }
+
+  string name = 1;
+  string serial_number = 2;
+  Model model = 3;
+
+  google.protobuf.Int32Value udp_stream_port = 4;
+}
+
+message TrackingCameraConfig {
+  repeated CameraConfig camera_configs = 1;
 }

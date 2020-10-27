@@ -37,6 +37,7 @@ using farm_ng_proto::tractor::v1::ApriltagDetection;
 using farm_ng_proto::tractor::v1::ApriltagDetections;
 using farm_ng_proto::tractor::v1::BUCKET_CONFIGURATIONS;
 using farm_ng_proto::tractor::v1::CalibrateBaseToCameraResult;
+using farm_ng_proto::tractor::v1::CameraConfig;
 using farm_ng_proto::tractor::v1::CameraModel;
 using farm_ng_proto::tractor::v1::Image;
 using farm_ng_proto::tractor::v1::NamedSE3Pose;
@@ -45,6 +46,7 @@ using farm_ng_proto::tractor::v1::Subscription;
 using farm_ng_proto::tractor::v1::TagConfig;
 using farm_ng_proto::tractor::v1::TagLibrary;
 using farm_ng_proto::tractor::v1::TrackingCameraCommand;
+using farm_ng_proto::tractor::v1::TrackingCameraConfig;
 using farm_ng_proto::tractor::v1::TrackingCameraPoseFrame;
 using farm_ng_proto::tractor::v1::Vec2;
 
@@ -184,6 +186,91 @@ EventPb ToNamedPoseEvent(const rs2::pose_frame& rs_pose_frame) {
   return event;
 }
 
+class IntelFrameGrabber {
+ public:
+  IntelFrameGrabber(EventBus& event_bus, rs2::context& ctx, CameraConfig config)
+      : event_bus_(event_bus), pipe_(ctx), config_(config) {
+    rs2::config cfg;
+    cfg.enable_device(config_.serial_number());
+    if (config_.model() == CameraConfig::MODEL_INTEL_T265) {
+      cfg.enable_stream(RS2_STREAM_FISHEYE, 1, RS2_FORMAT_Y8);
+      cfg.enable_stream(RS2_STREAM_FISHEYE, 2, RS2_FORMAT_Y8);
+      auto profile = cfg.resolve(pipe_);
+      auto tm2 = profile.get_device().as<rs2::tm2>();
+      //    auto pose_sensor = tm2.first<rs2::pose_sensor>();
+
+      // Start pipe and get camera calibrations
+      const int fisheye_sensor_idx = 1;  // for the left fisheye lens of T265
+      auto fisheye_stream =
+          profile.get_stream(RS2_STREAM_FISHEYE, fisheye_sensor_idx);
+      auto fisheye_intrinsics =
+          fisheye_stream.as<rs2::video_stream_profile>().get_intrinsics();
+
+      SetCameraModelFromRs(&camera_model_, fisheye_intrinsics);
+      camera_model_.set_frame_name(config.name() + "/left");
+    } else if (config_.model() == CameraConfig::MODEL_INTEL_D435I) {
+      cfg.enable_stream(RS2_STREAM_COLOR, 1280, 720, RS2_FORMAT_BGR8, 15);
+
+      auto profile = cfg.resolve(pipe_);
+      auto color_intrinsics = profile.get_stream(RS2_STREAM_COLOR)
+                                  .as<rs2::video_stream_profile>()
+                                  .get_intrinsics();
+      SetCameraModelFromRs(&camera_model_, color_intrinsics);
+      camera_model_.set_frame_name(config.name() + "/color");
+    }
+    detector_.reset(new ApriltagDetector(camera_model_, &event_bus_));
+
+    LOG(INFO) << " intrinsics model: " << camera_model_.ShortDebugString();
+    frame_video_writer_ = std::make_unique<VideoStreamer>(
+        event_bus_, camera_model_, VideoStreamer::MODE_MP4_FILE);
+
+    if (config_.has_udp_stream_port()) {
+      udp_streamer_ = std::make_unique<VideoStreamer>(
+          event_bus_, camera_model_, VideoStreamer::MODE_MP4_UDP,
+          config_.udp_stream_port().value());
+    }
+
+    pipe_.start(cfg, std::bind(&IntelFrameGrabber::frame_callback, this,
+                               std::placeholders::_1));
+  }
+
+  // The callback is executed on a sensor thread and can be called
+  // simultaneously from multiple sensors Therefore any modification to common
+  // memory should be done under lock
+  void frame_callback(const rs2::frame& frame) {
+    if (rs2::frameset fs = frame.as<rs2::frameset>()) {
+      std::optional<rs2::video_frame> video_frame;
+      if (config_.model() == CameraConfig::MODEL_INTEL_D435I) {
+        video_frame = fs.get_color_frame();
+      } else {
+        video_frame = fs.get_fisheye_frame(0);
+      }
+
+      // Add a reference to fisheye_frame, cause we're scheduling
+      // april tag detection for later.
+      video_frame->keep();
+      cv::Mat frame_0 = RS2FrameToMat(*video_frame);
+      auto stamp = google::protobuf::util::TimeUtil::MillisecondsToTimestamp(
+          video_frame->get_timestamp());
+
+      std::lock_guard<std::mutex> lock(mtx_);
+      count_ = (count_ + 1) % 100;
+      if (count_ % 1 == 0) {
+        udp_streamer_->AddFrame(frame_0, stamp);
+      }
+    }
+  }
+  EventBus& event_bus_;
+  rs2::pipeline pipe_;
+  CameraConfig config_;
+  CameraModel camera_model_;
+  std::unique_ptr<ApriltagDetector> detector_;
+  std::unique_ptr<VideoStreamer> udp_streamer_;
+  std::unique_ptr<VideoStreamer> frame_video_writer_;
+  std::mutex mtx_;
+  int count_ = 0;
+};
+
 class TrackingCameraClient {
  public:
   TrackingCameraClient(EventBus& bus)
@@ -218,51 +305,15 @@ class TrackingCameraClient {
                 << base_to_camera_model_->ShortDebugString();
     }
 
-    // Create a configuration for configuring the pipeline with a non default
-    // profile
-    rs2::config cfg;
-    // Add pose stream
-    // cfg.enable_stream(RS2_STREAM_POSE, RS2_FORMAT_6DOF);
-    // Enable both image streams
-    // Note: It is not currently possible to enable only one
-    cfg.enable_stream(RS2_STREAM_FISHEYE, 1, RS2_FORMAT_Y8);
-    cfg.enable_stream(RS2_STREAM_FISHEYE, 2, RS2_FORMAT_Y8);
+    TrackingCameraConfig config =
+        ReadProtobufFromJsonFile<TrackingCameraConfig>(
+            GetBucketAbsolutePath(Bucket::BUCKET_CONFIGURATIONS) /
+            "camera.json");
 
-    auto profile = cfg.resolve(pipe_);
-    auto tm2 = profile.get_device().as<rs2::tm2>();
-    //    auto pose_sensor = tm2.first<rs2::pose_sensor>();
-
-    // Start pipe and get camera calibrations
-    const int fisheye_sensor_idx = 1;  // for the left fisheye lens of T265
-    auto fisheye_stream =
-        profile.get_stream(RS2_STREAM_FISHEYE, fisheye_sensor_idx);
-    auto fisheye_intrinsics =
-        fisheye_stream.as<rs2::video_stream_profile>().get_intrinsics();
-
-    SetCameraModelFromRs(&left_camera_model_, fisheye_intrinsics);
-    left_camera_model_.set_frame_name(
-        "tracking_camera/front/left");  // TODO Pass in constructor.
-    detector_.reset(new ApriltagDetector(left_camera_model_, &event_bus_));
-    LOG(INFO) << " intrinsics model: " << left_camera_model_.ShortDebugString();
-    frame_video_writer_ = std::make_unique<VideoStreamer>(
-        event_bus_, left_camera_model_, VideoStreamer::MODE_MP4_FILE);
-
-    udp_streamer_ = std::make_unique<VideoStreamer>(
-        event_bus_, left_camera_model_, VideoStreamer::MODE_MP4_UDP, 5000);
-    // setting options for slam:
-    // https://github.com/IntelRealSense/librealsense/issues/1011
-    // and what to set:
-    //  https://github.com/IntelRealSense/realsense-ros/issues/779 "
-    // I would suggest leaving mapping enabled, but disabling
-    // relocalization and jumping. This may avoid the conflict with
-    // RTabMap while still giving good results."
-
-    // pose_sensor.set_option(RS2_OPTION_ENABLE_POSE_JUMPING, 0);
-    // pose_sensor.set_option(RS2_OPTION_ENABLE_RELOCALIZATION, 0);
-
-    // Start pipeline with chosen configuration
-    pipe_.start(cfg, std::bind(&TrackingCameraClient::frame_callback, this,
-                               std::placeholders::_1));
+    for (const CameraConfig& camera_config : config.camera_configs()) {
+      frame_grabbers_.emplace_back(
+          std::make_unique<IntelFrameGrabber>(event_bus_, ctx_, camera_config));
+    }
   }
 
   void on_command(const TrackingCameraCommand& command) {
@@ -296,10 +347,11 @@ class TrackingCameraClient {
   }
 
   void record_every_frame(cv::Mat image, google::protobuf::Timestamp stamp) {
-    frame_video_writer_->AddFrame(image, stamp);
+    // frame_video_writer_->AddFrame(image, stamp);
   }
 
   void detect_apriltags(cv::Mat image, google::protobuf::Timestamp stamp) {
+#if 0
     auto image_pb = frame_video_writer_->AddFrame(image, stamp);
 
     auto apriltags = detector_->Detect(image, stamp);
@@ -320,10 +372,12 @@ class TrackingCameraClient {
 
     event_bus_.Send(farm_ng::MakeEvent("tracking_camera/front/apriltags",
                                        apriltags, stamp));
+#endif
   }
 
   void RecordEveryApriltagFrame(cv::Mat image,
                                 google::protobuf::Timestamp stamp) {
+#if 0
     auto apriltags = detector_->Detect(image, stamp);
     auto image_pb = frame_video_writer_->AddFrame(image, stamp);
 
@@ -332,12 +386,14 @@ class TrackingCameraClient {
         "calibrator/tracking_camera/front/apriltags", apriltags, stamp));
     event_bus_.Send(farm_ng::MakeEvent("tracking_camera/front/apriltags",
                                        apriltags, stamp));
+#endif
   }
 
   // The callback is executed on a sensor thread and can be called
   // simultaneously from multiple sensors Therefore any modification to common
   // memory should be done under lock
   void frame_callback(const rs2::frame& frame) {
+#if 0
     if (rs2::frameset fs = frame.as<rs2::frameset>()) {
       rs2::video_frame fisheye_frame = fs.get_fisheye_frame(0);
       // Add a reference to fisheye_frame, cause we're scheduling
@@ -417,23 +473,14 @@ class TrackingCameraClient {
           }
         });
       }
-    } /* else if (rs2::pose_frame pose_frame = frame.as<rs2::pose_frame>()) {
-      // HACK disable for now, this harms the ipc perfomance.
-      auto pose_data = pose_frame.get_pose_data();
-      // Print the x, y, z values of the translation, relative to initial
-      // position
-      std::cout << "\r Device Position: " << std::setprecision(3) << std::fixed
-                << pose_data.translation.x << " " << pose_data.translation.y
-                << " " << pose_data.translation.z << " (meters)";
-      event_bus_.Send(farm_ng::MakeEvent("tracking_camera/front/pose",
-                                         ToPoseFrame(pose_frame)));
-      event_bus_.Send(ToNamedPoseEvent(pose_frame));
-
-  } */
+    }
+#endif
   }
   boost::asio::io_service& io_service_;
   EventBus& event_bus_;
-  std::unique_ptr<VideoStreamer> udp_streamer_;
+  rs2::context ctx_;
+  std::vector<std::unique_ptr<IntelFrameGrabber>> frame_grabbers_;
+
   // Declare RealSense pipeline, encapsulating the actual device and sensors
   rs2::pipeline pipe_;
   std::mutex mtx_realsense_state_;
@@ -442,12 +489,13 @@ class TrackingCameraClient {
   std::unique_ptr<ApriltagDetector> detector_;
   TrackingCameraCommand latest_command_;
   ApriltagsFilter tag_filter_;
-  std::unique_ptr<VideoStreamer> frame_video_writer_;
-  CameraModel left_camera_model_;
 
+  CameraModel left_camera_model_;
+  TrackingCameraConfig config_;
+  std::map<std::string, CameraModel> camera_models_;
   std::optional<BaseToCameraModel> base_to_camera_model_;
   std::unique_ptr<VisualOdometer> vo_;
-};
+};  // namespace farm_ng
 }  // namespace farm_ng
 
 void Cleanup(farm_ng::EventBus& bus) {}
@@ -486,9 +534,8 @@ void Enumerate() {
               << dev.get_info(RS2_CAMERA_INFO_FIRMWARE_VERSION) << std::endl;
   }
 }
+
 int Main(farm_ng::EventBus& bus) {
-  Enumerate();
-  return 0;
   farm_ng::TrackingCameraClient client(bus);
   try {
     bus.get_io_service().run();
