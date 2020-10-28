@@ -53,7 +53,7 @@ class ApriltagConfigManager:
     @staticmethod
     def default():
         config = ApriltagConfig()
-        config.tag_library.tags.extend([TagConfig(id=id, size=0.16) for id in range(0, 100)])
+        config.tag_library.tags.extend([TagConfig(id=id, size=0.16) for id in range(0, 10)])
         return config
 
 
@@ -108,6 +108,12 @@ def main():
     gencamera_parser = subparsers.add_parser('gencamera')
     gencamera_parser.set_defaults(func=gencamera)
 
+    list_parser = subparsers.add_parser('list')
+    list_parser.set_defaults(
+        func=(
+            lambda args: print(' '.join([c[3:] for c in subparsers.choices.keys() if c.startswith('gen')]))
+        ),
+    )
     args = parser.parse_args()
     if not hasattr(args, 'func'):
         parser.print_help()
