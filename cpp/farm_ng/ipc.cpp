@@ -276,12 +276,12 @@ class EventBusImpl {
     if (recipient_list.empty()) {
       return;
     }
-
-    event.SerializeToString(&event_message_);
-    CHECK_LT(int(event_message_.size()), max_datagram_size)
+    std::string event_message;
+    event.SerializeToString(&event_message);
+    CHECK_LT(int(event_message.size()), max_datagram_size)
         << "Event is too big, doesn't fit in one udp packet.";
     for (const auto& recipient : recipient_list) {
-      socket_.send_to(boost::asio::buffer(event_message_), recipient);
+      socket_.send_to(boost::asio::buffer(event_message), recipient);
     }
   }
 
@@ -320,9 +320,11 @@ class EventBusImpl {
   boost::asio::ip::udp::endpoint sender_endpoint_;
   char data_[max_datagram_size];
   std::string announce_message_;
-  std::string event_message_;
+
   std::string service_name_ = "unknown [cpp-ipc]";
   std::vector<Subscription> subscriptions_;
+
+  std::mutex recipients_mtx_;
 
  public:
   std::map<std::string, Event> state_;

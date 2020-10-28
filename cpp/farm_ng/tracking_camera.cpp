@@ -3,6 +3,7 @@
 #include <iomanip>
 #include <iostream>
 #include <mutex>
+#include <thread>
 
 #include <gflags/gflags.h>
 #include <glog/logging.h>
@@ -69,11 +70,13 @@ class MultiCameraSync {
   MultiCameraSync(EventBus& event_bus)
       : event_bus_(event_bus), timer_(event_bus.get_io_service()) {}
 
-  void AddCameraConfig(const CameraConfig& camera_config) {
+  CameraModel AddCameraConfig(const CameraConfig& camera_config) {
     frame_grabbers_.emplace_back(
         std::make_unique<IntelFrameGrabber>(event_bus_, camera_config));
     frame_grabbers_.back()->VisualFrameSignal().connect(
+
         std::bind(&MultiCameraSync::OnFrame, this, std::placeholders::_1));
+    return frame_grabbers_.back()->GetCameraModel();
   }
   Signal& GetSynchronizedFrameDataSignal() { return signal_; }
 
@@ -160,71 +163,207 @@ class MultiCameraSync {
   google::protobuf::Timestamp latest_frame_stamp_;
   Signal signal_;
 };
+cv::Mat ConstructGridImage(const std::vector<cv::Mat>& images,
+                           cv::Size out_size, int n_cols) {
+  cv::Mat grid_image = cv::Mat::zeros(out_size, CV_8UC3);
 
+  int n_rows = std::ceil(images.size() / float(n_cols));
+  size_t i = 0;
+  int target_width = grid_image.size().width / n_cols;
+  int target_height = grid_image.size().height / n_rows;
+  for (int row = 0; row < n_rows && i < images.size(); ++row) {
+    for (int col = 0; col < n_cols && i < images.size(); ++col, ++i) {
+      cv::Mat image_i = images[i];
+      float width_ratio = target_width / float(image_i.size().width);
+      float height_ratio = target_height / float(image_i.size().height);
+      float resize_ratio = std::min(width_ratio, height_ratio);
+      int i_width = image_i.size().width * resize_ratio;
+      int i_height = image_i.size().height * resize_ratio;
+      cv::Rect roi(col * target_width, row * target_height, i_width, i_height);
+      cv::Mat color_i;
+      if (image_i.channels() == 1) {
+        cv::cvtColor(image_i, color_i, cv::COLOR_GRAY2BGR);
+      } else {
+        color_i = image_i;
+        CHECK_EQ(color_i.channels(), 3);
+      }
+
+      cv::resize(color_i, grid_image(roi), roi.size());
+    }
+  }
+  return grid_image;
+}
+
+class ThreadPool {
+ public:
+  ThreadPool() {}
+
+  void Stop() { io_service_.stop(); }
+
+  void Start(size_t n_threads) {
+    CHECK_GT(n_threads, 0);
+    CHECK(threads_.empty()) << "ThreadPool already started. Call Join().";
+    io_service_.reset();
+    for (size_t i = 0; i < n_threads; ++i) {
+      threads_.emplace_back([this]() { io_service_.run(); });
+    }
+  }
+
+  void Join() {
+    for (auto& thread : threads_) {
+      thread.join();
+    }
+    threads_.clear();
+  }
+
+  boost::asio::io_service& get_io_service() { return io_service_; }
+
+ private:
+  boost::asio::io_service io_service_;
+  std::vector<std::thread> threads_;
+};
+
+class SingleCameraPipeline {
+ public:
+  SingleCameraPipeline(EventBus& event_bus,
+                       boost::asio::io_service& pool_service,
+                       const CameraConfig& camera_config,
+                       const CameraModel& camera_model)
+      : event_bus_(event_bus),
+        strand_(pool_service),
+        camera_model_(camera_model),
+        detector_(camera_model_),
+        video_file_writer_(event_bus_, camera_model_,
+                           VideoStreamer::Mode::MODE_MP4_FILE),
+        post_count_(0) {
+    if (camera_config.has_udp_stream_port()) {
+      udp_streamer_ = std::make_unique<VideoStreamer>(
+          event_bus_, camera_model_, VideoStreamer::MODE_MP4_UDP,
+          camera_config.udp_stream_port().value());
+    }
+  }
+
+  void Post(TrackingCameraCommand command) {
+    strand_.post([this, command] {
+      latest_command_.CopyFrom(command);
+      LOG(INFO) << "Camera pipeline: " << camera_model_.frame_name()
+                << " command: " << latest_command_.ShortDebugString();
+    });
+  }
+
+  int PostCount() const { return post_count_; }
+  void Post(FrameData frame_data) {
+    post_count_++;
+    strand_.post([this, frame_data] {
+      Compute(frame_data);
+      post_count_--;
+      CHECK_GE(post_count_, 0);
+    });
+  }
+
+  void Compute(FrameData frame_data) {
+    if (udp_streamer_) {
+      udp_streamer_->AddFrame(frame_data.image, frame_data.stamp());
+    }
+    switch (latest_command_.record_start().mode()) {
+      case TrackingCameraCommand::RecordStart::MODE_EVERY_FRAME: {
+        video_file_writer_.AddFrame(frame_data.image, frame_data.stamp());
+      } break;
+      case TrackingCameraCommand::RecordStart::MODE_EVERY_APRILTAG_FRAME: {
+        cv::Mat gray;
+        if (frame_data.image.channels() != 1) {
+          cv::cvtColor(frame_data.image, gray, cv::COLOR_BGR2GRAY);
+        } else {
+          gray = frame_data.image;
+        }
+        auto apriltags = detector_.Detect(gray, frame_data.stamp());
+        auto image_pb =
+            video_file_writer_.AddFrame(frame_data.image, frame_data.stamp());
+        apriltags.mutable_image()->CopyFrom(image_pb);
+        event_bus_.Send(farm_ng::MakeEvent(
+            frame_data.camera_model.frame_name() + "/apriltags", apriltags,
+            frame_data.stamp()));
+      } break;
+      case TrackingCameraCommand::RecordStart::MODE_APRILTAG_STABLE:
+        LOG(INFO) << "Mode not support.";
+        break;
+      default:
+        break;
+    }
+
+    if (!latest_command_.has_record_start()) {
+      // Close may be called regardless of state.  If we were recording,
+      // it closes the video file on the last chunk.
+      video_file_writer_.Close();
+      // Disposes of apriltag config (tag library, etc.)
+      detector_.Close();
+    }
+  }
+
+  EventBus& event_bus_;
+  boost::asio::strand strand_;
+  CameraModel camera_model_;
+  ApriltagDetector detector_;
+  VideoStreamer video_file_writer_;
+  std::unique_ptr<VideoStreamer> udp_streamer_;
+  TrackingCameraCommand latest_command_;
+  std::atomic<int> post_count_;
+};
 class MultiCameraPipeline {
  public:
   MultiCameraPipeline(EventBus& event_bus)
       : event_bus_(event_bus),
+        work_(pool_.get_io_service()),
         udp_streamer_(event_bus, Default1080HDCameraModel(),
                       VideoStreamer::MODE_MP4_UDP, 5000) {}
 
-  void OnFrame(const std::vector<FrameData>& synced_frame_data) {
-    cv::Mat grid_image = cv::Mat::zeros(cv::Size(1920, 1080), CV_8UC3);
-    int n_cols = 2;
-    int n_rows = std::ceil(synced_frame_data.size() / float(n_cols));
-    size_t i = 0;
-    int target_width = grid_image.size().width / n_cols;
-    int target_height = grid_image.size().height / n_rows;
-    for (int row = 0; row < n_rows && i < synced_frame_data.size(); ++row) {
-      for (int col = 0; col < n_cols && i < synced_frame_data.size();
-           ++col, ++i) {
-        cv::Mat image_i = synced_frame_data[i].image;
-        float width_ratio = target_width / float(image_i.size().width);
-        float height_ratio = target_height / float(image_i.size().height);
-        float resize_ratio = std::min(width_ratio, height_ratio);
-        int i_width = image_i.size().width * resize_ratio;
-        int i_height = image_i.size().height * resize_ratio;
-        cv::Rect roi(col * target_width, row * target_height, i_width,
-                     i_height);
-        cv::Mat color_i;
-        if (image_i.channels() == 1) {
-          cv::cvtColor(image_i, color_i, cv::COLOR_GRAY2BGR);
-        } else {
-          color_i = image_i;
-          CHECK_EQ(color_i.channels(), 3);
-        }
+  void Start(size_t n_threads) { pool_.Start(n_threads); }
 
-        cv::resize(color_i, grid_image(roi), roi.size());
+  void AddCamera(const CameraConfig& camera_config,
+                 const CameraModel& camera_model) {
+    pipelines_.emplace(std::piecewise_construct,
+                       std::forward_as_tuple(camera_model.frame_name()),
+                       std::forward_as_tuple(event_bus_, pool_.get_io_service(),
+                                             camera_config, camera_model));
+  }
+
+  void Post(TrackingCameraCommand command) {
+    for (auto& pipeline : pipelines_) {
+      pipeline.second.Post(command);
+    }
+  }
+
+  void OnFrame(const std::vector<FrameData>& synced_frame_data) {
+    CHECK(!synced_frame_data.empty());
+    CHECK(!pool_.get_io_service().stopped());
+    bool do_post = true;
+    for (auto& pipeline : pipelines_) {
+      if (pipeline.second.PostCount() > 0) {
+        do_post = false;
       }
     }
-    udp_streamer_.AddFrame(grid_image, synced_frame_data.front().stamp());
+    if (!do_post) {
+      VLOG(1) << "pipeline full.";
+    }
+
+    std::vector<cv::Mat> images;
+    for (const FrameData& frame : synced_frame_data) {
+      if (do_post) {
+        pipelines_.at(frame.camera_model.frame_name()).Post(frame);
+      }
+      images.push_back(frame.image);
+    }
+    udp_streamer_.AddFrame(ConstructGridImage(images, cv::Size(1920, 1080), 2),
+                           synced_frame_data.front().stamp());
   }
   EventBus& event_bus_;
+
+  ThreadPool pool_;
+  boost::asio::io_service::work work_;
   VideoStreamer udp_streamer_;
+  std::map<std::string, SingleCameraPipeline> pipelines_;
 };
 
-// class CameraPipeline {
-//  public:
-//   CameraPipline(EventBus& event_bus, const CameraConfig& camera_config,
-//                 const CameraModel& camera_model)
-//       : event_bus_(event_bus),
-//       camera_config_(camera_config),
-//         camera_model_(camera_model),
-//         detector_(camera_model, &event_bus),
-//          {}
-
-//   void OnFrame(const CameraConfig& camera_config, const CameraModel& model,
-//                const cv::Mat& image, const google::protobuf::Timestamp&
-//                stamp) {
-
-//   }
-//   EventBus& event_bus_;
-//   CameraConfig camera_config_;
-//   CameraModel camera_model_;
-//   ApriltagDetector detector_;
-//   VideoStreamer video_file_writer_;
-//   std::optional<VideoStreamer> udp_streamer_
-// };
 class TrackingCameraClient {
  public:
   TrackingCameraClient(EventBus& bus)
@@ -268,18 +407,20 @@ class TrackingCameraClient {
             GetBucketAbsolutePath(Bucket::BUCKET_CONFIGURATIONS) /
             "camera.json");
 
+    multi_camera_pipeline_.Start(config.camera_configs().size());
     for (const CameraConfig& camera_config : config.camera_configs()) {
-      multi_camera_.AddCameraConfig(camera_config);
+      auto camera_model = multi_camera_.AddCameraConfig(camera_config);
+      multi_camera_pipeline_.AddCamera(camera_config, camera_model);
     }
 
     multi_camera_.GetSynchronizedFrameDataSignal().connect(
-        std::bind(&MultiCameraPipeline::OnFrame, multi_camera_pipeline_,
+        std::bind(&MultiCameraPipeline::OnFrame, &multi_camera_pipeline_,
                   std::placeholders::_1));
   }
 
   void on_command(const TrackingCameraCommand& command) {
     latest_command_ = command;
-    LOG(INFO) << "Got command: " << latest_command_.ShortDebugString();
+    multi_camera_pipeline_.Post(latest_command_);
   }
 
   void on_event(const EventPb& event) {

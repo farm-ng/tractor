@@ -89,8 +89,6 @@ Eigen::Matrix<T, 3, 1> ReprojectPixelToPoint(
   using std::abs;
   using std::sqrt;
   using std::tan;
-  CHECK_EQ(camera.distortion_model(),
-           CameraModel::DISTORTION_MODEL_KANNALA_BRANDT4);
   const T kEps(std::numeric_limits<float>::epsilon());
   T x = (pixel.x() - T(camera.cx())) / T(camera.fx());
   T y = (pixel.y() - T(camera.cy())) / T(camera.fy());

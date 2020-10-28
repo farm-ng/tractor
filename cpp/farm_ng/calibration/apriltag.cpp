@@ -270,7 +270,7 @@ class ApriltagDetector::Impl {
 
     apriltag_detector_add_family(tag_detector_.get(), tag_family_.get());
     tag_detector_->quad_decimate = 1.0;
-    tag_detector_->quad_sigma = 0.0;
+    tag_detector_->quad_sigma = 0.8;
     tag_detector_->nthreads = 1;
     tag_detector_->debug = false;
     tag_detector_->refine_edges = true;
@@ -326,20 +326,20 @@ class ApriltagDetector::Impl {
         auto* named_pose = detection->mutable_pose();
         SophusToProto(*pose, named_pose->mutable_a_pose_b());
         named_pose->mutable_a_pose_b()->mutable_stamp()->CopyFrom(stamp);
-        named_pose->set_frame_a("tracking_camera/front/left");
+        named_pose->set_frame_a(camera_model_.frame_name());
         named_pose->set_frame_b("tag/" + std::to_string(det->id));
         if (event_bus_) {
-          event_bus_->Send(MakeEvent(
-              "pose/tracking_camera/front/left/tag/" + std::to_string(det->id),
-              *named_pose, stamp));
+          event_bus_->Send(MakeEvent("pose/" + camera_model_.frame_name() +
+                                         "/tag/" + std::to_string(det->id),
+                                     *named_pose, stamp));
         }
       }
     }
     auto stop = std::chrono::high_resolution_clock::now();
     auto duration =
-        std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+        std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
     LOG_EVERY_N(INFO, 100) << "april tag detection took: " << duration.count()
-                           << " microseconds\n"
+                           << " milliseconds\n"
                            << pb_out.ShortDebugString();
     return pb_out;
   }
