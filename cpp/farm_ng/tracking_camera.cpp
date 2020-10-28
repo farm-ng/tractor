@@ -13,25 +13,18 @@
 #include <opencv2/opencv.hpp>
 
 #include <farm_ng/calibration/apriltag.h>
-#include <farm_ng/calibration/camera_model.h>
-
 #include <farm_ng/calibration/base_to_camera_calibrator.h>
-#include <farm_ng/calibration/visual_odometer.h>
-
+#include <farm_ng/calibration/camera_model.h>
+#include <farm_ng/calibration/time_series.h>
 #include <farm_ng/init.h>
 #include <farm_ng/intel_frame_grabber.h>
 #include <farm_ng/ipc.h>
-#include <farm_ng/video_streamer.h>
-
 #include <farm_ng/sophus_protobuf.h>
-
+#include <farm_ng/video_streamer.h>
 #include <farm_ng_proto/tractor/v1/apriltag.pb.h>
-#include <farm_ng_proto/tractor/v1/geometry.pb.h>
-#include <farm_ng_proto/tractor/v1/steering.pb.h>
-#include <farm_ng_proto/tractor/v1/tracking_camera.pb.h>
-#include <farm_ng_proto/tractor/v1/tractor.pb.h>
-
 #include <farm_ng_proto/tractor/v1/calibrate_base_to_camera.pb.h>
+#include <farm_ng_proto/tractor/v1/geometry.pb.h>
+#include <farm_ng_proto/tractor/v1/tracking_camera.pb.h>
 
 typedef farm_ng_proto::tractor::v1::Event EventPb;
 
@@ -44,7 +37,6 @@ using farm_ng_proto::tractor::v1::CameraConfig;
 using farm_ng_proto::tractor::v1::CameraModel;
 using farm_ng_proto::tractor::v1::Image;
 using farm_ng_proto::tractor::v1::NamedSE3Pose;
-using farm_ng_proto::tractor::v1::SteeringCommand;
 using farm_ng_proto::tractor::v1::Subscription;
 using farm_ng_proto::tractor::v1::TagConfig;
 using farm_ng_proto::tractor::v1::TagLibrary;
@@ -54,12 +46,6 @@ using farm_ng_proto::tractor::v1::TrackingCameraPoseFrame;
 using farm_ng_proto::tractor::v1::Vec2;
 
 namespace farm_ng {
-
-struct ScopeGuard {
-  ScopeGuard(std::function<void()> function) : function_(std::move(function)) {}
-  ~ScopeGuard() { function_(); }
-  std::function<void()> function_;
-};
 
 class MultiCameraSync {
  public:
@@ -407,7 +393,9 @@ class TrackingCameraClient {
             GetBucketAbsolutePath(Bucket::BUCKET_CONFIGURATIONS) /
             "camera.json");
 
+    // This starts a thread per camera for processing.
     multi_camera_pipeline_.Start(config.camera_configs().size());
+
     for (const CameraConfig& camera_config : config.camera_configs()) {
       auto camera_model = multi_camera_.AddCameraConfig(camera_config);
       multi_camera_pipeline_.AddCamera(camera_config, camera_model);
@@ -429,177 +417,15 @@ class TrackingCameraClient {
       on_command(command);
       return;
     }
-    TractorState state;
-    if (event.data().UnpackTo(&state) && vo_) {
-      BaseToCameraModel::WheelMeasurement wheel_measurement;
-      CopyTractorStateToWheelState(state, &wheel_measurement);
-      // LOG(INFO) <<wheel_measurement.ShortDebugString();
-      vo_->AddWheelMeasurements(wheel_measurement);
-      return;
-    }
-    SteeringCommand steering;
-    if (vo_ && event.data().UnpackTo(&steering)) {
-      if (steering.reset_goal()) {
-        vo_->SetGoal();
-      }
-      if (std::abs(steering.angular_velocity()) > 0.0) {
-        vo_->AdjustGoalAngle(steering.angular_velocity() * 1 / 50.0);
-      }
-    }
   }
 
-  void record_every_frame(cv::Mat image, google::protobuf::Timestamp stamp) {
-    // frame_video_writer_->AddFrame(image, stamp);
-  }
-
-  void detect_apriltags(cv::Mat image, google::protobuf::Timestamp stamp) {
-#if 0
-    auto image_pb = frame_video_writer_->AddFrame(image, stamp);
-
-    auto apriltags = detector_->Detect(image, stamp);
-
-    if (tag_filter_.AddApriltags(apriltags)) {
-      auto resource_path = GetUniqueArchiveResource(
-          "tracking_camera_left_apriltag", "png", "image/png");
-      apriltags.mutable_image()->mutable_resource()->CopyFrom(
-          resource_path.first);
-
-      LOG(INFO) << "Writing to : " << resource_path.second;
-      CHECK(cv::imwrite(resource_path.second.string(), image))
-          << "Failed to write image to: " << resource_path.second;
-
-      event_bus_.Send(farm_ng::MakeEvent(
-          "calibrator/tracking_camera/front/apriltags", apriltags, stamp));
-    }
-
-    event_bus_.Send(farm_ng::MakeEvent("tracking_camera/front/apriltags",
-                                       apriltags, stamp));
-#endif
-  }
-
-  void RecordEveryApriltagFrame(cv::Mat image,
-                                google::protobuf::Timestamp stamp) {
-#if 0
-    auto apriltags = detector_->Detect(image, stamp);
-    auto image_pb = frame_video_writer_->AddFrame(image, stamp);
-
-    apriltags.mutable_image()->CopyFrom(image_pb);
-    event_bus_.Send(farm_ng::MakeEvent(
-        "calibrator/tracking_camera/front/apriltags", apriltags, stamp));
-    event_bus_.Send(farm_ng::MakeEvent("tracking_camera/front/apriltags",
-                                       apriltags, stamp));
-#endif
-  }
-#if 0
-  // The callback is executed on a sensor thread and can be called
-  // simultaneously from multiple sensors Therefore any modification to common
-  // memory should be done under lock
-  void FrameCallback(const CameraConfig& camera_config,
-                     const CameraModel& model, const cv::Mat& image,
-                     const google::protobuf::Timestamp& stamp) {
-    if (rs2::frameset fs = frame.as<rs2::frameset>()) {
-      rs2::video_frame fisheye_frame = fs.get_fisheye_frame(0);
-      // Add a reference to fisheye_frame, cause we're scheduling
-      // april tag detection for later.
-      fisheye_frame.keep();
-      cv::Mat frame_0 = RS2FrameToMat(fisheye_frame);
-
-      // lock for rest of scope, so we can edit some member state.
-      std::lock_guard<std::mutex> lock(mtx_realsense_state_);
-
-      // we only want to schedule detection if we're not currently
-      // detecting.  Apriltag detection takes >30ms on the nano.
-      if (!detection_in_progress_) {
-        detection_in_progress_ = true;
-
-        auto stamp = google::protobuf::util::TimeUtil::MillisecondsToTimestamp(
-            fisheye_frame.get_timestamp());
-
-        // schedule april tag detection, do it as frequently as possible.
-        io_service_.post([this, fisheye_frame, stamp] {
-          // note this function is called later, in main thread, via
-          // io_service_.run();
-
-          ScopeGuard guard([this] {
-            // signal that we're done detecting, so can post another frame for
-            // detection.
-            std::lock_guard<std::mutex> lock(mtx_realsense_state_);
-            detection_in_progress_ = false;
-          });
-          if (!vo_ && base_to_camera_model_) {
-            vo_.reset(new VisualOdometer(left_camera_model_,
-                                         *base_to_camera_model_, 100));
-            LOG(INFO) << "Starting VO.";
-          }
-          cv::Mat frame_0 = RS2FrameToMat(fisheye_frame);
-          cv::Mat send_frame;
-
-          if (vo_) {
-            VisualOdometerResult result = vo_->AddImage(frame_0, stamp);
-            event_bus_.Send(MakeEvent("pose/tractor/base/goal",
-                                      result.base_pose_goal, stamp));
-            send_frame = vo_->GetDebugImage().clone();
-          }
-
-          if (send_frame.empty()) {
-            cv::cvtColor(frame_0, send_frame, cv::COLOR_GRAY2BGR);
-          }
-          // TODO(ethanrublee) base this on view direction?
-          // cv::flip(send_frame, send_frame, -1);
-          count_ = (count_ + 1) % 100;
-
-          if (count_ % 3 == 0) {
-            udp_streamer_->AddFrame(send_frame, stamp);
-          }
-          if (!latest_command_.has_record_start()) {
-            // Close may be called regardless of state.  If we were recording,
-            // it closes the video file on the last chunk.
-            frame_video_writer_->Close();
-            // Disposes of apriltag config (tag library, etc.)
-            detector_->Close();
-            return;
-          }
-
-          switch (latest_command_.record_start().mode()) {
-            case TrackingCameraCommand::RecordStart::MODE_EVERY_FRAME:
-              record_every_frame(frame_0, stamp);
-              break;
-            case TrackingCameraCommand::RecordStart::MODE_APRILTAG_STABLE:
-              detect_apriltags(frame_0, stamp);
-              break;
-
-            case TrackingCameraCommand::RecordStart::MODE_EVERY_APRILTAG_FRAME:
-              RecordEveryApriltagFrame(frame_0, stamp);
-              break;
-            default:
-              break;
-          }
-        });
-      }
-    }
-  }
-#endif
   boost::asio::io_service& io_service_;
   EventBus& event_bus_;
   MultiCameraPipeline multi_camera_pipeline_;
   MultiCameraSync multi_camera_;
-
-  // rs2::context ctx_;
-
-  // Declare RealSense pipeline, encapsulating the actual device and sensors
-  // rs2::pipeline pipe_;
-  std::mutex mtx_realsense_state_;
-  int count_ = 0;
-  bool detection_in_progress_ = false;
-  std::unique_ptr<ApriltagDetector> detector_;
-  TrackingCameraCommand latest_command_;
-  ApriltagsFilter tag_filter_;
-
-  CameraModel left_camera_model_;
   TrackingCameraConfig config_;
-  std::map<std::string, CameraModel> camera_models_;
+  TrackingCameraCommand latest_command_;
   std::optional<BaseToCameraModel> base_to_camera_model_;
-  std::unique_ptr<VisualOdometer> vo_;
 };  // namespace farm_ng
 }  // namespace farm_ng
 
