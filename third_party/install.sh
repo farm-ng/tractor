@@ -2,7 +2,7 @@
 
 . ../setup.bash
 
-#./install-opencv.sh
+./install-opencv.sh
 
 cd $FARM_NG_ROOT/third_party
 mkdir -p build-ceres
