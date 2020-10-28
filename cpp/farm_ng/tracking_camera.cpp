@@ -16,8 +16,8 @@
 #include <farm_ng/calibration/base_to_camera_calibrator.h>
 #include <farm_ng/calibration/camera_model.h>
 #include <farm_ng/calibration/time_series.h>
+#include <farm_ng/frame_grabber.h>
 #include <farm_ng/init.h>
-#include <farm_ng/intel_frame_grabber.h>
 #include <farm_ng/ipc.h>
 #include <farm_ng/sophus_protobuf.h>
 #include <farm_ng/video_streamer.h>
@@ -58,7 +58,7 @@ class MultiCameraSync {
 
   CameraModel AddCameraConfig(const CameraConfig& camera_config) {
     frame_grabbers_.emplace_back(
-        std::make_unique<IntelFrameGrabber>(event_bus_, camera_config));
+        std::make_unique<FrameGrabber>(event_bus_, camera_config));
     frame_grabbers_.back()->VisualFrameSignal().connect(
 
         std::bind(&MultiCameraSync::OnFrame, this, std::placeholders::_1));
@@ -143,7 +143,7 @@ class MultiCameraSync {
 
   boost::asio::steady_timer timer_;
 
-  std::vector<std::unique_ptr<IntelFrameGrabber>> frame_grabbers_;
+  std::vector<std::unique_ptr<FrameGrabber>> frame_grabbers_;
   std::mutex frame_series_mtx_;
   std::map<std::string, TimeSeries<FrameData>> frame_series_;
   google::protobuf::Timestamp latest_frame_stamp_;

@@ -24,7 +24,7 @@ target_link_libraries(ipc_logger farm-ng-ipc farm-ng-protobuf ${Boost_SYSTEM_LIB
 add_executable(log_playback log_playback.cpp)
 target_link_libraries(log_playback farm-ng-ipc farm-ng-protobuf ${Boost_SYSTEM_LIBRARY} gflags)
 
-add_executable(tracking_camera tracking_camera.cpp intel_frame_grabber.cpp intel_frame_grabber.h)
+add_executable(tracking_camera tracking_camera.cpp frame_grabber.cpp frame_grabber.h)
 target_link_libraries(tracking_camera farm-ng-ipc farm-ng-protobuf farm-ng-calibration  ${Boost_FILESYSTEM_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${realsense2_LIBRARY}  ${OpenCV_LIBS} Sophus::Sophus ${GLOG_LIBRARIES})
 
 add_executable(capture_calibration_dataset capture_calibration_dataset.cpp)

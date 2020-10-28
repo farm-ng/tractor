@@ -1,5 +1,5 @@
-#ifndef FARM_NG_INTEL_FRAME_GRABBER_H_
-#define FARM_NG_INTEL_FRAME_GRABBER_H_
+#ifndef FARM_NG_FRAME_GRABBER_H_
+#define FARM_NG_FRAME_GRABBER_H_
 #include <memory>
 
 #include <google/protobuf/timestamp.pb.h>
@@ -22,12 +22,12 @@ struct FrameData {
 
   google::protobuf::Timestamp stamp_;
 };
-class IntelFrameGrabber {
+class FrameGrabber {
  public:
   typedef boost::signals2::signal<void(const FrameData&)> Signal;
 
-  IntelFrameGrabber(EventBus& event_bus, CameraConfig config);
-  ~IntelFrameGrabber();
+  FrameGrabber(EventBus& event_bus, CameraConfig config);
+  ~FrameGrabber();
   const CameraConfig& GetCameraConfig() const;
   const CameraModel& GetCameraModel() const;
 

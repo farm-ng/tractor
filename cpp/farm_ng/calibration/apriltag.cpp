@@ -45,7 +45,8 @@ double TagSize(const TagLibrary& tag_library, int tag_id) {
   return 1;
 }
 
-//
+// Taken from
+// https://github.com/IntelRealSense/librealsense/blob/d8f5d4212df85522a14b4a7b83bf4d54219b06fa/examples/pose-apriltag/rs-pose-apriltag.cpp#L249
 // Re-compute homography between ideal standard tag image and undistorted tag
 // corners for estimage_tag_pose().
 //
@@ -192,12 +193,16 @@ bool ComputeHomography(const double c[4][4], matd_t* H) {
 
 void deproject(double* pt_out, const CameraModel& camera_model,
                const double px[2]) {
+  // taken from:
+  // github.com/IntelRealSense/librealsense/blob/d8f5d4212df85522a14b4a7b83bf4d54219b06fa/examples/pose-apriltag/rs-pose-apriltag.cpp#L166
   Eigen::Map<Eigen::Vector2d> pt(pt_out);
   pt = ReprojectPixelToPoint(camera_model, Eigen::Vector2d(px[0], px[1]), 1.0)
            .head<2>();
 }
 
 bool undistort(apriltag_detection_t& src, const CameraModel& camera_model) {
+  // Taken from:
+  // github.com/IntelRealSense/librealsense/blob/d8f5d4212df85522a14b4a7b83bf4d54219b06fa/examples/pose-apriltag/rs-pose-apriltag.cpp#L149
   deproject(src.c, camera_model, src.c);
 
   double corr_arr[4][4];
@@ -224,6 +229,7 @@ void apriltag_pose_destroy(apriltag_pose_t* p) {
   matd_destroy(p->t);
   delete p;
 }
+
 Sophus::SE3d ApriltagPoseToSE3d(const apriltag_pose_t& pose) {
   typedef Eigen::Map<Eigen::Matrix<double, 3, 3, Eigen::RowMajor>>
       Map33RowMajor;

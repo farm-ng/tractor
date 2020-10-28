@@ -1,4 +1,4 @@
-#include "farm_ng/intel_frame_grabber.h"
+#include "farm_ng/frame_grabber.h"
 
 #include <google/protobuf/util/time_util.h>
 #include <librealsense2/rsutil.h>
@@ -58,7 +58,7 @@ void SetCameraModelFromRs(CameraModel* out, const rs2_intrinsics& intrinsics) {
 }
 
 }  // namespace
-class IntelFrameGrabber::Impl {
+class FrameGrabber::Impl {
  public:
   Impl(EventBus& event_bus, CameraConfig config)
       : event_bus_(event_bus), config_(config) {
@@ -130,11 +130,11 @@ class IntelFrameGrabber::Impl {
   rs2::pipeline pipe_;
   CameraConfig config_;
   CameraModel camera_model_;
-  IntelFrameGrabber::Signal signal_;
+  FrameGrabber::Signal signal_;
   std::mutex mtx_;
 };
 
-IntelFrameGrabber::IntelFrameGrabber(EventBus& event_bus, CameraConfig config) {
+FrameGrabber::FrameGrabber(EventBus& event_bus, CameraConfig config) {
   try {
     impl_.reset(new Impl(event_bus, config));
   } catch (const rs2::error& e) {
@@ -145,16 +145,16 @@ IntelFrameGrabber::IntelFrameGrabber(EventBus& event_bus, CameraConfig config) {
   }
 }
 
-IntelFrameGrabber::~IntelFrameGrabber() = default;
+FrameGrabber::~FrameGrabber() = default;
 
-const CameraConfig& IntelFrameGrabber::GetCameraConfig() const {
+const CameraConfig& FrameGrabber::GetCameraConfig() const {
   return impl_->config_;
 }
-const CameraModel& IntelFrameGrabber::GetCameraModel() const {
+const CameraModel& FrameGrabber::GetCameraModel() const {
   return impl_->camera_model_;
 };
 
-IntelFrameGrabber::Signal& IntelFrameGrabber::VisualFrameSignal() const {
+FrameGrabber::Signal& FrameGrabber::VisualFrameSignal() const {
   return impl_->signal_;
 }
 
