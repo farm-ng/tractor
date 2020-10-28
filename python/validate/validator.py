@@ -1,1 +1,0 @@
-../../third_party/protoc-gen-validate/validate/validator.py
