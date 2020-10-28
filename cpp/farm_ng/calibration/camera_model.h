@@ -154,6 +154,7 @@ Eigen::Matrix<T, 3, 1> ReprojectPixelToPoint(
 }
 
 CameraModel DefaultFishEyeT265CameraModel();
+CameraModel Default1080HDCameraModel();
 
 }  // namespace farm_ng
 

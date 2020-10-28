@@ -7,16 +7,18 @@
 #include <gflags/gflags.h>
 #include <glog/logging.h>
 #include <google/protobuf/util/time_util.h>
-#include <librealsense2/rsutil.h>
-#include <librealsense2/rs.hpp>
+#include <boost/asio/steady_timer.hpp>
 
 #include <opencv2/opencv.hpp>
 
 #include <farm_ng/calibration/apriltag.h>
+#include <farm_ng/calibration/camera_model.h>
+
 #include <farm_ng/calibration/base_to_camera_calibrator.h>
 #include <farm_ng/calibration/visual_odometer.h>
 
 #include <farm_ng/init.h>
+#include <farm_ng/intel_frame_grabber.h>
 #include <farm_ng/ipc.h>
 #include <farm_ng/video_streamer.h>
 
@@ -58,223 +60,179 @@ struct ScopeGuard {
   std::function<void()> function_;
 };
 
-// Convert rs2::frame to cv::Mat
-// https://raw.githubusercontent.com/IntelRealSense/librealsense/master/wrappers/opencv/cv-helpers.hpp
-cv::Mat RS2FrameToMat(const rs2::frame& f) {
-  using namespace cv;
-  using namespace rs2;
-
-  auto vf = f.as<video_frame>();
-  const int w = vf.get_width();
-  const int h = vf.get_height();
-  if (f.get_profile().format() == RS2_FORMAT_BGR8) {
-    return Mat(Size(w, h), CV_8UC3, (void*)f.get_data(), Mat::AUTO_STEP);
-  } else if (f.get_profile().format() == RS2_FORMAT_RGB8) {
-    auto r_rgb = Mat(Size(w, h), CV_8UC3, (void*)f.get_data(), Mat::AUTO_STEP);
-    Mat r_bgr;
-    cvtColor(r_rgb, r_bgr, COLOR_RGB2BGR);
-    return r_bgr;
-  } else if (f.get_profile().format() == RS2_FORMAT_Z16) {
-    return Mat(Size(w, h), CV_16UC1, (void*)f.get_data(), Mat::AUTO_STEP);
-  } else if (f.get_profile().format() == RS2_FORMAT_Y8) {
-    return Mat(Size(w, h), CV_8UC1, (void*)f.get_data(), Mat::AUTO_STEP);
-  } else if (f.get_profile().format() == RS2_FORMAT_DISPARITY32) {
-    return Mat(Size(w, h), CV_32FC1, (void*)f.get_data(), Mat::AUTO_STEP);
-  }
-
-  throw std::runtime_error("Frame format is not supported yet!");
-}
-
-void SetVec3FromRs(farm_ng_proto::tractor::v1::Vec3* out, rs2_vector vec) {
-  out->set_x(vec.x);
-  out->set_y(vec.y);
-  out->set_z(vec.z);
-}
-
-void SetQuatFromRs(farm_ng_proto::tractor::v1::Quaternion* out,
-                   rs2_quaternion vec) {
-  out->set_w(vec.w);
-  out->set_x(vec.x);
-  out->set_y(vec.y);
-  out->set_z(vec.z);
-}
-
-void SetCameraModelFromRs(CameraModel* out, const rs2_intrinsics& intrinsics) {
-  out->set_image_width(intrinsics.width);
-  out->set_image_height(intrinsics.height);
-  out->set_cx(intrinsics.ppx);
-  out->set_cy(intrinsics.ppy);
-  out->set_fx(intrinsics.fx);
-  out->set_fy(intrinsics.fy);
-  switch (intrinsics.model) {
-    case RS2_DISTORTION_KANNALA_BRANDT4:
-      out->set_distortion_model(CameraModel::DISTORTION_MODEL_KANNALA_BRANDT4);
-      break;
-    case RS2_DISTORTION_INVERSE_BROWN_CONRADY:
-      out->set_distortion_model(
-          CameraModel::DISTORTION_MODEL_INVERSE_BROWN_CONRADY);
-      break;
-    default:
-      CHECK(false) << "Unhandled intrinsics model: "
-                   << rs2_distortion_to_string(intrinsics.model);
-  }
-  for (int i = 0; i < 5; ++i) {
-    out->add_distortion_coefficients(intrinsics.coeffs[i]);
-  }
-}
-
-TrackingCameraPoseFrame::Confidence ToConfidence(int x) {
-  switch (x) {
-    case 0:
-      return TrackingCameraPoseFrame::CONFIDENCE_FAILED;
-    case 1:
-      return TrackingCameraPoseFrame::CONFIDENCE_LOW;
-    case 2:
-      return TrackingCameraPoseFrame::CONFIDENCE_MEDIUM;
-    case 3:
-      return TrackingCameraPoseFrame::CONFIDENCE_HIGH;
-    default:
-      return TrackingCameraPoseFrame::CONFIDENCE_UNSPECIFIED;
-  }
-}
-
-TrackingCameraPoseFrame ToPoseFrame(const rs2::pose_frame& rs_pose_frame) {
-  TrackingCameraPoseFrame pose_frame;
-  pose_frame.set_frame_number(rs_pose_frame.get_frame_number());
-  *pose_frame.mutable_stamp_pose() =
-      google::protobuf::util::TimeUtil::MillisecondsToTimestamp(
-          rs_pose_frame.get_timestamp());
-  auto pose_data = rs_pose_frame.get_pose_data();
-  SetVec3FromRs(pose_frame.mutable_start_pose_current()->mutable_position(),
-                pose_data.translation);
-  SetQuatFromRs(pose_frame.mutable_start_pose_current()->mutable_rotation(),
-                pose_data.rotation);
-  SetVec3FromRs(pose_frame.mutable_velocity(), pose_data.velocity);
-  SetVec3FromRs(pose_frame.mutable_acceleration(), pose_data.acceleration);
-  SetVec3FromRs(pose_frame.mutable_angular_velocity(),
-                pose_data.angular_velocity);
-  SetVec3FromRs(pose_frame.mutable_angular_acceleration(),
-                pose_data.angular_acceleration);
-  pose_frame.set_tracker_confidence(ToConfidence(pose_data.tracker_confidence));
-  pose_frame.set_mapper_confidence(ToConfidence(pose_data.mapper_confidence));
-  return pose_frame;
-}
-
-EventPb ToNamedPoseEvent(const rs2::pose_frame& rs_pose_frame) {
-  // TODO(ethanrublee) support front and rear cameras.
-  NamedSE3Pose vodom_pose_t265;
-  // here we distinguish where visual_odom frame by which camera it refers to,
-  // will have to connect each camera pose to the mobile base with an extrinsic
-  // transform
-  vodom_pose_t265.set_frame_b("odometry/tracking_camera/front");
-  vodom_pose_t265.set_frame_a("tracking_camera/front");
-  auto pose_data = rs_pose_frame.get_pose_data();
-  SetVec3FromRs(vodom_pose_t265.mutable_a_pose_b()->mutable_position(),
-                pose_data.translation);
-  SetQuatFromRs(vodom_pose_t265.mutable_a_pose_b()->mutable_rotation(),
-                pose_data.rotation);
-
-  Sophus::SE3d se3;
-  ProtoToSophus(vodom_pose_t265.a_pose_b(), &se3);
-  SophusToProto(se3.inverse(), vodom_pose_t265.mutable_a_pose_b());
-
-  EventPb event =
-      farm_ng::MakeEvent("pose/tracking_camera/front", vodom_pose_t265);
-  *event.mutable_stamp() =
-      google::protobuf::util::TimeUtil::MillisecondsToTimestamp(
-          rs_pose_frame.get_timestamp());
-  return event;
-}
-
-class IntelFrameGrabber {
+class MultiCameraSync {
  public:
-  IntelFrameGrabber(EventBus& event_bus, rs2::context& ctx, CameraConfig config)
-      : event_bus_(event_bus), pipe_(ctx), config_(config) {
-    rs2::config cfg;
-    cfg.enable_device(config_.serial_number());
-    if (config_.model() == CameraConfig::MODEL_INTEL_T265) {
-      cfg.enable_stream(RS2_STREAM_FISHEYE, 1, RS2_FORMAT_Y8);
-      cfg.enable_stream(RS2_STREAM_FISHEYE, 2, RS2_FORMAT_Y8);
-      auto profile = cfg.resolve(pipe_);
-      auto tm2 = profile.get_device().as<rs2::tm2>();
-      //    auto pose_sensor = tm2.first<rs2::pose_sensor>();
+  typedef boost::signals2::signal<void(
+      const std::vector<FrameData>& synced_frames)>
+      Signal;
 
-      // Start pipe and get camera calibrations
-      const int fisheye_sensor_idx = 1;  // for the left fisheye lens of T265
-      auto fisheye_stream =
-          profile.get_stream(RS2_STREAM_FISHEYE, fisheye_sensor_idx);
-      auto fisheye_intrinsics =
-          fisheye_stream.as<rs2::video_stream_profile>().get_intrinsics();
+  MultiCameraSync(EventBus& event_bus)
+      : event_bus_(event_bus), timer_(event_bus.get_io_service()) {}
 
-      SetCameraModelFromRs(&camera_model_, fisheye_intrinsics);
-      camera_model_.set_frame_name(config.name() + "/left");
-    } else if (config_.model() == CameraConfig::MODEL_INTEL_D435I) {
-      cfg.enable_stream(RS2_STREAM_COLOR, 1280, 720, RS2_FORMAT_BGR8, 15);
-
-      auto profile = cfg.resolve(pipe_);
-      auto color_intrinsics = profile.get_stream(RS2_STREAM_COLOR)
-                                  .as<rs2::video_stream_profile>()
-                                  .get_intrinsics();
-      SetCameraModelFromRs(&camera_model_, color_intrinsics);
-      camera_model_.set_frame_name(config.name() + "/color");
-    }
-    detector_.reset(new ApriltagDetector(camera_model_, &event_bus_));
-
-    LOG(INFO) << " intrinsics model: " << camera_model_.ShortDebugString();
-    frame_video_writer_ = std::make_unique<VideoStreamer>(
-        event_bus_, camera_model_, VideoStreamer::MODE_MP4_FILE);
-
-    if (config_.has_udp_stream_port()) {
-      udp_streamer_ = std::make_unique<VideoStreamer>(
-          event_bus_, camera_model_, VideoStreamer::MODE_MP4_UDP,
-          config_.udp_stream_port().value());
-    }
-
-    pipe_.start(cfg, std::bind(&IntelFrameGrabber::frame_callback, this,
-                               std::placeholders::_1));
+  void AddCameraConfig(const CameraConfig& camera_config) {
+    frame_grabbers_.emplace_back(
+        std::make_unique<IntelFrameGrabber>(event_bus_, camera_config));
+    frame_grabbers_.back()->VisualFrameSignal().connect(
+        std::bind(&MultiCameraSync::OnFrame, this, std::placeholders::_1));
   }
+  Signal& GetSynchronizedFrameDataSignal() { return signal_; }
 
-  // The callback is executed on a sensor thread and can be called
-  // simultaneously from multiple sensors Therefore any modification to common
-  // memory should be done under lock
-  void frame_callback(const rs2::frame& frame) {
-    if (rs2::frameset fs = frame.as<rs2::frameset>()) {
-      std::optional<rs2::video_frame> video_frame;
-      if (config_.model() == CameraConfig::MODEL_INTEL_D435I) {
-        video_frame = fs.get_color_frame();
+ private:
+  std::vector<FrameData> CollectSynchronizedFrameData() {
+    std::vector<FrameData> synced_frames;
+    std::lock_guard<std::mutex> lock(frame_series_mtx_);
+
+    auto begin_range =
+        latest_frame_stamp_ -
+        google::protobuf::util::TimeUtil::MillisecondsToDuration(1000.0 / 7);
+
+    auto end_range =
+        latest_frame_stamp_ +
+        google::protobuf::util::TimeUtil::MillisecondsToDuration(1000.0 / 7);
+
+    for (const auto& grabber : frame_grabbers_) {
+      const auto& frame_name = grabber->GetCameraModel().frame_name();
+      const auto& series = frame_series_[frame_name];
+      auto range = series.find_range(begin_range, end_range);
+
+      auto closest = range.first;
+      double score = 1e10;
+      while (range.first != range.second) {
+        double score_i =
+            google::protobuf::util::TimeUtil::DurationToMilliseconds(
+                range.first->stamp() - latest_frame_stamp_);
+        if (score_i < score) {
+          score = score_i;
+          closest = range.first;
+        }
+        range.first++;
+      }
+      if (closest != series.end()) {
+        synced_frames.push_back(*closest);
       } else {
-        video_frame = fs.get_fisheye_frame(0);
-      }
-
-      // Add a reference to fisheye_frame, cause we're scheduling
-      // april tag detection for later.
-      video_frame->keep();
-      cv::Mat frame_0 = RS2FrameToMat(*video_frame);
-      auto stamp = google::protobuf::util::TimeUtil::MillisecondsToTimestamp(
-          video_frame->get_timestamp());
-
-      std::lock_guard<std::mutex> lock(mtx_);
-      count_ = (count_ + 1) % 100;
-      if (count_ % 1 == 0) {
-        udp_streamer_->AddFrame(frame_0, stamp);
+        LOG(INFO) << "Could not find nearest frame for camera: " << frame_name
+                  << " " << latest_frame_stamp_.ShortDebugString();
       }
     }
+    return synced_frames;
   }
+  void GetSynchronizedFrameData(const boost::system::error_code& error) {
+    if (error) {
+      LOG(WARNING) << "Synchronized frame timer error (frame sync may not be "
+                      "keeping up): "
+                   << error;
+      return;
+    }
+    signal_(CollectSynchronizedFrameData());
+  }
+
+  void OnFrame(const FrameData& frame_data) {
+    std::lock_guard<std::mutex> lock(frame_series_mtx_);
+    TimeSeries<FrameData>& series =
+        frame_series_[frame_data.camera_model.frame_name()];
+    series.insert(frame_data);
+    series.RemoveBefore(
+        frame_data.stamp() -
+        google::protobuf::util::TimeUtil::MillisecondsToDuration(500));
+    VLOG(2) << frame_data.camera_model.frame_name()
+            << " n frames: " << series.size();
+
+    if (frame_data.camera_model.frame_name() ==
+        frame_grabbers_.front()->GetCameraModel().frame_name()) {
+      latest_frame_stamp_ = frame_data.stamp();
+      // schedule a bit into the future to give opportunity for other streams
+      // that are slightly offset to be grabbed.
+      // TODO base this on frame frate from frame grabber.
+      timer_.expires_from_now(std::chrono::milliseconds(int(250.0 / 30.0)));
+      timer_.async_wait(std::bind(&MultiCameraSync::GetSynchronizedFrameData,
+                                  this, std::placeholders::_1));
+    }
+  }
+
+ private:
   EventBus& event_bus_;
-  rs2::pipeline pipe_;
-  CameraConfig config_;
-  CameraModel camera_model_;
-  std::unique_ptr<ApriltagDetector> detector_;
-  std::unique_ptr<VideoStreamer> udp_streamer_;
-  std::unique_ptr<VideoStreamer> frame_video_writer_;
-  std::mutex mtx_;
-  int count_ = 0;
+
+  boost::asio::steady_timer timer_;
+
+  std::vector<std::unique_ptr<IntelFrameGrabber>> frame_grabbers_;
+  std::mutex frame_series_mtx_;
+  std::map<std::string, TimeSeries<FrameData>> frame_series_;
+  google::protobuf::Timestamp latest_frame_stamp_;
+  Signal signal_;
 };
 
+class MultiCameraPipeline {
+ public:
+  MultiCameraPipeline(EventBus& event_bus)
+      : event_bus_(event_bus),
+        udp_streamer_(event_bus, Default1080HDCameraModel(),
+                      VideoStreamer::MODE_MP4_UDP, 5000) {}
+
+  void OnFrame(const std::vector<FrameData>& synced_frame_data) {
+    cv::Mat grid_image = cv::Mat::zeros(cv::Size(1920, 1080), CV_8UC3);
+    int n_cols = 2;
+    int n_rows = std::ceil(synced_frame_data.size() / float(n_cols));
+    size_t i = 0;
+    int target_width = grid_image.size().width / n_cols;
+    int target_height = grid_image.size().height / n_rows;
+    for (int row = 0; row < n_rows && i < synced_frame_data.size(); ++row) {
+      for (int col = 0; col < n_cols && i < synced_frame_data.size();
+           ++col, ++i) {
+        cv::Mat image_i = synced_frame_data[i].image;
+        float width_ratio = target_width / float(image_i.size().width);
+        float height_ratio = target_height / float(image_i.size().height);
+        float resize_ratio = std::min(width_ratio, height_ratio);
+        int i_width = image_i.size().width * resize_ratio;
+        int i_height = image_i.size().height * resize_ratio;
+        cv::Rect roi(col * target_width, row * target_height, i_width,
+                     i_height);
+        cv::Mat color_i;
+        if (image_i.channels() == 1) {
+          cv::cvtColor(image_i, color_i, cv::COLOR_GRAY2BGR);
+        } else {
+          color_i = image_i;
+          CHECK_EQ(color_i.channels(), 3);
+        }
+
+        cv::resize(color_i, grid_image(roi), roi.size());
+      }
+    }
+    udp_streamer_.AddFrame(grid_image, synced_frame_data.front().stamp());
+  }
+  EventBus& event_bus_;
+  VideoStreamer udp_streamer_;
+};
+
+// class CameraPipeline {
+//  public:
+//   CameraPipline(EventBus& event_bus, const CameraConfig& camera_config,
+//                 const CameraModel& camera_model)
+//       : event_bus_(event_bus),
+//       camera_config_(camera_config),
+//         camera_model_(camera_model),
+//         detector_(camera_model, &event_bus),
+//          {}
+
+//   void OnFrame(const CameraConfig& camera_config, const CameraModel& model,
+//                const cv::Mat& image, const google::protobuf::Timestamp&
+//                stamp) {
+
+//   }
+//   EventBus& event_bus_;
+//   CameraConfig camera_config_;
+//   CameraModel camera_model_;
+//   ApriltagDetector detector_;
+//   VideoStreamer video_file_writer_;
+//   std::optional<VideoStreamer> udp_streamer_
+// };
 class TrackingCameraClient {
  public:
   TrackingCameraClient(EventBus& bus)
-      : io_service_(bus.get_io_service()), event_bus_(bus) {
+      : io_service_(bus.get_io_service()),
+        event_bus_(bus),
+
+        multi_camera_pipeline_(event_bus_),
+        multi_camera_(event_bus_) {
     event_bus_.GetEventSignal()->connect(std::bind(
         &TrackingCameraClient::on_event, this, std::placeholders::_1));
 
@@ -311,9 +269,12 @@ class TrackingCameraClient {
             "camera.json");
 
     for (const CameraConfig& camera_config : config.camera_configs()) {
-      frame_grabbers_.emplace_back(
-          std::make_unique<IntelFrameGrabber>(event_bus_, ctx_, camera_config));
+      multi_camera_.AddCameraConfig(camera_config);
     }
+
+    multi_camera_.GetSynchronizedFrameDataSignal().connect(
+        std::bind(&MultiCameraPipeline::OnFrame, multi_camera_pipeline_,
+                  std::placeholders::_1));
   }
 
   void on_command(const TrackingCameraCommand& command) {
@@ -388,12 +349,13 @@ class TrackingCameraClient {
                                        apriltags, stamp));
 #endif
   }
-
+#if 0
   // The callback is executed on a sensor thread and can be called
   // simultaneously from multiple sensors Therefore any modification to common
   // memory should be done under lock
-  void frame_callback(const rs2::frame& frame) {
-#if 0
+  void FrameCallback(const CameraConfig& camera_config,
+                     const CameraModel& model, const cv::Mat& image,
+                     const google::protobuf::Timestamp& stamp) {
     if (rs2::frameset fs = frame.as<rs2::frameset>()) {
       rs2::video_frame fisheye_frame = fs.get_fisheye_frame(0);
       // Add a reference to fisheye_frame, cause we're scheduling
@@ -474,15 +436,17 @@ class TrackingCameraClient {
         });
       }
     }
-#endif
   }
+#endif
   boost::asio::io_service& io_service_;
   EventBus& event_bus_;
-  rs2::context ctx_;
-  std::vector<std::unique_ptr<IntelFrameGrabber>> frame_grabbers_;
+  MultiCameraPipeline multi_camera_pipeline_;
+  MultiCameraSync multi_camera_;
+
+  // rs2::context ctx_;
 
   // Declare RealSense pipeline, encapsulating the actual device and sensors
-  rs2::pipeline pipe_;
+  // rs2::pipeline pipe_;
   std::mutex mtx_realsense_state_;
   int count_ = 0;
   bool detection_in_progress_ = false;
@@ -500,51 +464,13 @@ class TrackingCameraClient {
 
 void Cleanup(farm_ng::EventBus& bus) {}
 
-void Enumerate() {
-  // Obtain a list of devices currently present on the system
-  rs2::context ctx;
-
-  auto devices_list = ctx.query_devices();
-  size_t device_count = devices_list.size();
-  if (!device_count) {
-    LOG(INFO) << "No device detected. Is it plugged in?";
-    return;
-  }
-  // Retrieve the viable devices
-  std::vector<rs2::device> devices;
-
-  for (auto i = 0u; i < device_count; i++) {
-    try {
-      auto dev = devices_list[i];
-      devices.emplace_back(dev);
-    } catch (const std::exception& e) {
-      std::cout << "Could not create device - " << e.what()
-                << " . Check SDK logs for details" << std::endl;
-    } catch (...) {
-      std::cout << "Failed to created device. Check SDK logs for details"
-                << std::endl;
-    }
-  }
-  for (auto i = 0u; i < devices.size(); ++i) {
-    auto dev = devices[i];
-
-    std::cout << std::left << std::setw(30)
-              << dev.get_info(RS2_CAMERA_INFO_NAME) << std::setw(20)
-              << dev.get_info(RS2_CAMERA_INFO_SERIAL_NUMBER) << std::setw(20)
-              << dev.get_info(RS2_CAMERA_INFO_FIRMWARE_VERSION) << std::endl;
-  }
-}
-
 int Main(farm_ng::EventBus& bus) {
-  farm_ng::TrackingCameraClient client(bus);
   try {
+    farm_ng::TrackingCameraClient client(bus);
     bus.get_io_service().run();
-  } catch (const rs2::error& e) {
-    std::cerr << "RealSense error calling " << e.get_failed_function() << "("
-              << e.get_failed_args() << "):\n    " << e.what() << std::endl;
-    return EXIT_FAILURE;
+  } catch (...) {
   }
-  return EXIT_SUCCESS;
+  return 0;
 }
 
 int main(int argc, char* argv[]) {

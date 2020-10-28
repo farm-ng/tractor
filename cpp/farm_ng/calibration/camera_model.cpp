@@ -20,5 +20,23 @@ CameraModel DefaultFishEyeT265CameraModel() {
   model.set_frame_name("tracking_camera/front/left");
   return model;
 }
+CameraModel Default1080HDCameraModel() {
+  CameraModel model;
+  model.set_image_width(1920);
+  model.set_image_height(1080);
+  model.set_cx((model.image_width() - 1) / 2.0);
+  model.set_cy((model.image_height() - 1) / 2.0);
+  model.set_fx(1000);
+  model.set_fy(model.fx());
+  model.set_distortion_model(
+      CameraModel::DISTORTION_MODEL_INVERSE_BROWN_CONRADY);
+  model.add_distortion_coefficients(0.0);
+  model.add_distortion_coefficients(0.0);
+  model.add_distortion_coefficients(0.0);
+  model.add_distortion_coefficients(0.0);
+  model.add_distortion_coefficients(0.0);
+  model.set_frame_name("hd");
+  return model;
+}
 
 }  // namespace farm_ng
