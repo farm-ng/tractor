@@ -49,7 +49,7 @@ class EventBus : public boost::asio::io_service::service {
   void AddSubscriptions(const std::vector<Subscription>& subscriptions);
   void AddSubscriptions(const std::vector<std::string>& names);
 
-  void Send(const farm_ng_proto::tractor::v1::Event& event);
+  void Send(farm_ng_proto::tractor::v1::Event event);
 
   void SetName(const std::string& name);
   std::string GetName();

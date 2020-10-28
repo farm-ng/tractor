@@ -65,8 +65,11 @@ int Main(int argc, char** argv, int (*main_func)(EventBus&),
   bus.SetName(filename);
   _g_cleanup_func = cleanup_func;
 
-  std::shared_ptr<void (*)(EventBus&)> callme(
-      &_g_cleanup_func, [](auto p) { (*p)(GetEventBus(_get_io_service())); });
+  std::shared_ptr<void (*)(EventBus&)> callme(&_g_cleanup_func, [](auto p) {
+    (*p)(GetEventBus(_get_io_service()));
+    // run any jobs scheduled by cleanup function on the io_service.
+    _get_io_service().poll();
+  });
 
   try {
     return main_func(bus);

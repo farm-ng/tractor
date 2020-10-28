@@ -271,7 +271,7 @@ class EventBusImpl {
     }
   }
 
-  void send_event(const Event& event) {
+  void send_event(Event event) {
     auto recipient_list = recipients(event);
     if (recipient_list.empty()) {
       return;
@@ -324,8 +324,6 @@ class EventBusImpl {
   std::string service_name_ = "unknown [cpp-ipc]";
   std::vector<Subscription> subscriptions_;
 
-  std::mutex recipients_mtx_;
-
  public:
   std::map<std::string, Event> state_;
   EventSignalPtr signal_;
@@ -369,7 +367,14 @@ void EventBus::AddSubscriptions(const std::vector<std::string>& names) {
                  });
   return AddSubscriptions(subscriptions);
 }
-void EventBus::Send(const Event& event) { impl_->send_event(event); }
+void EventBus::Send(Event event) {
+  // Use dispatch to make this function thread safe. If Send is called from
+  // io_service itself.
+  get_io_service().dispatch([this, event = std::move(event)] {
+    impl_->send_event(std::move(event));
+  });
+}
+
 void EventBus::SetName(const std::string& name) { impl_->set_name(name); }
 std::string EventBus::GetName() { return impl_->get_name(); }
 
