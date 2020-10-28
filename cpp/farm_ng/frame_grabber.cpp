@@ -89,6 +89,16 @@ class FrameGrabber::Impl {
                                   .get_intrinsics();
       SetCameraModelFromRs(&camera_model_, color_intrinsics);
       camera_model_.set_frame_name(config.name() + "/color");
+    } else if (config_.model() == CameraConfig::MODEL_INTEL_D415) {
+      cfg.enable_stream(RS2_STREAM_COLOR, 1280, 720, RS2_FORMAT_BGR8, 30);
+
+      auto profile = cfg.resolve(pipe_);
+
+      auto color_intrinsics = profile.get_stream(RS2_STREAM_COLOR)
+                                  .as<rs2::video_stream_profile>()
+                                  .get_intrinsics();
+      SetCameraModelFromRs(&camera_model_, color_intrinsics);
+      camera_model_.set_frame_name(config.name() + "/color");
     }
     /// detector_.reset(new ApriltagDetector(camera_model_, &event_bus_));
 
@@ -114,7 +124,9 @@ class FrameGrabber::Impl {
       std::optional<rs2::video_frame> video_frame;
       if (config_.model() == CameraConfig::MODEL_INTEL_D435I) {
         video_frame = fs.get_color_frame();
-      } else {
+      } else if (config_.model() == CameraConfig::MODEL_INTEL_D415) {
+        video_frame = fs.get_color_frame();
+      } else if (config_.model() == CameraConfig::MODEL_INTEL_T265) {
         video_frame = fs.get_fisheye_frame(0);
       }
       cv::Mat frame_0 = RS2FrameToMat(*video_frame).clone();
@@ -132,7 +144,7 @@ class FrameGrabber::Impl {
   CameraModel camera_model_;
   FrameGrabber::Signal signal_;
   std::mutex mtx_;
-};
+};  // namespace farm_ng
 
 FrameGrabber::FrameGrabber(EventBus& event_bus, CameraConfig config) {
   try {
