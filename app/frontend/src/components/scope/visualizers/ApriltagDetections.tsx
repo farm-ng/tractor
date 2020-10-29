@@ -11,6 +11,7 @@ import {
   StandardComponentOptions,
   StandardComponent
 } from "./StandardComponent";
+import { EmbeddableImage } from "./Image";
 
 const ApriltagDetectionsElement: React.FC<SingleElementVisualizerProps<
   ApriltagDetections
@@ -75,11 +76,13 @@ const ApriltagDetectionsElement: React.FC<SingleElementVisualizerProps<
     <Card json={value} timestamp={timestamp}>
       <div className={styles.annotatedImageContainer}>
         <div className={styles.annotatedImage}>
-          <img
-            ref={imageRef}
-            src={imgSrc || undefined}
-            className={styles.image}
-          />
+          {value.image && (
+            <EmbeddableImage
+              ref={imageRef}
+              resources={resources}
+              value={[timestamp, value.image]}
+            />
+          )}
           <canvas ref={canvasRef} className={styles.canvas}></canvas>
         </div>
       </div>
