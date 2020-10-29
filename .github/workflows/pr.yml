@@ -49,9 +49,12 @@ jobs:
       # - Using Dockerhub as a cache would allow local builds and CI builds to share the same cache.
       # - Dockerhub has announced a rate-limit of 200 pulls/6 hrs for unpaid accounts.
       # - The Github cache evicts when it grows above 5GB.
+      # - The Github cache has nice built-in support for "fallback" cache keys
       # To use Dockerhub as a cache instead, replace the cache-from/cache-to lines below with:
       #   cache-from: type=registry,ref=farmng/${{ matrix.image }}:latest
       #   cache-to: type=inline,mode=max
+      # (taking care to choose appropriate cache keys)
+      # see https://github.com/docker/buildx#--cache-fromnametypetypekeyvalue)
       - name: Cache Docker layers
         uses: actions/cache@v2
         with:

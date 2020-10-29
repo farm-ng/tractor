@@ -1,8 +1,6 @@
 name: Master Branch CI
 
-# For all pushes to the master branch run the tests and push the image to the
-# GitHub registry under an edge tag so we can use it for the nightly
-# integration tests
+# For all pushes to the master branch push the image to the container registry tagged as `edge`
 on:
   push:
     branches: master

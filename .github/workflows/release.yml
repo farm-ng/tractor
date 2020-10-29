@@ -1,8 +1,7 @@
 name: Publish Releases to Dockerhub
 
-# When its time to do a release do a full cross platform build for all supported
-# architectures and push all of them to Docker Hub.
-# Only trigger on semver shaped tags.
+# For all releases (tags beginning with 'v'), build for all supported architectures and push to
+# the container registry. If the release tag is a semver, also tag as 'latest'.
 on:
   push:
     tags:
@@ -68,7 +67,8 @@ jobs:
           builder: ${{ steps.buildx.outputs.name }}
           context: .
           file: ./docker/${{ matrix.image }}.Dockerfile
-          platforms: linux/amd64 #,linux/arm64
+          # Disable ARM builds until we can evaluate build times, cache keys, etc.
+          platforms: linux/amd64, # linux/arm64
           push: true
           tags: ${{ steps.prep.outputs.tags }}
           cache-from: type=local,src=/tmp/.buildx-cache
