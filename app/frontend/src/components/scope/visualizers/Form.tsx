@@ -35,6 +35,7 @@ const Group: React.FC<IGroupProps> = ({
       <BootstrapForm.Control
         name={controlId}
         value={value || defaultValue}
+        step={props.type === "number" ? "any" : undefined}
         {...props}
       >
         {children}
