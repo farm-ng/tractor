@@ -32,11 +32,6 @@ const ApriltagConfigForm: React.FC<FormProps<ApriltagConfig>> = (props) => {
   const [keyedTags, setKeyedTags] = useState<[string, TagConfig][]>();
   useEffect(() => {
     if (value.tagLibrary?.tags.length != keyedTags?.length) {
-      console.log(
-        "Recalculating keys: ",
-        value.tagLibrary?.tags.length,
-        keyedTags?.length
-      );
       setKeyedTags(
         value.tagLibrary?.tags.map<[string, TagConfig]>((tag) => [
           simpleUniqueId(10),
