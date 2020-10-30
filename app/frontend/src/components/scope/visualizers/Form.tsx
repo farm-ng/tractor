@@ -7,6 +7,7 @@ import {
 } from "react-bootstrap";
 import { ButtonProps } from "react-bootstrap/esm/Button";
 import { toCamelCase } from "../../../utils/string";
+import { simpleUniqueId } from "../../../utils/uniqueId";
 import styles from "./Form.module.scss";
 
 interface IGroupProps extends FormControlProps {
@@ -27,7 +28,7 @@ const Group: React.FC<IGroupProps> = ({
   children,
   ...props
 }) => {
-  const controlId = id || toCamelCase(label);
+  const controlId = id || `${toCamelCase(label)}_${simpleUniqueId(4)}`;
   const defaultValue = typeof value === "number" ? 0 : "";
   return (
     <BootstrapForm.Group controlId={controlId}>

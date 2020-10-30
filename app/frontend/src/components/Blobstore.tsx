@@ -46,6 +46,9 @@ const bestGuessEventType = (
     if (selectedPath.endsWith("apriltag.json")) {
       return "type.googleapis.com/farm_ng_proto.tractor.v1.ApriltagConfig";
     }
+    if (selectedPath.endsWith("camera.json")) {
+      return "type.googleapis.com/farm_ng_proto.tractor.v1.TrackingCameraConfig";
+    }
   }
   if (folderChain.map((_) => _.name).includes("base_to_camera_models")) {
     return "type.googleapis.com/farm_ng_proto.tractor.v1.CalibrateBaseToCameraResult";

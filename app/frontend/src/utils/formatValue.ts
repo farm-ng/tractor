@@ -13,7 +13,7 @@ export const formatValue = (value: unknown): string => {
     return `${month}/${day}/${year} ${hours}:${minutes}:${seconds}.${ms} ${suffix}`;
   }
   if (typeof value === "number") {
-    return value.toFixed(4);
+    return Number.isInteger(value) ? String(value) : value.toFixed(4);
   }
   return String(value);
 };

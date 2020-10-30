@@ -17,29 +17,12 @@ import { KeyValueTable } from "./KeyValueTable";
 import { useFormState } from "../../../hooks/useFormState";
 import Form from "./Form";
 import { TagConfigVisualizer } from "./TagConfig";
-import { useEffect, useState } from "react";
-import { simpleUniqueId } from "../../../utils/uniqueId";
 import styles from "./ApriltagConfig.module.scss";
+import { useStableKey } from "../../../hooks/useStableKey";
 
 const ApriltagConfigForm: React.FC<FormProps<ApriltagConfig>> = (props) => {
   const [value, setValue] = useFormState(props);
-
-  // React's reconciler requires a stable, unique key for each element in the list.
-  // (https://reactjs.org/docs/lists-and-keys.html)
-  // We can't use the element's index as its key, since we are adding/removing elements from the list.
-  // And we can't use the element's tagId as its key, since that is editable by the user.
-  // So we regenerate unique IDs for each element of the list everytime the length of the list changes.
-  const [keyedTags, setKeyedTags] = useState<[string, TagConfig][]>();
-  useEffect(() => {
-    if (value.tagLibrary?.tags.length != keyedTags?.length) {
-      setKeyedTags(
-        value.tagLibrary?.tags.map<[string, TagConfig]>((tag) => [
-          simpleUniqueId(10),
-          tag
-        ]) || []
-      );
-    }
-  }, [value]);
+  const keyedTags = useStableKey(value.tagLibrary?.tags);
 
   return (
     <>
@@ -106,10 +89,9 @@ const ApriltagConfigElement: React.FC<SingleElementVisualizerProps<
       {value.tagLibrary && (
         <KeyValueTable
           headers={["ID", "Size (m)"]}
-          records={value.tagLibrary.tags.map<[string, unknown]>((tag) => [
-            tag.id.toString(),
-            tag.size
-          ])}
+          records={value.tagLibrary.tags
+            .sort((a, b) => a.id - b.id)
+            .map<[string, unknown]>((tag) => [tag.id.toString(), tag.size])}
         />
       )}
     </Card>

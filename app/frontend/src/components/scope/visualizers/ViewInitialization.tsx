@@ -52,7 +52,7 @@ const ViewInitializationForm: React.FC<FormProps<ViewInitialization>> = (
         }}
       >
         {enumNumericKeys(ViewDirection)
-          .filter((k) => k > 0)
+          .filter((k) => k >= 0)
           .map((k) => {
             return (
               <option key={k} value={k}>

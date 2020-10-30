@@ -113,7 +113,7 @@ const TractorConfigForm: React.FC<FormProps<TractorConfig>> = (props) => {
         }}
       >
         {enumNumericKeys(Topology)
-          .filter((k) => k > 0)
+          .filter((k) => k >= 0)
           .map((k) => {
             return (
               <option key={k} value={k}>
@@ -162,7 +162,7 @@ const TractorConfigElement: React.FC<SingleElementVisualizerProps<
         ]}
       />
 
-      {value.basePosesSensor.map((basePoseSensor) => {
+      {value.basePosesSensor?.map((basePoseSensor) => {
         const title = `${basePoseSensor.frameA}_pose_${basePoseSensor.frameB}`;
         return (
           <Card key={title} title={title}>

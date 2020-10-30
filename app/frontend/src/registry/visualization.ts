@@ -24,6 +24,8 @@ import { CaptureVideoDatasetConfigurationVisualizer } from "../components/scope/
 import { CaptureVideoDatasetStatusVisualizer } from "../components/scope/visualizers/CaptureVideoDatasetStatus";
 import { CaptureVideoDatasetResultVisualizer } from "../components/scope/visualizers/CaptureVideoDatasetResult";
 import { ApriltagConfigVisualizer } from "../components/scope/visualizers/ApriltagConfig";
+import { CameraConfigVisualizer } from "../components/scope/visualizers/CameraConfig";
+import { TrackingCameraConfigVisualizer } from "../components/scope/visualizers/TrackingCameraConfig";
 
 export interface VisualizerOptionConfig {
   label: string;
@@ -67,6 +69,7 @@ export const visualizerRegistry: { [k: string]: Visualizer } = [
   CalibrateBaseToCameraConfigurationVisualizer,
   CalibrateBaseToCameraResultVisualizer,
   CalibrateBaseToCameraStatusVisualizer,
+  CameraConfigVisualizer,
   CaptureCalibrationDatasetConfigurationVisualizer,
   CaptureCalibrationDatasetResultVisualizer,
   CaptureCalibrationDatasetStatusVisualizer,
@@ -77,6 +80,7 @@ export const visualizerRegistry: { [k: string]: Visualizer } = [
   MonocularApriltagRigModelVisualizer,
   NamedSE3PoseVisualizer,
   SteeringCommandVisualizer,
+  TrackingCameraConfigVisualizer,
   TrackingCameraPoseFrameVisualizer,
   TractorConfigVisualizer,
   // Low priority, should stay at the end of the list

@@ -29,7 +29,9 @@ import { SteeringCommand } from "../../genproto/farm_ng_proto/tractor/v1/steerin
 import {
   TrackingCameraPoseFrame,
   TrackingCameraMotionFrame,
-  TrackingCameraCommand
+  TrackingCameraCommand,
+  TrackingCameraConfig,
+  CameraConfig
 } from "../../genproto/farm_ng_proto/tractor/v1/tracking_camera";
 import {
   TractorConfig,
@@ -78,6 +80,8 @@ export type EventType =
   | Image
   | TractorConfig
   | ApriltagConfig
+  | TrackingCameraConfig
+  | CameraConfig
   | TagConfig
   | CalibrationParameter
   | ViewInitialization
@@ -128,6 +132,8 @@ export const eventRegistry = inferKeys({
   "type.googleapis.com/farm_ng_proto.tractor.v1.Image": Image,
   "type.googleapis.com/farm_ng_proto.tractor.v1.TractorConfig": TractorConfig,
   "type.googleapis.com/farm_ng_proto.tractor.v1.ApriltagConfig": ApriltagConfig,
+  "type.googleapis.com/farm_ng_proto.tractor.v1.TrackingCameraConfig": TrackingCameraConfig,
+  "type.googleapis.com/farm_ng_proto.tractor.v1.CameraConfig": CameraConfig,
   "type.googleapis.com/farm_ng_proto.tractor.v1.TagConfig": TagConfig,
   "type.googleapis.com/farm_ng_proto.tractor.v1.ViewInitialization": ViewInitialization,
   "type.googleapis.com/farm_ng_proto.tractor.v1.BaseToCameraInitialization": BaseToCameraInitialization,
