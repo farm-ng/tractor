@@ -137,6 +137,7 @@ class CaptureVideoDatasetProgram {
   }
 
   void on_event(const EventPb& event) {
+    // TODO(isherman): Discuss right filter with @ethanrublee
     if (event.name().rfind("tracking_camera/front/left/image", 0) == 0) {
       if (on_image(event)) {
         return;
