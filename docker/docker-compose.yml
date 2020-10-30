@@ -6,11 +6,10 @@ version: "3.3"
 
 services:
   ipc_logger:
-    container_name: farm_ng_ipc_logger
-    image: farmng/cpp:latest
+    image: farmng/base:latest
     build:
       context: ..
-      dockerfile: docker/cpp.Dockerfile
+      dockerfile: docker/base.Dockerfile
     entrypoint: build/cpp/farm_ng/ipc_logger
     restart: always
     environment:
@@ -19,11 +18,10 @@ services:
       - "${BLOBSTORE_ROOT:?err}:/farm_ng_data"
     network_mode: host
   tracking_camera:
-    container_name: farm_ng_tracking_camera
-    image: farmng/cpp:latest
+    image: farmng/base:latest
     build:
       context: ..
-      dockerfile: docker/cpp.Dockerfile
+      dockerfile: docker/base.Dockerfile
     entrypoint: build/cpp/farm_ng/tracking_camera
     restart: always
     environment:
@@ -34,9 +32,8 @@ services:
     privileged: true
     network_mode: host
   programd:
-    container_name: farm_ng_programd
-    command: farm_ng.program_supervisor
-    image: farmng/python:latest
+    entrypoint: ./env.sh python -m farm_ng.program_supervisor
+    image: farmng/base:latest
     build:
       context: ..
       dockerfile: docker/python.Dockerfile
@@ -47,7 +44,6 @@ services:
       - "${BLOBSTORE_ROOT:?err}:/farm_ng_data"
     network_mode: host
   webservices:
-    container_name: farm_ng_webservices
     image: farmng/webservices:latest
     build:
       context: ..
