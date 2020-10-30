@@ -1,5 +1,7 @@
 syntax = "proto3";
 
+import "farm_ng_proto/tractor/v1/geometry.proto";
+
 package farm_ng_proto.tractor.v1;
 option go_package = "github.com/farm_ng/genproto";
 
@@ -34,4 +36,12 @@ message CameraModel {
 
   // Frame name
   string frame_name = 9;
+};
+
+
+message MultiViewCameraRig {
+  repeated CameraModel cameras = 1;
+  repeated NamedSE3Pose camera_pose_rig = 2;
+  string root_camera_name = 3;
+  string name = 4; // rig name.
 };

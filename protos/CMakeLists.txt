@@ -4,12 +4,11 @@ set(PROTO_FILES
   ./farm_ng_proto/tractor/v1/apriltag.proto
   ./farm_ng_proto/tractor/v1/calibrate_apriltag_rig.proto
   ./farm_ng_proto/tractor/v1/calibrate_base_to_camera.proto
+  ./farm_ng_proto/tractor/v1/calibrate_multi_view_apriltag_rig.proto
   ./farm_ng_proto/tractor/v1/calibrator.proto
   ./farm_ng_proto/tractor/v1/camera_model.proto
   ./farm_ng_proto/tractor/v1/capture_calibration_dataset.proto
   ./farm_ng_proto/tractor/v1/capture_video_dataset.proto
-  ./farm_ng_proto/tractor/v1/calibrate_apriltag_rig.proto
-
   ./farm_ng_proto/tractor/v1/geometry.proto
   ./farm_ng_proto/tractor/v1/image.proto
   ./farm_ng_proto/tractor/v1/io.proto
@@ -18,7 +17,6 @@ set(PROTO_FILES
   ./farm_ng_proto/tractor/v1/steering.proto
   ./farm_ng_proto/tractor/v1/tracking_camera.proto
   ./farm_ng_proto/tractor/v1/tractor.proto
-
  )
 
 foreach (_proto_path ${PROTO_FILES})

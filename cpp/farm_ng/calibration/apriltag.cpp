@@ -394,14 +394,19 @@ bool ApriltagsFilter::AddApriltags(const ApriltagDetections& detections) {
     mask_ =
         cv::Mat::zeros(GetCvSize(detections.image().camera_model()), CV_8UC1);
   }
-
+  CHECK(!mask_.empty());
   cv::Mat new_mask = cv::Mat::zeros(mask_.size(), CV_8UC1);
   const int window_size = 7;
   double mean_count = 0.0;
+  cv::Rect mask_roi(0, 0, mask_.size().width, mask_.size().height);
   for (const ApriltagDetection& detection : detections.detections()) {
     for (const auto& p : detection.p()) {
       cv::Rect roi(p.x() - window_size / 2, p.y() - window_size / 2,
                    window_size, window_size);
+      roi = roi & mask_roi;
+      if (roi.empty()) {
+        continue;
+      }
       new_mask(roi) = mask_(roi) + 1;
       double max_val = 0.0;
       cv::minMaxLoc(new_mask(roi), nullptr, &max_val);

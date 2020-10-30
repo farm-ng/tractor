@@ -70,33 +70,14 @@ class MultiCameraSync {
   std::vector<FrameData> CollectSynchronizedFrameData() {
     std::vector<FrameData> synced_frames;
     std::lock_guard<std::mutex> lock(frame_series_mtx_);
-
-    auto begin_range =
-        latest_frame_stamp_ -
-        google::protobuf::util::TimeUtil::MillisecondsToDuration(1000.0 / 7);
-
-    auto end_range =
-        latest_frame_stamp_ +
+    auto time_window =
         google::protobuf::util::TimeUtil::MillisecondsToDuration(1000.0 / 7);
 
     for (const auto& grabber : frame_grabbers_) {
       const auto& frame_name = grabber->GetCameraModel().frame_name();
       const auto& series = frame_series_[frame_name];
-      auto range = series.find_range(begin_range, end_range);
-
-      auto closest = range.first;
-      double score = 1e10;
-      while (range.first != range.second) {
-        double score_i =
-            google::protobuf::util::TimeUtil::DurationToMilliseconds(
-                range.first->stamp() - latest_frame_stamp_);
-        if (score_i < score) {
-          score = score_i;
-          closest = range.first;
-        }
-        range.first++;
-      }
-      if (closest != series.end()) {
+      auto closest = series.FindNearest(latest_frame_stamp_, time_window);
+      if (closest) {
         synced_frames.push_back(*closest);
       } else {
         LOG(INFO) << "Could not find nearest frame for camera: " << frame_name

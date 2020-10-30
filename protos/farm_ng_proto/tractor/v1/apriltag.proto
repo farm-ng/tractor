@@ -60,6 +60,10 @@ message ApriltagDetections {
   Image image = 2;
 }
 
+message MultiViewApriltagDetections {
+  repeated ApriltagDetections detections_per_view = 1;
+}
+
 //  A rigid collection of apriltags, useful for pose estimation and calibration
 //  fixtures.
 message ApriltagRig {

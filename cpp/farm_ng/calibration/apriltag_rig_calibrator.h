@@ -65,7 +65,7 @@ class ApriltagRigCalibrator {
   int root_id_;
   std::unordered_set<int> ids_;
   std::vector<ApriltagDetections> all_detections_;
-};  // namespace farm_ng
+};
 
 bool Solve(ApriltagRigModel* model);
 

@@ -36,6 +36,10 @@ target_link_libraries(capture_video_dataset farm-ng-ipc farm-ng-protobuf gflags)
 add_executable(calibrate_apriltag_rig calibrate_apriltag_rig.cpp)
 target_link_libraries(calibrate_apriltag_rig farm-ng-ipc farm-ng-calibration farm-ng-protobuf gflags)
 
+
+add_executable(calibrate_multi_view_apriltag_rig calibrate_multi_view_apriltag_rig.cpp)
+target_link_libraries(calibrate_multi_view_apriltag_rig farm-ng-ipc farm-ng-calibration farm-ng-protobuf gflags)
+
 add_executable(calibrate_base_to_camera calibrate_base_to_camera.cpp)
 target_link_libraries(calibrate_base_to_camera farm-ng-ipc farm-ng-calibration farm-ng-protobuf gflags)
 

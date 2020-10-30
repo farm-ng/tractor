@@ -7,6 +7,7 @@ foreach(src_prefix
    epipolar
    flow_book_keeper
    local_parameterization
+   multi_view_apriltag_rig_calibrator
    pose_utils
    solver
    time_series

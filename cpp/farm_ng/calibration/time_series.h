@@ -70,8 +70,34 @@ class TimeSeries {
     series_.erase(begin(), lower_bound(begin_stamp));
   }
 
+  std::optional<ValueT> FindNearest(
+      google::protobuf::Timestamp stamp,
+      google::protobuf::Duration time_window) const {
+    auto begin_range = stamp - time_window;
+
+    auto end_range = stamp + time_window;
+
+    auto range = find_range(begin_range, end_range);
+
+    auto closest = range.first;
+    double score = 1e10;
+    while (range.first != range.second) {
+      double score_i = google::protobuf::util::TimeUtil::DurationToMilliseconds(
+          range.first->stamp() - stamp);
+      if (score_i < score) {
+        score = score_i;
+        closest = range.first;
+      }
+      range.first++;
+    }
+    if (closest != end()) {
+      return *closest;
+    }
+    return std::optional<ValueT>();
+  }
+
  private:
   ContainerT series_;
-};
+};  // namespace farm_ng
 }  // namespace farm_ng
 #endif
