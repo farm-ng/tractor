@@ -105,6 +105,26 @@ const CalibrateApriltagRigConfigurationForm: React.FC<FormProps<
           setValue((v) => ({ ...v, rootTagId }));
         }}
       />
+
+      <Form.Group
+        label="Filter stable tags?"
+        checked={value.filterStableTags}
+        type="checkbox"
+        onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+          const filterStableTags = Boolean(e.target.checked);
+          setValue((v) => ({ ...v, filterStableTags }));
+        }}
+      />
+
+      <Form.Group
+        label="Camera Name"
+        value={value.cameraName}
+        type="text"
+        onChange={(e) => {
+          const cameraName = e.target.value;
+          setValue((v) => ({ ...v, cameraName }));
+        }}
+      />
     </>
   );
 };
@@ -117,7 +137,7 @@ const CalibrateApriltagRigConfigurationElement: React.FC<SingleElementVisualizer
     resources
   } = props;
 
-  const { tagIds, rootTagId, name } = value;
+  const { tagIds, rootTagId, name, filterStableTags, cameraName } = value;
 
   const calibrationDataset = useFetchResource<CaptureCalibrationDatasetResult>(
     value.calibrationDataset,
@@ -131,7 +151,9 @@ const CalibrateApriltagRigConfigurationElement: React.FC<SingleElementVisualizer
           records={[
             ["Name", name],
             ["Tag IDs", (tagIds || []).join(", ")],
-            ["Root Tag ID", rootTagId]
+            ["Root Tag ID", rootTagId],
+            ["Filter Stable Tags?", filterStableTags],
+            ["Camera Name", cameraName]
           ]}
         />
       </Card>

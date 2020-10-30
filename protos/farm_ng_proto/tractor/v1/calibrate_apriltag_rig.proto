@@ -18,6 +18,9 @@ message CalibrateApriltagRigConfiguration {
 
   // name of the result.
   string name = 4;
+
+  bool filter_stable_tags = 5;
+  string camera_name = 6;
 }
 
 message CalibrateApriltagRigStatus {
