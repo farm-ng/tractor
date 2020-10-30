@@ -17,15 +17,34 @@ import { KeyValueTable } from "./KeyValueTable";
 import { useFormState } from "../../../hooks/useFormState";
 import Form from "./Form";
 import { TagConfigVisualizer } from "./TagConfig";
+import { useEffect, useState } from "react";
+import { simpleUniqueId } from "../../../utils/uniqueId";
+import styles from "./ApriltagConfig.module.scss";
 
 const ApriltagConfigForm: React.FC<FormProps<ApriltagConfig>> = (props) => {
   const [value, setValue] = useFormState(props);
 
+  // React's reconciler requires a stable, unique key for each element in the list.
+  // (https://reactjs.org/docs/lists-and-keys.html)
+  // We can't use the element's index as its key, since we are adding/removing elements from the list.
+  // And we can't use the element's tagId as its key, since that is editable by the user.
+  // So we regenerate unique IDs for each element of the list everytime the length of the list changes.
+  const [keyedTags, setKeyedTags] = useState<[string, TagConfig][]>();
+  useEffect(() => {
+    if (value.tagLibrary?.tags.length != keyedTags?.length) {
+      setKeyedTags(
+        value.tagLibrary?.tags.map<[string, TagConfig]>((tag) => [
+          simpleUniqueId(10),
+          tag
+        ]) || []
+      );
+    }
+  }, [value]);
+
   return (
     <>
-      <h6>Tag IDs</h6>
-      {value.tagLibrary?.tags.map((tag, index) => (
-        <React.Fragment key={`${tag.id}_${index}`}>
+      {keyedTags?.map(([tagKey, tag], index) => (
+        <div className={styles.row} key={tagKey}>
           <TagConfigVisualizer.Form
             initialValue={tag}
             onChange={(updated) =>
@@ -56,7 +75,7 @@ const ApriltagConfigForm: React.FC<FormProps<ApriltagConfig>> = (props) => {
               }))
             }
           />
-        </React.Fragment>
+        </div>
       ))}
 
       <Form.ButtonGroup

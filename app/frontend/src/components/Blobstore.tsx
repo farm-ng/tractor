@@ -247,7 +247,6 @@ export const Blobstore: React.FC = () => {
             {React.createElement(visualizer.Form, {
               initialValue: selectedResource,
               onChange: (updated) => {
-                console.log("Modified resource: ", updated);
                 setModifiedResource(updated);
               }
             })}
