@@ -9,6 +9,7 @@ import {
   StandardComponentOptions
 } from "./StandardComponent";
 import { CaptureVideoDatasetConfigurationVisualizer } from "./CaptureVideoDatasetConfiguration";
+import { formatValue } from "../../../utils/formatValue";
 
 const CaptureVideoDatasetResultElement: React.FC<SingleElementVisualizerProps<
   CaptureVideoDatasetResult
@@ -17,17 +18,38 @@ const CaptureVideoDatasetResultElement: React.FC<SingleElementVisualizerProps<
     value: [timestamp, value]
   } = props;
 
-  const { configuration, numFrames, stampEnd, dataset } = value;
+  const {
+    configuration,
+    perCameraNumFrames,
+    perTagIdNumFrames,
+    stampEnd,
+    dataset
+  } = value;
 
   return (
     <Card timestamp={timestamp} json={value}>
       <Card title="Summary">
         <KeyValueTable
           records={[
-            ["Num Frames", numFrames],
             ["Stamp End", stampEnd],
             ["Dataset URL", dataset?.path]
           ]}
+        />
+
+        <KeyValueTable
+          headers={["Camera Name", "Num Frames"]}
+          records={perCameraNumFrames.map<[string, unknown]>((_) => [
+            _.cameraName,
+            _.numFrames
+          ])}
+        />
+
+        <KeyValueTable
+          headers={["Tag ID", "Num Frames"]}
+          records={perTagIdNumFrames.map<[string, unknown]>((_) => [
+            formatValue(_.tagId),
+            _.numFrames
+          ])}
         />
       </Card>
       {configuration && (

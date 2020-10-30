@@ -10,9 +10,25 @@ message CaptureVideoDatasetConfiguration {
   bool detect_apriltags = 2;
 }
 
+message PerCameraNumFrames {
+  string camera_name = 1;
+  int32 num_frames = 2;
+}
+
+message PerTagIdNumFrames {
+  int32 tag_id = 1;
+  int32 num_frames = 2;
+}
+
 message CaptureVideoDatasetStatus {
-  // Number of frames captured
-  int32 num_frames = 1;
+  // DEPRECATED
+  int32 num_frames = 1 [deprecated = true];
+
+  // Number of frames captured per camera
+  repeated PerCameraNumFrames per_camera_num_frames = 4;
+
+  // Number of frames captured per tag id
+  repeated PerTagIdNumFrames per_tag_id_num_frames = 5;
 
   // Serialized CaptureVideoDatasetResult
   Resource result = 2;
@@ -26,8 +42,14 @@ message CaptureVideoDatasetResult {
   // Configuration which initiated the capture
   CaptureVideoDatasetConfiguration configuration = 1;
 
-  // Number of frames captured
-  int32 num_frames = 2;
+  // DEPRECATED
+  int32 num_frames = 2 [deprecated = true];
+
+  // Number of frames captured per camera
+  repeated PerCameraNumFrames per_camera_num_frames = 5;
+
+  // Number of frames captured per tag id
+  repeated PerTagIdNumFrames per_tag_id_num_frames = 6;
 
   // The time the capture completed
   google.protobuf.Timestamp stamp_end = 3;

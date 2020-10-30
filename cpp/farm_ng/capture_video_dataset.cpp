@@ -9,6 +9,7 @@
 #include "farm_ng/init.h"
 #include "farm_ng/ipc.h"
 
+#include "farm_ng_proto/tractor/v1/apriltag.pb.h"
 #include "farm_ng_proto/tractor/v1/capture_video_dataset.pb.h"
 #include "farm_ng_proto/tractor/v1/image.pb.h"
 #include "farm_ng_proto/tractor/v1/tracking_camera.pb.h"
@@ -19,6 +20,7 @@ DEFINE_string(name, "default",
 DEFINE_bool(detect_apriltags, false, "Detect apriltags.");
 
 typedef farm_ng_proto::tractor::v1::Event EventPb;
+using farm_ng_proto::tractor::v1::ApriltagDetection;
 using farm_ng_proto::tractor::v1::BUCKET_VIDEO_DATASETS;
 using farm_ng_proto::tractor::v1::CaptureVideoDatasetConfiguration;
 using farm_ng_proto::tractor::v1::CaptureVideoDatasetResult;
@@ -35,6 +37,16 @@ void Cleanup(farm_ng::EventBus& bus) {
 }
 
 namespace farm_ng {
+
+namespace {
+  bool ends_with(const std::string& s, const std::string& suffix) {
+    if (s.length() < suffix.length()) {
+      return false;
+    }
+    return (0 == s.compare(s.length() - suffix.length(), suffix.length(), suffix));
+  }
+} // namespace
+
 class CaptureVideoDatasetProgram {
  public:
   CaptureVideoDatasetProgram(EventBus& bus,
@@ -47,7 +59,7 @@ class CaptureVideoDatasetProgram {
       set_configuration(configuration);
     }
     bus_.AddSubscriptions(
-        {bus_.GetName(), "tracking_camera/front/left/image", "logger/status"});
+        {bus_.GetName(), "/image$", "/apriltags$", "logger/status"});
 
     bus_.GetEventSignal()->connect(std::bind(
         &CaptureVideoDatasetProgram::on_event, this, std::placeholders::_1));
@@ -115,7 +127,43 @@ class CaptureVideoDatasetProgram {
       return false;
     }
 
+    bool first_frame_for_camera = true;
+    for (auto& entry : *status_.mutable_per_camera_num_frames()) {
+      if (entry.camera_name() == image.camera_model().frame_name()) {
+        entry.set_num_frames(entry.num_frames() + 1);
+        first_frame_for_camera = false;
+      }
+    }
+    if (first_frame_for_camera) {
+        auto per_camera_num_frames = status_.add_per_camera_num_frames();
+        per_camera_num_frames->set_camera_name(image.camera_model().frame_name());
+        per_camera_num_frames->set_num_frames(1);
+    }
+
+    // TODO(ethanrublee | isherman): Remove (deprecated)
     status_.set_num_frames(status_.num_frames() + 1);
+
+    return true;
+  }
+
+  bool on_apriltag_detection(const EventPb& event) {
+    ApriltagDetection detection;
+    if (!event.data().UnpackTo(&detection)) {
+      return false;
+    }
+
+    bool first_time_seen = true;
+    for (auto& entry : *status_.mutable_per_tag_id_num_frames()) {
+      if (entry.tag_id() == detection.id()) {
+        entry.set_num_frames(entry.num_frames() + 1);
+        first_time_seen = false;
+      }
+    }
+    if (first_time_seen) {
+        auto per_tag_id_num_frames = status_.add_per_tag_id_num_frames();
+        per_tag_id_num_frames->set_tag_id(detection.id());
+        per_tag_id_num_frames->set_num_frames(1);
+    }
 
     return true;
   }
@@ -137,11 +185,11 @@ class CaptureVideoDatasetProgram {
   }
 
   void on_event(const EventPb& event) {
-    // TODO(isherman): Discuss right filter with @ethanrublee
-    if (event.name().rfind("tracking_camera/front/left/image", 0) == 0) {
-      if (on_image(event)) {
-        return;
-      }
+    if (ends_with(event.name(), "/image") && on_image(event)) {
+      return;
+    }
+    if (ends_with(event.name(), "/apriltags") && on_apriltag_detection(event)) {
+      return;
     }
     if (on_configuration(event)) {
       return;
