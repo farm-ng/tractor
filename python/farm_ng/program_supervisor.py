@@ -54,6 +54,12 @@ library = {
         name='Capture Video Dataset',
         description='Capture video segments, for use in other programs',
     ),
+    'calibrate_multi_view_apriltag_rig': ProgramInfo(
+        path=f'{farm_ng_root}/build/cpp/farm_ng/calibrate_multi_view_apriltag_rig',
+        args=['-interactive'],
+        name='Multi View Apriltag Rig Calibration',
+        description='Solves a multiview apriltag rig from data collected with capture_calibration_dataset',
+    ),
     'sleep-5': ProgramInfo(path='sleep', args=['5'], name='Sleep 5', description='Take a nap'),
 }
 libraryPb = [Program(id=_id, name=p.name, description=p.description) for _id, p in library.items()]

@@ -4,6 +4,7 @@ import { CalibrateBaseToCameraProgram } from "../components/programs/CalibrateBa
 import { CaptureVideoDatasetProgram } from "../components/programs/CaptureVideoDataset";
 import { EventType } from "./events";
 import { Event as BusEvent } from "../../genproto/farm_ng_proto/tractor/v1/io";
+import { CalibrateMultiViewApriltagRigProgram } from "../components/programs/CalibrateMultiViewApriltagRig";
 
 export interface Program<T extends EventType = EventType> {
   programIds: readonly string[];
@@ -20,7 +21,8 @@ export const programRegistry: Program[] = [
   CaptureVideoDatasetProgram as Program,
   CaptureCalibrationDatasetProgram as Program,
   CalibrateApriltagRigProgram as Program,
-  CalibrateBaseToCameraProgram as Program
+  CalibrateBaseToCameraProgram as Program,
+  CalibrateMultiViewApriltagRigProgram as Program
 ];
 
 export function programForProgramId(programId: string): Program | null {

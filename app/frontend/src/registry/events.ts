@@ -64,6 +64,11 @@ import {
   CalibrateBaseToCameraStatus
 } from "../../genproto/farm_ng_proto/tractor/v1/calibrate_base_to_camera";
 import { Event as BusEvent } from "../../genproto/farm_ng_proto/tractor/v1/io";
+import {
+  CalibrateMultiViewApriltagRigConfiguration,
+  CalibrateMultiViewApriltagRigResult,
+  CalibrateMultiViewApriltagRigStatus
+} from "../../genproto/farm_ng_proto/tractor/v1/calibrate_multi_view_apriltag_rig";
 
 export type EventType =
   | BusEvent
@@ -108,7 +113,10 @@ export type EventType =
   | CalibrateApriltagRigResult
   | CalibrateBaseToCameraConfiguration
   | CalibrateBaseToCameraStatus
-  | CalibrateBaseToCameraResult;
+  | CalibrateBaseToCameraResult
+  | CalibrateMultiViewApriltagRigConfiguration
+  | CalibrateMultiViewApriltagRigStatus
+  | CalibrateMultiViewApriltagRigResult;
 
 // Infer the keys, but restrict values to Message<EventType>
 // https://stackoverflow.com/a/54598743
@@ -159,7 +167,10 @@ export const eventRegistry = inferKeys({
   "type.googleapis.com/farm_ng_proto.tractor.v1.CalibrateApriltagRigResult": CalibrateApriltagRigResult,
   "type.googleapis.com/farm_ng_proto.tractor.v1.CalibrateBaseToCameraConfiguration": CalibrateBaseToCameraConfiguration,
   "type.googleapis.com/farm_ng_proto.tractor.v1.CalibrateBaseToCameraStatus": CalibrateBaseToCameraStatus,
-  "type.googleapis.com/farm_ng_proto.tractor.v1.CalibrateBaseToCameraResult": CalibrateBaseToCameraResult
+  "type.googleapis.com/farm_ng_proto.tractor.v1.CalibrateBaseToCameraResult": CalibrateBaseToCameraResult,
+  "type.googleapis.com/farm_ng_proto.tractor.v1.CalibrateMultiViewApriltagRigConfiguration": CalibrateMultiViewApriltagRigConfiguration,
+  "type.googleapis.com/farm_ng_proto.tractor.v1.CalibrateMultiViewApriltagRigStatus": CalibrateMultiViewApriltagRigStatus,
+  "type.googleapis.com/farm_ng_proto.tractor.v1.CalibrateMultiViewApriltagRigResult": CalibrateMultiViewApriltagRigResult
 });
 
 export const eventTypeIds = Object.keys(

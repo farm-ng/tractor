@@ -26,6 +26,9 @@ import { CaptureVideoDatasetResultVisualizer } from "../components/scope/visuali
 import { ApriltagConfigVisualizer } from "../components/scope/visualizers/ApriltagConfig";
 import { CameraConfigVisualizer } from "../components/scope/visualizers/CameraConfig";
 import { TrackingCameraConfigVisualizer } from "../components/scope/visualizers/TrackingCameraConfig";
+import { CalibrateMultiViewApriltagRigConfigurationVisualizer } from "../components/scope/visualizers/CalibrateMultiViewApriltagRigConfiguration";
+import { CalibrateMultiViewApriltagRigResultVisualizer } from "../components/scope/visualizers/CalibrateMultiViewApriltagRigResult";
+import { CalibrateMultiViewApriltagRigStatusVisualizer } from "../components/scope/visualizers/CalibrateMultiViewApriltagRigStatus";
 
 export interface VisualizerOptionConfig {
   label: string;
@@ -70,6 +73,9 @@ export const visualizerRegistry: { [k: string]: Visualizer } = [
   CalibrateBaseToCameraConfigurationVisualizer,
   CalibrateBaseToCameraResultVisualizer,
   CalibrateBaseToCameraStatusVisualizer,
+  CalibrateMultiViewApriltagRigConfigurationVisualizer,
+  CalibrateMultiViewApriltagRigResultVisualizer,
+  CalibrateMultiViewApriltagRigStatusVisualizer,
   CameraConfigVisualizer,
   CaptureCalibrationDatasetConfigurationVisualizer,
   CaptureCalibrationDatasetResultVisualizer,
