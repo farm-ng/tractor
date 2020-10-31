@@ -1,6 +1,5 @@
 /* eslint-disable no-console */
 import * as React from "react";
-import { Card } from "./Card";
 import {
   FormProps,
   SingleElementVisualizerProps
@@ -9,15 +8,48 @@ import {
   NamedSE3Pose,
   SE3Pose
 } from "../../../../genproto/farm_ng_proto/tractor/v1/geometry";
-import { Controls } from "../../Controls";
-import { Ground } from "../../Ground";
-import { Lights } from "../../Lights";
 import { toQuaternion, toVector3 } from "../../../utils/protoConversions";
-import { OverlayOptions, OverlayVisualizerComponent } from "./Overlay";
-import { Canvas } from "../../Canvas";
 import { useFormState } from "../../../hooks/useFormState";
 import Form from "./Form";
 import { SE3PoseVisualizer } from "./SE3Pose";
+import { Html } from "drei";
+import {
+  Standard3DComponent,
+  Standard3DComponentOptions,
+  Standard3DElement
+} from "./StandardComponent";
+
+const NamedSE3Pose3DElement: React.FC<SingleElementVisualizerProps<
+  NamedSE3Pose
+>> = ({ children, ...props }) => {
+  const {
+    value: [, value]
+  } = props;
+
+  return (
+    <group>
+      <line>
+        <geometry
+          attach="geometry"
+          vertices={[toVector3(undefined), toVector3(value.aPoseB?.position)]}
+          onUpdate={(self) => (self.verticesNeedUpdate = true)}
+        />
+        <lineBasicMaterial attach="material" color="lightgray" />
+      </line>
+      <group
+        position={toVector3(value.aPoseB?.position)}
+        quaternion={toQuaternion(value.aPoseB?.rotation)}
+      >
+        <axesHelper>
+          <Html>
+            <div>{value.frameB}</div>
+          </Html>
+        </axesHelper>
+        {children}
+      </group>
+    </group>
+  );
+};
 
 const NamedSE3PoseForm: React.FC<FormProps<NamedSE3Pose>> = (props) => {
   const [value, setValue] = useFormState(props);
@@ -50,30 +82,12 @@ const NamedSE3PoseForm: React.FC<FormProps<NamedSE3Pose>> = (props) => {
   );
 };
 
-const NamedSE3PoseElement: React.FC<SingleElementVisualizerProps<
-  NamedSE3Pose
->> = ({ value: [timestamp, value] }) => {
-  return (
-    <Card json={value} timestamp={timestamp}>
-      <Canvas>
-        <Lights />
-        <Ground transparent={true} />
-        <fogExp2 args={[0xcccccc, 0.02]} />
-        <Controls />
-        <axesHelper
-          position={toVector3(value.aPoseB?.position)}
-          quaternion={toQuaternion(value.aPoseB?.rotation)}
-        />
-      </Canvas>
-    </Card>
-  );
-};
-
 export const NamedSE3PoseVisualizer = {
   id: "NamedSE3Pose",
   types: ["type.googleapis.com/farm_ng_proto.tractor.v1.NamedSE3Pose"],
-  options: OverlayOptions,
-  Component: OverlayVisualizerComponent(NamedSE3PoseElement),
-  Element: NamedSE3PoseElement,
-  Form: NamedSE3PoseForm
+  options: Standard3DComponentOptions,
+  Component: Standard3DComponent(NamedSE3Pose3DElement),
+  Element: Standard3DElement(NamedSE3Pose3DElement),
+  Form: NamedSE3PoseForm,
+  Marker3D: NamedSE3Pose3DElement
 };

@@ -1,15 +1,14 @@
-.card {
-  min-height: 0;
-  flex-grow: 1;
-}
-
 .detailRow {
   display: flex;
   flex-direction: horizontal;
 }
 
-.footer {
+.scenePair {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  flex-direction: horizontal;
+  min-height: 400px;
+
+  div {
+    flex-basis: 50%;
+  }
 }

@@ -112,13 +112,18 @@ const CalibrateApriltagRigConfigurationForm: React.FC<FormProps<
           <Form.ButtonGroup
             buttonText="✓"
             onClick={() => {
+              console.log(
+                uniquify(
+                  [...range(newTagIdRange.start, newTagIdRange.end + 1)].sort()
+                )
+              );
               setValue((v) => ({
                 ...v,
                 tagIds: uniquify(
                   [
                     ...v.tagIds,
                     ...range(newTagIdRange.start, newTagIdRange.end + 1)
-                  ].sort()
+                  ].sort((a, b) => a - b)
                 )
               }));
               setIsAddingTagIds(false);

@@ -9,9 +9,30 @@ import {
   SE3Pose,
   Vec3
 } from "../../../../genproto/farm_ng_proto/tractor/v1/geometry";
-import { OverlayOptions, OverlayVisualizerComponent } from "./Overlay";
 import { useFormState } from "../../../hooks/useFormState";
 import Form from "./Form";
+import { toQuaternion, toVector3 } from "../../../utils/protoConversions";
+import {
+  Standard3DComponent,
+  Standard3DComponentOptions,
+  Standard3DElement
+} from "./StandardComponent";
+
+const SE3PoseMarker3D: React.FC<SingleElementVisualizerProps<SE3Pose>> = (
+  props
+) => {
+  const {
+    value: [, value]
+  } = props;
+  return (
+    <group
+      position={toVector3(value.position)}
+      quaternion={toQuaternion(value.rotation)}
+    >
+      <axesHelper />
+    </group>
+  );
+};
 
 const SE3PoseForm: React.FC<FormProps<SE3Pose>> = (props) => {
   const [value, setValue] = useFormState(props);
@@ -121,15 +142,12 @@ const SE3PoseForm: React.FC<FormProps<SE3Pose>> = (props) => {
   );
 };
 
-const SE3PoseElement: React.FC<SingleElementVisualizerProps<SE3Pose>> = () => {
-  return <p>TODO</p>;
-};
-
 export const SE3PoseVisualizer = {
   id: "SE3Pose",
   types: ["type.googleapis.com/farm_ng_proto.tractor.v1.SE3Pose"],
-  options: OverlayOptions,
-  Component: OverlayVisualizerComponent(SE3PoseElement),
-  Element: SE3PoseElement,
-  Form: SE3PoseForm
+  options: Standard3DComponentOptions,
+  Component: Standard3DComponent(SE3PoseMarker3D),
+  Element: Standard3DElement(SE3PoseMarker3D),
+  Form: SE3PoseForm,
+  Marker3D: SE3PoseMarker3D
 };

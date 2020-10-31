@@ -57,6 +57,7 @@ export interface Visualizer<T extends EventType = EventType> {
   types: EventTypeId[] | "*";
   Element?: React.FC<SingleElementVisualizerProps<T>>;
   Form?: React.FC<FormProps<T>>;
+  Marker3D?: React.FC<SingleElementVisualizerProps<T>>;
 }
 
 export const visualizerRegistry: { [k: string]: Visualizer } = [

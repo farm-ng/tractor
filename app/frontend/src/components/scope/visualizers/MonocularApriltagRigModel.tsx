@@ -8,24 +8,26 @@ import {
   solverStatusToJSON
 } from "../../../../genproto/farm_ng_proto/tractor/v1/calibrator";
 import { formatValue } from "../../../utils/formatValue";
-import { useState } from "react";
+import { cloneElement, useState } from "react";
 import {
   StandardComponentOptions,
   StandardComponent
 } from "./StandardComponent";
 import RangeSlider from "react-bootstrap-range-slider";
 import styles from "./MonocularApriltagRigModel.module.scss";
-import { Canvas } from "../../Canvas";
+import { Scene } from "./Scene";
 import { NamedSE3Pose } from "../../../../genproto/farm_ng_proto/tractor/v1/geometry";
 
-import { Lights } from "../../Lights";
-import { Controls } from "../../Controls";
-import { ReferenceFrameViz } from "../../PoseViz";
-import { Ground } from "../../Ground";
 import { getDagTransform } from "../../../utils/geometry";
 import { KeyValueTable } from "./KeyValueTable";
 import { ApriltagDetectionsVisualizer } from "./ApriltagDetections";
 import { ImageVisualizer } from "./Image";
+import { PerspectiveCamera } from "./Camera";
+import { toQuaternion, toVector3 } from "../../../utils/protoConversions";
+import { Euler, Quaternion } from "three";
+import { ApriltagRigVisualizer } from "./ApriltagRig";
+import { FisheyeEffect } from "./FisheyeEffect";
+import { Sky } from "drei";
 
 const MonocularApriltagRigModelElement: React.FC<SingleElementVisualizerProps<
   MonocularApriltagRigModel
@@ -79,51 +81,37 @@ const MonocularApriltagRigModelElement: React.FC<SingleElementVisualizerProps<
     )
     .map((_) => _.pose) as NamedSE3Pose[];
 
+  const markers = rig && <ApriltagRigVisualizer.Marker3D value={[0, rig]} />;
+
   if (cameraPoseRig) {
     nodePoses.push(cameraPoseRig);
   }
 
-  // 3D markers for each rig node
-  const markers = rig?.nodes.map((entry) => {
-    if (!nodes) {
-      return undefined;
-    }
-    const aPoseB = getDagTransform(nodePoses, entry.frameName);
-    if (!rigRootName || !aPoseB) {
-      return undefined;
-    }
-    const pose: NamedSE3Pose = {
-      frameA: rigRootName,
-      frameB: entry.frameName,
-      aPoseB
-    };
-    return (
-      pose && (
-        <ReferenceFrameViz
-          key={entry.id}
-          pose={pose}
-          // eslint-disable-next-line react/no-children-prop
-          children={[]}
-        />
-      )
-    );
-  });
-
   // A 3D marker for the camera_pose_rig (if it exists)
-  if (cameraPoseRig && rigRootName && markers) {
+  let camera = null;
+  let defaultCamera = null;
+  if (cameraPoseRig && rigRootName) {
     const cameraTransform = getDagTransform(nodePoses, cameraPoseRig.frameA);
-    markers.push(
-      <ReferenceFrameViz
-        key={rigRootName}
-        pose={{
-          frameA: rigRootName,
-          frameB: cameraPoseRig.frameA,
-          aPoseB: cameraTransform || undefined
-        }}
-        // eslint-disable-next-line react/no-children-prop
-        children={[]}
+    const quaternion = toQuaternion(cameraTransform?.rotation);
+    const opencvTthreejs = new Quaternion().setFromEuler(
+      new Euler(Math.PI, 0, 0)
+    );
+
+    quaternion.multiply(opencvTthreejs);
+
+    camera = (
+      <PerspectiveCamera
+        showHelper
+        fov={80}
+        zoom={0.5}
+        position={toVector3(cameraTransform?.position)}
+        quaternion={quaternion}
       />
     );
+    defaultCamera = cloneElement(camera, {
+      makeDefault: true,
+      showHelper: false
+    });
   }
 
   return (
@@ -162,13 +150,22 @@ const MonocularApriltagRigModelElement: React.FC<SingleElementVisualizerProps<
 
       {markers && (
         <Card title="Apriltag Rig">
-          <Canvas>
-            <Lights />
-            <Ground />
-            <fogExp2 args={[0xcccccc, 0.02]} />
-            <Controls />
-            {markers}
-          </Canvas>
+          <div className={styles.scenePair}>
+            <Card>
+              <Scene groundTransparency={true}>
+                {markers}
+                {camera}
+              </Scene>
+            </Card>
+            <Card>
+              <Scene controls={false} ground={false}>
+                <Sky />
+                <FisheyeEffect />
+                {markers}
+                {defaultCamera}
+              </Scene>
+            </Card>
+          </div>
         </Card>
       )}
 
@@ -196,7 +193,7 @@ const MonocularApriltagRigModelElement: React.FC<SingleElementVisualizerProps<
               />
             )}
           </div>
-          <Card className={styles.card}>
+          <Card>
             {Object.keys(tagRmses).length > 0 && (
               <Table striped bordered size="sm" responsive="md">
                 <thead>
