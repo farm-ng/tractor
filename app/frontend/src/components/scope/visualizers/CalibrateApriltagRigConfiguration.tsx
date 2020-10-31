@@ -17,6 +17,10 @@ import { useFormState } from "../../../hooks/useFormState";
 import Form from "./Form";
 import { Resource } from "../../../../genproto/farm_ng_proto/tractor/v1/resource";
 import { CaptureCalibrationDatasetResultVisualizer } from "./CaptureCalibrationDatasetResult";
+import { useState } from "react";
+import { range } from "../../../utils/range";
+import { Button, Table } from "react-bootstrap";
+import { uniquify } from "../../../utils/uniquify";
 
 CaptureCalibrationDatasetResultVisualizer.Element;
 
@@ -24,8 +28,8 @@ const CalibrateApriltagRigConfigurationForm: React.FC<FormProps<
   CalibrateApriltagRigConfiguration
 >> = (props) => {
   const [value, setValue] = useFormState(props);
-
-  console.log(value);
+  const [isAddingTagIds, setIsAddingTagIds] = useState(false);
+  const [newTagIdRange, setNewTagIdRange] = useState({ start: 0, end: 0 });
 
   return (
     <>
@@ -47,44 +51,86 @@ const CalibrateApriltagRigConfigurationForm: React.FC<FormProps<
         }}
       />
       <h6>Tag IDs</h6>
-      {value.tagIds.map((tagId, index) => (
-        <React.Fragment key={index}>
+      <Table striped bordered size="sm" responsive="md">
+        {value.tagIds.map((tagId, index) => (
+          <tr key={index}>
+            <td>{tagId}</td>
+            <td>
+              <Button
+                onClick={() =>
+                  setValue((v) => ({
+                    ...v,
+                    tagIds: [
+                      ...v.tagIds.slice(0, index),
+                      ...v.tagIds.slice(index + 1)
+                    ]
+                  }))
+                }
+              >
+                X
+              </Button>
+            </td>
+          </tr>
+        ))}
+      </Table>
+
+      {!isAddingTagIds && (
+        <Form.ButtonGroup
+          buttonText="+"
+          onClick={() => setIsAddingTagIds(true)}
+        />
+      )}
+
+      {isAddingTagIds && (
+        <>
           <Form.Group
-            label={`Tag ID ${index}`}
-            value={tagId}
+            label={`Range Start`}
+            value={newTagIdRange.start}
             type="number"
             onChange={(e) => {
-              const tagId = parseInt(e.target.value);
-              setValue((v) => ({
-                ...v,
-                tagIds: Object.assign([...v.tagIds], { [index]: tagId })
+              const start = parseInt(e.target.value);
+              setNewTagIdRange((r) => ({
+                ...r,
+                start
               }));
             }}
           />
+
+          <Form.Group
+            label={`Range End (inclusive)`}
+            value={newTagIdRange.end}
+            type="number"
+            onChange={(e) => {
+              const end = parseInt(e.target.value);
+              setNewTagIdRange((r) => ({
+                ...r,
+                end
+              }));
+            }}
+          />
+
           <Form.ButtonGroup
-            buttonText="X"
-            onClick={() =>
+            buttonText="✓"
+            onClick={() => {
               setValue((v) => ({
                 ...v,
-                tagIds: [
-                  ...v.tagIds.slice(0, index),
-                  ...v.tagIds.slice(index + 1)
-                ]
-              }))
-            }
+                tagIds: uniquify(
+                  [
+                    ...v.tagIds,
+                    ...range(newTagIdRange.start, newTagIdRange.end + 1)
+                  ].sort()
+                )
+              }));
+              setIsAddingTagIds(false);
+            }}
           />
-        </React.Fragment>
-      ))}
 
-      <Form.ButtonGroup
-        buttonText="+"
-        onClick={() =>
-          setValue((v) => ({
-            ...v,
-            tagIds: [...v.tagIds, 0]
-          }))
-        }
-      />
+          <Form.ButtonGroup
+            buttonText="×"
+            onClick={() => setIsAddingTagIds(false)}
+          />
+        </>
+      )}
 
       <Form.Group
         label="Name"
