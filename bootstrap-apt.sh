@@ -95,16 +95,16 @@ if ! prometheus --version | grep 2.21.0; then
   sudo cp /tmp/prometheus-2.21.0.linux-${arch}/prometheus /usr/local/bin
 fi
 
-
-# tractor-logs
-if [ ! -d "$HOME/tractor-logs" ]; then
-  if git clone git@github.com:farm-ng/tractor-logs.git $HOME/tractor-logs; then
-    cd ~/tractor-logs
-    git lfs install --local
-    git config user.email `hostname`
-    git config user.name `hostname`
-  else
-    echo "Please generate an SSH keypair and add it to the tractor-logs repository."
-    exit 1
-  fi
-fi
+# TODO: @jin this requires special permission
+# # tractor-logs
+# if [ ! -d "$HOME/tractor-logs" ]; then
+#   if git clone git@github.com:farm-ng/tractor-logs.git $HOME/tractor-logs; then
+#     cd ~/tractor-logs
+#     git lfs install --local
+#     git config user.email `hostname`
+#     git config user.name `hostname`
+#   else
+#     echo "Please generate an SSH keypair and add it to the tractor-logs repository."
+#     exit 1
+#   fi
+# fi
