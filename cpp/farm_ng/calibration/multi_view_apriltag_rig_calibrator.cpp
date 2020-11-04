@@ -51,11 +51,21 @@ std::vector<MultiViewApriltagDetections> LoadMultiViewApriltagDetections(
       apriltag_series[event.name()].insert(event);
     }
   }
+  {
+    std::stringstream ss;
+    ss << "Raw detections\n";
+    for (const auto& series : apriltag_series) {
+      ss << series.first << " " << series.second.size() << " detections\n";
+    }
+    LOG(INFO) << ss.str();
+  }
+
   ApriltagsFilter tag_filter;
   std::vector<MultiViewApriltagDetections> mv_detections_series;
   auto time_window =
       google::protobuf::util::TimeUtil::MillisecondsToDuration(1000.0 / 7);
 
+  std::map<std::string, int> detection_counts;
   for (const Event& event : apriltag_series[root_camera_name + "/apriltags"]) {
     ApriltagDetections detections;
     CHECK(event.data().UnpackTo(&detections));
@@ -67,12 +77,23 @@ std::vector<MultiViewApriltagDetections> LoadMultiViewApriltagDetections(
         if (nearest_event) {
           CHECK(nearest_event->data().UnpackTo(
               mv_detections.add_detections_per_view()));
+          detection_counts[nearest_event->name()]++;
         }
       }
       mv_detections_series.push_back(mv_detections);
     }
   }
-  LOG(INFO) << "MV size: " << mv_detections_series.size();
+  {
+    std::stringstream ss;
+    ss << "Stable multi-view detections: " << mv_detections_series.size()
+       << "\n";
+    for (const auto& name_count : detection_counts) {
+      ss << name_count.first << " " << name_count.second
+         << " stable detections\n";
+    }
+    LOG(INFO) << ss.str();
+  }
+
   return mv_detections_series;
 }
 
