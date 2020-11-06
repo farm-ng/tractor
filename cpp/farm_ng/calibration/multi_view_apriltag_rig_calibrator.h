@@ -9,7 +9,7 @@ using farm_ng_proto::tractor::v1::CalibrateMultiViewApriltagRigConfiguration;
 using farm_ng_proto::tractor::v1::MultiViewApriltagRigModel;
 
 MultiViewApriltagRigModel SolveMultiViewApriltagModel(
-    const MultiViewApriltagRigModel& model);
+    MultiViewApriltagRigModel model);
 
 MultiViewApriltagRigModel InitialMultiViewApriltagModelFromConfig(
     const CalibrateMultiViewApriltagRigConfiguration& config);

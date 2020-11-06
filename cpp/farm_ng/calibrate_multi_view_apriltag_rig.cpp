@@ -26,7 +26,7 @@ DEFINE_string(video_dataset, "",
               "The path to a serialized CaptureVideoDatasetResult");
 
 DEFINE_string(tag_ids, "", "List of tag ids, comma separated list of ints.");
-DEFINE_string(name, "rig", "Name of the rig.");
+DEFINE_string(name, "camera_rig", "Name of the rig.");
 DEFINE_string(tag_rig_name, "tag_rig", "Name of the tag rig.");
 
 DEFINE_int32(
