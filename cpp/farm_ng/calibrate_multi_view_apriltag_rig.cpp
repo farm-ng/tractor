@@ -27,6 +27,7 @@ DEFINE_string(video_dataset, "",
 
 DEFINE_string(tag_ids, "", "List of tag ids, comma separated list of ints.");
 DEFINE_string(name, "rig", "Name of the rig.");
+DEFINE_string(tag_rig_name, "tag_rig", "Name of the tag rig.");
 
 DEFINE_int32(
     root_tag_id, -1,
@@ -186,6 +187,7 @@ int Main(farm_ng::EventBus& bus) {
   config.set_root_tag_id(FLAGS_root_tag_id);
   config.set_root_camera_name(FLAGS_root_camera_name);
   config.set_name(FLAGS_name);
+  config.set_tag_rig_name(FLAGS_tag_rig_name);
 
   farm_ng::CalibrateMultiViewApriltagRigProgram program(bus, config,
                                                         FLAGS_interactive);

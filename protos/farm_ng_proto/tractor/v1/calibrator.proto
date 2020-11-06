@@ -239,13 +239,11 @@ message MultiViewApriltagRigModel {
   // Per tag statistics, can be used to
   repeated ApriltagRigTagStats tag_stats = 5;
 
-  // The camera frame name, used in NamedSE3Poses.
-  string camera_frame_name = 6;
   // The ApriltagDetections that are used to initialize and solve the
   // rig. For debugging purposes, these typically have the image resources
   // associated with them.  The tag_stats.per_image_rmse keys refer to the
   // elements of this collection.
-  repeated MultiViewApriltagDetections multi_view_detections = 7;
+  repeated MultiViewApriltagDetections multi_view_detections = 6;
 
   // The solver also estimates the pose of each of the camera views in
   // detections to the the rig.  This is may not be the same length of
@@ -253,7 +251,7 @@ message MultiViewApriltagRigModel {
   // detections to estimate the pose, but the frame names
   // <camera_frame_name>/<detections_index %05d> encode
   // encode which index in detections these refer to.
-  repeated NamedSE3Pose camera_rig_poses_apriltag_rig = 8;
+  repeated NamedSE3Pose camera_rig_poses_apriltag_rig = 7;
 
 
   // Each image where we are able to estimate a pose has a projection debug
