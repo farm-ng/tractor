@@ -120,6 +120,7 @@ class FrameGrabber::Impl {
   // simultaneously from multiple sensors Therefore any modification to common
   // memory should be done under lock
   void frame_callback(const rs2::frame& frame) {
+    VLOG(1) << "frame recved : " << camera_model_.frame_name();
     if (rs2::frameset fs = frame.as<rs2::frameset>()) {
       std::optional<rs2::video_frame> video_frame;
       if (config_.model() == CameraConfig::MODEL_INTEL_D435I) {

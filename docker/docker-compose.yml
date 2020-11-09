@@ -6,7 +6,7 @@ version: "3.3"
 
 services:
   ipc_logger:
-    image: farmng/base:latest
+    image: farmng/base:n_cameras
     build:
       context: ..
       dockerfile: docker/base.Dockerfile
@@ -18,7 +18,7 @@ services:
       - "${BLOBSTORE_ROOT:?err}:/farm_ng_data"
     network_mode: host
   tracking_camera:
-    image: farmng/base:latest
+    image: farmng/base:n_cameras
     build:
       context: ..
       dockerfile: docker/base.Dockerfile
@@ -33,10 +33,10 @@ services:
     network_mode: host
   programd:
     entrypoint: ./env.sh python -m farm_ng.program_supervisor
-    image: farmng/base:latest
+    image: farmng/base:n_cameras
     build:
       context: ..
-      dockerfile: docker/python.Dockerfile
+      dockerfile: docker/base.Dockerfile
     restart: always
     environment:
       - BLOBSTORE_ROOT=/farm_ng_data
@@ -44,7 +44,7 @@ services:
       - "${BLOBSTORE_ROOT:?err}:/farm_ng_data"
     network_mode: host
   webservices:
-    image: farmng/webservices:latest
+    image: farmng/webservices:n_cameras
     build:
       context: ..
       dockerfile: docker/webservices.Dockerfile

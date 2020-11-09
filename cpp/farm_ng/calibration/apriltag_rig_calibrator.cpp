@@ -192,8 +192,8 @@ void ModelError(ApriltagRigModel& model) {
                    -1);
       }
     }
-    cv::imshow("reprojection", image);
-    cv::waitKey(10);
+    // cv::imshow("reprojection", image);
+    // cv::waitKey(10);
     Image reprojection_image;
     reprojection_image.CopyFrom(detections.image());
     auto resource_path = GetUniqueArchiveResource(

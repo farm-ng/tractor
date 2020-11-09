@@ -41,7 +41,18 @@ cv::Mat ImageLoader::LoadImage(const Image& image) {
     frame = cv::imread((GetBlobstoreRoot() / image.resource().path()).string(),
                        cv::IMREAD_UNCHANGED);
   }
+  if (frame.empty()) {
+    frame = cv::Mat::zeros(cv::Size(image.camera_model().image_width(),
+                                    image.camera_model().image_height()),
+                           CV_8UC3);
+  }
   CHECK(!frame.empty());
+  if (frame.size().width != image.camera_model().image_width() ||
+      frame.size().height != image.camera_model().image_height()) {
+    frame = cv::Mat::zeros(cv::Size(image.camera_model().image_width(),
+                                    image.camera_model().image_height()),
+                           CV_8UC3);
+  }
   CHECK_EQ(frame.size().width, image.camera_model().image_width());
   CHECK_EQ(frame.size().height, image.camera_model().image_height());
   return frame;

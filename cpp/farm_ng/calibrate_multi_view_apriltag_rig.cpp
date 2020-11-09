@@ -74,6 +74,14 @@ class CalibrateMultiViewApriltagRigProgram {
     }
     LOG(INFO) << "config:\n" << configuration_.DebugString();
 
+    if (configuration_.tag_ids_size() == 0) {
+      LOG(INFO) << "No tag_ids set.";
+      return -1;
+    }
+    if (configuration_.root_tag_id() < 0) {
+      configuration_.set_root_tag_id(configuration_.tag_ids().Get(0));
+    }
+
     auto dataset_result = ReadProtobufFromResource<CaptureVideoDatasetResult>(
         configuration_.video_dataset());
     LOG(INFO) << "dataset_result:\n" << dataset_result.DebugString();
@@ -188,6 +196,7 @@ int Main(farm_ng::EventBus& bus) {
   config.set_root_camera_name(FLAGS_root_camera_name);
   config.set_name(FLAGS_name);
   config.set_tag_rig_name(FLAGS_tag_rig_name);
+  config.set_filter_stable_tags(FLAGS_filter_stable_tags);
 
   farm_ng::CalibrateMultiViewApriltagRigProgram program(bus, config,
                                                         FLAGS_interactive);

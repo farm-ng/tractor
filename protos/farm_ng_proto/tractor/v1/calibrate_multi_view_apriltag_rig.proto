@@ -20,6 +20,8 @@ message CalibrateMultiViewApriltagRigConfiguration {
   // name of the result.
   string name = 5;
   string tag_rig_name = 6;
+  bool filter_stable_tags = 7;
+
 }
 
 message CalibrateMultiViewApriltagRigStatus {
