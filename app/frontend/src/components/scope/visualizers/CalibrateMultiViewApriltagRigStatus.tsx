@@ -7,18 +7,36 @@ import {
 } from "./StandardComponent";
 
 import { Card } from "./Card";
-import { CalibrateMultiViewApriltagRigStatus } from "../../../../genproto/farm_ng_proto/tractor/v1/calibrate_multi_view_apriltag_rig";
+import {
+  CalibrateMultiViewApriltagRigResult,
+  CalibrateMultiViewApriltagRigStatus
+} from "../../../../genproto/farm_ng_proto/tractor/v1/calibrate_multi_view_apriltag_rig";
+import { useFetchResource } from "../../../hooks/useFetchResource";
+import { CalibrateMultiViewApriltagRigResultVisualizer } from "./CalibrateMultiViewApriltagRigResult";
 
 const CalibrateMultiViewApriltagRigStatusElement: React.FC<SingleElementVisualizerProps<
   CalibrateMultiViewApriltagRigStatus
 >> = (props) => {
   const {
-    value: [timestamp, value]
+    value: [timestamp, value],
+    resources
   } = props;
+
+  const result = useFetchResource<CalibrateMultiViewApriltagRigResult>(
+    value.result,
+    resources
+  );
+
+  if (!result) {
+    return null;
+  }
 
   return (
     <Card timestamp={timestamp} json={value}>
-      TODO
+      <CalibrateMultiViewApriltagRigResultVisualizer.Element
+        {...props}
+        value={[0, result]}
+      />
     </Card>
   );
 };

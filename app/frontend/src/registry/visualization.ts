@@ -29,6 +29,7 @@ import { TrackingCameraConfigVisualizer } from "../components/scope/visualizers/
 import { CalibrateMultiViewApriltagRigConfigurationVisualizer } from "../components/scope/visualizers/CalibrateMultiViewApriltagRigConfiguration";
 import { CalibrateMultiViewApriltagRigResultVisualizer } from "../components/scope/visualizers/CalibrateMultiViewApriltagRigResult";
 import { CalibrateMultiViewApriltagRigStatusVisualizer } from "../components/scope/visualizers/CalibrateMultiViewApriltagRigStatus";
+import { MultiViewApriltagRigModelVisualizer } from "../components/scope/visualizers/MultiViewApriltagRigModel";
 
 export interface VisualizerOptionConfig {
   label: string;
@@ -85,6 +86,7 @@ export const visualizerRegistry: { [k: string]: Visualizer } = [
   CaptureVideoDatasetStatusVisualizer,
   ImageVisualizer,
   MonocularApriltagRigModelVisualizer,
+  MultiViewApriltagRigModelVisualizer,
   NamedSE3PoseVisualizer,
   SteeringCommandVisualizer,
   TrackingCameraConfigVisualizer,

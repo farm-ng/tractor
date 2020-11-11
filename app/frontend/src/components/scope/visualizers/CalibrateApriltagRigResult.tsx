@@ -26,14 +26,14 @@ const CalibrateApriltagRigResultElement: React.FC<SingleElementVisualizerProps<
 
   const initial = useFetchResource<MonocularApriltagRigModel>(
     value.monocularApriltagRigInitial,
-    resources || undefined
+    resources
   );
   const solved = useFetchResource<MonocularApriltagRigModel>(
     value.monocularApriltagRigSolved,
-    resources || undefined
+    resources
   );
 
-  const { configuration, solverStatus, rmse, stampEnd } = value || {};
+  const { configuration, solverStatus, rmse, stampEnd } = value;
   return (
     <Card timestamp={timestamp} json={value}>
       <Card title="Summary">

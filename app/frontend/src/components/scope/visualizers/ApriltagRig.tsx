@@ -41,7 +41,10 @@ const ApriltagRigNodeMarker3D: React.FC<{ value: ApriltagRigNode }> = ({
   // }, [value]);
   return (
     <mesh>
-      <planeBufferGeometry attach="geometry" args={[0.16, 0.16]} />
+      <planeBufferGeometry
+        attach="geometry"
+        args={[value.tagSize, value.tagSize]}
+      />
       <meshBasicMaterial attach="material" map={texture} />
     </mesh>
   );

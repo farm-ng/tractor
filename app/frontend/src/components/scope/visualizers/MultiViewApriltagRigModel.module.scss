@@ -1,0 +1,23 @@
+.sceneTablePair {
+  display: flex;
+  flex-direction: horizontal;
+  min-height: 400px;
+
+  > div:first-child {
+    flex-basis: 75%;
+  }
+
+  > div:last-child {
+    flex-basis: 25%;
+  }
+}
+
+.scenePair {
+  display: flex;
+  flex-direction: horizontal;
+  min-height: 400px;
+
+  > div {
+    flex-basis: 50%;
+  }
+}

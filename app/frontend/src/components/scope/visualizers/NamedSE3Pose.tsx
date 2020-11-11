@@ -40,7 +40,7 @@ const NamedSE3Pose3DElement: React.FC<SingleElementVisualizerProps<
         position={toVector3(value.aPoseB?.position)}
         quaternion={toQuaternion(value.aPoseB?.rotation)}
       >
-        <axesHelper>
+        <axesHelper scale={[0.2, 0.2, 0.2]}>
           <Html>
             <div>{value.frameB}</div>
           </Html>

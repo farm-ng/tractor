@@ -10,7 +10,9 @@ interface IProps {
 }
 
 export const JsonPopover: React.FC<IProps> = ({ title, json }) => {
-  const jsonElement = <ReactJson src={json} displayDataTypes={false} />;
+  const jsonElement = (
+    <ReactJson src={json} displayDataTypes={false} collapsed={1} />
+  );
 
   const popover = (
     <Popover>

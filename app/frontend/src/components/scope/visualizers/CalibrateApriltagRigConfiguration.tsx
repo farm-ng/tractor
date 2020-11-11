@@ -17,10 +17,7 @@ import { useFormState } from "../../../hooks/useFormState";
 import Form from "./Form";
 import { Resource } from "../../../../genproto/farm_ng_proto/tractor/v1/resource";
 import { CaptureCalibrationDatasetResultVisualizer } from "./CaptureCalibrationDatasetResult";
-import { useState } from "react";
-import { range } from "../../../utils/range";
-import { Button, Table } from "react-bootstrap";
-import { uniquify } from "../../../utils/uniquify";
+import { RepeatedIntForm } from "./RepeatedIntForm";
 
 CaptureCalibrationDatasetResultVisualizer.Element;
 
@@ -28,8 +25,6 @@ const CalibrateApriltagRigConfigurationForm: React.FC<FormProps<
   CalibrateApriltagRigConfiguration
 >> = (props) => {
   const [value, setValue] = useFormState(props);
-  const [isAddingTagIds, setIsAddingTagIds] = useState(false);
-  const [newTagIdRange, setNewTagIdRange] = useState({ start: 0, end: 0 });
 
   return (
     <>
@@ -50,92 +45,17 @@ const CalibrateApriltagRigConfigurationForm: React.FC<FormProps<
           }));
         }}
       />
+
       <h6>Tag IDs</h6>
-      <Table striped bordered size="sm" responsive="md">
-        {value.tagIds.map((tagId, index) => (
-          <tr key={index}>
-            <td>{tagId}</td>
-            <td>
-              <Button
-                onClick={() =>
-                  setValue((v) => ({
-                    ...v,
-                    tagIds: [
-                      ...v.tagIds.slice(0, index),
-                      ...v.tagIds.slice(index + 1)
-                    ]
-                  }))
-                }
-              >
-                X
-              </Button>
-            </td>
-          </tr>
-        ))}
-      </Table>
-
-      {!isAddingTagIds && (
-        <Form.ButtonGroup
-          buttonText="+"
-          onClick={() => setIsAddingTagIds(true)}
-        />
-      )}
-
-      {isAddingTagIds && (
-        <>
-          <Form.Group
-            label={`Range Start`}
-            value={newTagIdRange.start}
-            type="number"
-            onChange={(e) => {
-              const start = parseInt(e.target.value);
-              setNewTagIdRange((r) => ({
-                ...r,
-                start
-              }));
-            }}
-          />
-
-          <Form.Group
-            label={`Range End (inclusive)`}
-            value={newTagIdRange.end}
-            type="number"
-            onChange={(e) => {
-              const end = parseInt(e.target.value);
-              setNewTagIdRange((r) => ({
-                ...r,
-                end
-              }));
-            }}
-          />
-
-          <Form.ButtonGroup
-            buttonText="✓"
-            onClick={() => {
-              console.log(
-                uniquify(
-                  [...range(newTagIdRange.start, newTagIdRange.end + 1)].sort()
-                )
-              );
-              setValue((v) => ({
-                ...v,
-                tagIds: uniquify(
-                  [
-                    ...v.tagIds,
-                    ...range(newTagIdRange.start, newTagIdRange.end + 1)
-                  ].sort((a, b) => a - b)
-                )
-              }));
-              setIsAddingTagIds(false);
-            }}
-          />
-
-          <Form.ButtonGroup
-            buttonText="×"
-            onClick={() => setIsAddingTagIds(false)}
-          />
-        </>
-      )}
+      <RepeatedIntForm
+        initialValue={value.tagIds}
+        onChange={(updated) =>
+          setValue((v) => ({
+            ...v,
+            tagIds: updated
+          }))
+        }
+      />
 
       <Form.Group
         label="Name"

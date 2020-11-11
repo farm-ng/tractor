@@ -5,7 +5,15 @@ import {
 } from "../../genproto/farm_ng_proto/tractor/v1/geometry";
 import { matrix4ToSE3Pose, se3PoseToMatrix4 } from "./protoConversions";
 
-function getInverse(pose: SE3Pose): SE3Pose {
+export function rad2deg(radians: number): number {
+  return (radians * 180) / Math.PI;
+}
+
+export function deg2rad(degrees: number): number {
+  return (degrees * Math.PI) / 180;
+}
+
+export function getInverse(pose: SE3Pose): SE3Pose {
   const original = se3PoseToMatrix4(pose);
   const inverse = new Matrix4();
   inverse.getInverse(original);

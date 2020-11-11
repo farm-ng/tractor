@@ -20,8 +20,10 @@ export const PerspectiveCamera = forwardRef(
     const { setDefaultCamera, camera, size } = useThree();
     const cameraRef = useUpdate<PerspectiveCameraImpl>(
       (cam) => {
-        cam.aspect = size.width / size.height;
-        cam.updateProjectionMatrix();
+        if (makeDefault) {
+          cam.aspect = size.width / size.height;
+          cam.updateProjectionMatrix();
+        }
       },
       [size, props]
     );

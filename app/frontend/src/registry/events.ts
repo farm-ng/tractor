@@ -16,6 +16,7 @@ import {
   CalibratorCommand,
   CalibratorStatus,
   MonocularApriltagRigModel,
+  MultiViewApriltagRigModel,
   ViewInitialization
 } from "../../genproto/farm_ng_proto/tractor/v1/calibrator";
 import {
@@ -100,6 +101,7 @@ export type EventType =
   | ApriltagRig
   | StopProgramRequest
   | MonocularApriltagRigModel
+  | MultiViewApriltagRigModel
   | BaseToCameraModel
   | BaseToCameraInitialization
   | CaptureCalibrationDatasetConfiguration
@@ -152,6 +154,7 @@ export const eventRegistry = inferKeys({
   "type.googleapis.com/farm_ng_proto.tractor.v1.CalibratorStatus": CalibratorStatus,
   "type.googleapis.com/farm_ng_proto.tractor.v1.LoggingStatus": LoggingStatus,
   "type.googleapis.com/farm_ng_proto.tractor.v1.MonocularApriltagRigModel": MonocularApriltagRigModel,
+  "type.googleapis.com/farm_ng_proto.tractor.v1.MultiViewApriltagRigModel": MultiViewApriltagRigModel,
   "type.googleapis.com/farm_ng_proto.tractor.v1.BaseToCameraModel": BaseToCameraModel,
   "type.googleapis.com/farm_ng_proto.tractor.v1.ProgramSupervisorStatus": ProgramSupervisorStatus,
   "type.googleapis.com/farm_ng_proto.tractor.v1.StartProgramRequest": StartProgramRequest,
