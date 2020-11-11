@@ -10,13 +10,16 @@ RUN apt-get update --fix-missing && \
   build-essential \
   cmake \
   curl \
+  git \
+  gnupg2 \
   gstreamer1.0-libav \
   gstreamer1.0-plugins-bad \
   gstreamer1.0-plugins-base \
   gstreamer1.0-plugins-good \
   gstreamer1.0-plugins-ugly \
   gstreamer1.0-tools \
-  gnupg2 \
+  libavcodec-dev \
+  libavformat-dev \
   libboost-filesystem-dev \
   libboost-regex-dev \
   libboost-system-dev \
@@ -27,11 +30,14 @@ RUN apt-get update --fix-missing && \
   libgstreamer1.0-dev \
   libprotobuf-dev \
   libsuitesparse-dev \
+  libswscale-dev \
+  libv4l-dev \
+  libx264-dev \
+  libxvidcore-dev \
   protobuf-compiler \
   python3-dev \
   python3-pip \
   software-properties-common \
-  git \
   && apt-get clean
 
 # Install Realsense drivers
@@ -45,16 +51,6 @@ RUN pip3 install virtualenv
 RUN virtualenv ./env
 RUN . ./env/bin/activate && pip install -r ./requirements.txt
 
-# Install first-party python
-COPY python python
-
-# Install python protos
-COPY protos /protos
-RUN protoc \
-  --proto_path=/protos \
-  --python_out=python/genproto \
-  /protos/farm_ng_proto/tractor/v1/*.proto
-
 # Build third-party c++
 COPY third_party third_party
 RUN cd third_party && ./install.sh
@@ -67,6 +63,17 @@ RUN	mkdir -p build && \
   cd build && \
   cmake -DCMAKE_PREFIX_PATH=`pwd`/../env -DCMAKE_BUILD_TYPE=Release .. && \
   make -j`nproc --ignore=1`
+
+# Install first-party python
+COPY python python
+
+# Install python protos
+COPY protos /protos
+RUN protoc \
+  --proto_path=/protos \
+  --python_out=python/genproto \
+  /protos/farm_ng_proto/tractor/v1/*.proto
+
 
 # TODO(isherman): Reduce size of final image with multi-stage build
 # https://devblogs.microsoft.com/cppblog/using-multi-stage-containers-for-c-development/

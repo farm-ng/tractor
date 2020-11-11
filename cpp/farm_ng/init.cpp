@@ -68,8 +68,8 @@ int Main(int argc, char** argv, int (*main_func)(EventBus&),
   std::shared_ptr<void (*)(EventBus&)> callme(&_g_cleanup_func, [](auto p) {
     (*p)(GetEventBus(_get_io_service()));
     // run any jobs scheduled by cleanup function on the io_service.
-    _get_io_service().reset();
-    _get_io_service().poll();
+    //_get_io_service().reset();
+    //_get_io_service().poll();
   });
 
   try {

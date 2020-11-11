@@ -77,8 +77,8 @@ Image VideoStreamer::AddFrame(const cv::Mat& image,
   writer_->write(image);
   Image image_sent = image_pb_;
   if (mode_ == MODE_MP4_FILE) {
-    bus_.Send(MakeEvent(image_sent.camera_model().frame_name() + "/image",
-                        image_pb_, stamp));
+    bus_.AsyncSend(MakeEvent(image_sent.camera_model().frame_name() + "/image",
+                             image_pb_, stamp));
   }
 
   // zero index base for the frame_number, set after send.

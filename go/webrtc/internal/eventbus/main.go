@@ -265,7 +265,8 @@ func (bus *EventBus) handleAnnouncements() {
 
 		// Store the announcement
 		announce.RecvStamp = ptypes.TimestampNow()
-		log.Println("received announcement: ", announce)
+		// Very noisy.
+		// log.Println("received announcement: ", announce)
 		bus.announcementsMutex.Lock()
 		bus.Announcements[src.String()] = announce
 		bus.announcementsMutex.Unlock()

@@ -1,6 +1,9 @@
 #include "farm_ng/calibration/multi_view_apriltag_rig_calibrator.h"
 
 #include <ceres/ceres.h>
+#include <opencv2/highgui.hpp>  // TODO remove.
+#include <opencv2/imgcodecs.hpp>
+#include <opencv2/imgproc.hpp>
 
 #include <google/protobuf/util/time_util.h>
 #include <sophus/average.hpp>
@@ -8,6 +11,7 @@
 #include "farm_ng/blobstore.h"
 
 #include "farm_ng/event_log_reader.h"
+#include "farm_ng/image_utils.h"
 #include "farm_ng/ipc.h"
 #include "farm_ng/sophus_protobuf.h"
 
@@ -22,6 +26,8 @@
 
 #include "farm_ng_proto/tractor/v1/apriltag.pb.h"
 #include "farm_ng_proto/tractor/v1/capture_video_dataset.pb.h"
+
+#include "farm_ng/image_loader.h"
 
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/dijkstra_shortest_paths.hpp>
@@ -393,26 +399,40 @@ struct CameraRigApriltagRigCostFunctor {
         camera_rig_pose_tag_rig_(camera_rig_pose_tag_rig) {}
 
   template <class T>
-  bool operator()(T const* const raw_camera_pose_camera_rig,
-                  T const* const raw_tag_rig_pose_tag,
-                  T const* const raw_camera_rig_pose_tag_rig,
-                  T* raw_residuals) const {
+  Eigen::Matrix<T, 4, 2> Project(
+      T const* const raw_camera_pose_camera_rig,
+      T const* const raw_tag_rig_pose_tag,
+      T const* const raw_camera_rig_pose_tag_rig) const {
     auto camera_pose_camera_rig =
         camera_pose_camera_rig_.Map(raw_camera_pose_camera_rig);
     auto tag_rig_pose_tag = tag_rig_pose_tag_.Map(raw_tag_rig_pose_tag);
     auto camera_rig_pose_tag_rig =
         tag_rig_pose_tag_.Map(raw_camera_rig_pose_tag_rig);
-
-    Eigen::Map<Eigen::Matrix<T, 4, 2>> residuals(raw_residuals);
-
     Sophus::SE3<T> camera_pose_tag =
         camera_pose_camera_rig * camera_rig_pose_tag_rig * tag_rig_pose_tag;
 
+    Eigen::Matrix<T, 4, 2> points_image;
+    for (int i = 0; i < 4; ++i) {
+      points_image.row(i) = ProjectPointToPixel(
+          camera_, camera_pose_tag * points_tag_[i].cast<T>());
+    }
+    return points_image;
+  }
+
+  template <class T>
+  bool operator()(T const* const raw_camera_pose_camera_rig,
+                  T const* const raw_tag_rig_pose_tag,
+                  T const* const raw_camera_rig_pose_tag_rig,
+                  T* raw_residuals) const {
+    Eigen::Map<Eigen::Matrix<T, 4, 2>> residuals(raw_residuals);
+
+    Eigen::Matrix<T, 4, 2> points_image =
+        Project(raw_camera_pose_camera_rig, raw_tag_rig_pose_tag,
+                raw_camera_rig_pose_tag_rig);
+
     for (int i = 0; i < 4; ++i) {
       residuals.row(i) =
-          points_image_[i].cast<T>() -
-          ProjectPointToPixel(camera_,
-                              camera_pose_tag * points_tag_[i].cast<T>());
+          points_image_[i].cast<T>() - points_image.row(i).transpose();
     }
     return true;
   }
@@ -481,6 +501,8 @@ void ModelError(MultiViewApriltagRigModel* model) {
 
   std::map<int, ApriltagRigTagStats> tag_stats;
 
+  ImageLoader image_loader;
+
   for (const auto& mv_detections : model->multi_view_detections()) {
     frame_num++;
     std::string tag_rig_view_frame =
@@ -491,26 +513,59 @@ void ModelError(MultiViewApriltagRigModel* model) {
     }
     PoseEdge* camera_rig_to_tag_rig_view =
         pose_graph.MutablePoseEdge(camera_rig_frame, tag_rig_view_frame);
-
+    std::vector<cv::Mat> images;
     for (const auto& detections_per_view :
          mv_detections.detections_per_view()) {
-      if (detections_per_view.detections_size() < 1) {
-        continue;
+      cv::Mat image = image_loader.LoadImage(detections_per_view.image());
+      if (image.channels() == 1) {
+        cv::Mat color;
+        cv::cvtColor(image, color, cv::COLOR_GRAY2BGR);
+        image = color;
       }
-      std::string camera_frame =
-          detections_per_view.image().camera_model().frame_name();
+      const auto& camera_model = detections_per_view.image().camera_model();
+
+      std::string camera_frame = camera_model.frame_name();
 
       PoseEdge* camera_to_camera_rig =
           pose_graph.MutablePoseEdge(camera_frame, camera_rig_frame);
+
+      for (const auto& node : model->apriltag_rig().nodes()) {
+        PoseEdge* tag_to_tag_rig =
+            pose_graph.MutablePoseEdge(node.frame_name(), tag_rig_frame);
+
+        auto camera_pose_tag =
+            camera_to_camera_rig->GetAPoseBMapped(camera_frame,
+                                                  camera_rig_frame) *
+            camera_rig_to_tag_rig_view->GetAPoseBMapped(camera_rig_frame,
+                                                        tag_rig_view_frame) *
+            tag_to_tag_rig->GetAPoseBMapped(tag_rig_frame, node.frame_name());
+        for (int i = 0; i < 4; ++i) {
+          Eigen::Vector3d point_tag(node.points_tag().Get(i).x(),
+                                    node.points_tag().Get(i).y(),
+                                    node.points_tag().Get(i).z());
+          Eigen::Vector3d point_camera = camera_pose_tag * point_tag;
+          if (point_camera.z() > 0.001) {
+            Eigen::Vector2d rp =
+                ProjectPointToPixel(camera_model, point_camera);
+            cv::circle(image, cv::Point(rp.x(), rp.y()), 3,
+                       cv::Scalar(0, 0, 255), -1);
+          }
+        }
+      }
+
+      if (detections_per_view.detections_size() < 1) {
+        images.push_back(image);
+        continue;
+      }
 
       for (const auto& detection : detections_per_view.detections()) {
         std::string tag_frame = FrameRigTag(tag_rig_frame, detection.id());
         PoseEdge* tag_to_tag_rig =
             pose_graph.MutablePoseEdge(tag_frame, tag_rig_frame);
-
+        auto points_image = PointsImage(detection);
         CameraRigApriltagRigCostFunctor cost(
             detections_per_view.image().camera_model(), PointsTag(detection),
-            PointsImage(detection),
+            points_image,
             camera_to_camera_rig->GetAPoseBMap(camera_frame, camera_rig_frame),
             tag_to_tag_rig->GetAPoseBMap(tag_rig_frame, tag_frame),
             camera_rig_to_tag_rig_view->GetAPoseBMap(camera_rig_frame,
@@ -520,6 +575,11 @@ void ModelError(MultiViewApriltagRigModel* model) {
                    tag_to_tag_rig->GetAPoseB().data(),
                    camera_rig_to_tag_rig_view->GetAPoseB().data(),
                    residuals.data()));
+
+        for (int i = 0; i < 4; ++i) {
+          cv::circle(image, cv::Point(points_image[i].x(), points_image[i].y()),
+                     5, cv::Scalar(255, 0, 0));
+        }
         total_rmse += residuals.squaredNorm();
         total_count += 8;
         ApriltagRigTagStats& stats = tag_stats[detection.id()];
@@ -535,7 +595,27 @@ void ModelError(MultiViewApriltagRigModel* model) {
         image_rmse->set_camera_name(
             detections_per_view.image().camera_model().frame_name());
       }
+      images.push_back(image);
+      // cv::imshow("reprojection", image);
+      // cv::waitKey(0);
     }
+    Image& reprojection_image = *model->add_reprojection_images();
+    int image_width = 1280 * 3;
+    int image_height = 720 * 2;
+    reprojection_image.mutable_camera_model()->set_image_width(image_width);
+    reprojection_image.mutable_camera_model()->set_image_height(image_height);
+    auto resource_path = GetUniqueArchiveResource(
+        FrameNameNumber(
+            "reprojection-" + farm_ng_proto::tractor::v1::SolverStatus_Name(
+                                  model->solver_status()),
+            frame_num),
+        "png", "image/png");
+    reprojection_image.mutable_resource()->CopyFrom(resource_path.first);
+    LOG(INFO) << resource_path.second.string();
+    CHECK(cv::imwrite(
+        resource_path.second.string(),
+        ConstructGridImage(images, cv::Size(image_width, image_height), 3)))
+        << "Could not write: " << resource_path.second;
   }
   for (auto& stats : tag_stats) {
     stats.second.set_tag_rig_rmse(
@@ -560,6 +640,10 @@ std::vector<MultiViewApriltagDetections> LoadMultiViewApriltagDetections(
     allowed_ids.insert(id);
     LOG(INFO) << "allowed: " << id;
   }
+
+  CHECK(allowed_ids.count(config.root_tag_id()) == 1)
+      << "Please ensure root_tag_id is in the tag_ids list";
+
   std::map<std::string, TimeSeries<Event>> apriltag_series;
 
   while (true) {
@@ -601,7 +685,7 @@ std::vector<MultiViewApriltagDetections> LoadMultiViewApriltagDetections(
   for (const Event& event : apriltag_series[root_camera_name + "/apriltags"]) {
     ApriltagDetections detections;
     CHECK(event.data().UnpackTo(&detections));
-    if (tag_filter.AddApriltags(detections)) {
+    if (!config.filter_stable_tags() || tag_filter.AddApriltags(detections)) {
       MultiViewApriltagDetections mv_detections;
       for (auto name_series : apriltag_series) {
         auto nearest_event =
@@ -780,11 +864,8 @@ MultiViewApriltagRigModel InitialMultiViewApriltagModelFromConfig(
   }
   auto tag_rig = TagRigFromMultiViewDetections(config, &model);
   CameraRigFromMultiViewDetections(config, tag_rig, &model);
-  if (false) {
-    auto debug_model = model;
-    debug_model.clear_multi_view_detections();
-    LOG(INFO) << debug_model.DebugString();
-  }
+
+  model.set_solver_status(SolverStatus::SOLVER_STATUS_INITIAL);
   ModelError(&model);
 
   return model;
@@ -882,19 +963,12 @@ MultiViewApriltagRigModel SolveMultiViewApriltagModel(
   LOG(INFO) << summary.FullReport() << std::endl;
   if (summary.termination_type == ceres::CONVERGENCE) {
     model.set_solver_status(SolverStatus::SOLVER_STATUS_CONVERGED);
-    UpdateModelFromPoseGraph(pose_graph, &model);
   } else {
     model.set_solver_status(SolverStatus::SOLVER_STATUS_FAILED);
   }
+  UpdateModelFromPoseGraph(pose_graph, &model);
 
   ModelError(&model);
-
-  if (false) {
-    auto debug_model = model;
-    debug_model.clear_multi_view_detections();
-    LOG(INFO) << debug_model.DebugString();
-  }
-
   return model;
 }
 }  // namespace farm_ng

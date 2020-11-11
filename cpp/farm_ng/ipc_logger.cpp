@@ -42,6 +42,8 @@ class IpcLogger {
         recording->set_path(resource_path.second.string());
         recording->set_n_messages(0);
         recording->mutable_stamp_begin()->CopyFrom(MakeTimestampNow());
+        LOG(INFO) << "Status: " << logging_status_.ShortDebugString();
+
       } break;
 
       case LoggingCommand::kRecordStop:
@@ -49,6 +51,7 @@ class IpcLogger {
                   << logging_status_.ShortDebugString();
         log_writer_.reset();
         logging_status_.mutable_stopped();
+        LOG(INFO) << "Status: " << logging_status_.ShortDebugString();
         break;
 
       case LoggingCommand::COMMAND_NOT_SET:
@@ -71,6 +74,7 @@ class IpcLogger {
         log_writer_->Write(event);
         auto recording = logging_status_.mutable_recording();
         recording->set_n_messages(recording->n_messages() + 1);
+        VLOG(1) << "Status: " << logging_status_.ShortDebugString();
       } break;
 
       case LoggingCommand::kRecordStop:
@@ -104,7 +108,7 @@ class IpcLogger {
     log_timer_.async_wait(
         std::bind(&IpcLogger::log_state, this, std::placeholders::_1));
     bus_.Send(MakeEvent("logger/status", logging_status_));
-    LOG(INFO) << logging_status_.ShortDebugString();
+    VLOG(1) << logging_status_.ShortDebugString();
     for (const auto& it : bus_.GetState()) {
       VLOG(1) << it.first << " : " << it.second.ShortDebugString();
     }
