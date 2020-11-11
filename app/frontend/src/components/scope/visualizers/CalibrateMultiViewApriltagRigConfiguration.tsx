@@ -95,6 +95,16 @@ const CalibrateMultiViewApriltagRigConfigurationForm: React.FC<FormProps<
           setValue((v) => ({ ...v, tagRigName }));
         }}
       />
+
+      <Form.Group
+        label="Filter stable tags?"
+        checked={value.filterStableTags}
+        type="checkbox"
+        onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+          const filterStableTags = Boolean(e.target.checked);
+          setValue((v) => ({ ...v, filterStableTags }));
+        }}
+      />
     </>
   );
 };

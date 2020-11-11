@@ -95,26 +95,57 @@ const MultiViewApriltagRigModelElement: React.FC<SingleElementVisualizerProps<
 
   // Camera Rig Visualization
   // TODO: Don't assume pose.frameA is the root of the camera rig
-  const cameraRig = value.cameraRig?.cameraPoseRig.map((pose) => {
+  const cameras = value.cameraRig?.cameraPoseRig.map((pose) => {
     const camera = value.cameraRig?.cameras.find(
       (c) => c.frameName === pose.frameB
     );
-    const fov = camera ? cameraModelToThreeJSFOV(camera) : 80;
-    const aspect = camera ? camera.imageWidth / camera.imageHeight : 1;
-    const cameraPose = openCVPoseToThreeJSPose(pose);
-    const key = `${pose.frameA}:${pose.frameB}`;
+    return {
+      fov: camera ? cameraModelToThreeJSFOV(camera) : 80,
+      aspect: camera ? camera.imageWidth / camera.imageHeight : 1,
+      pose: openCVPoseToThreeJSPose(pose)
+    };
+  });
+
+  const cameraRig = cameras?.map((camera) => {
+    const key = `${camera.pose.frameA}:${camera.pose.frameB}`;
     return (
-      <NamedSE3PoseVisualizer.Marker3D key={key} value={[0, cameraPose]}>
+      <NamedSE3PoseVisualizer.Marker3D key={key} value={[0, camera.pose]}>
         <PerspectiveCamera
           showHelper
-          fov={fov}
+          fov={camera.fov}
           far={0.5}
-          aspect={aspect}
-          zoom={0.5}
+          aspect={camera.aspect}
         />
       </NamedSE3PoseVisualizer.Marker3D>
     );
   });
+
+  // First-person View
+  // TODO(isherman): Enable
+  // const firstPersonCamera = cameras && cameras[viewIndex] && (
+  //   <PerspectiveCamera
+  //     makeDefault
+  //     fov={cameras[viewIndex].fov}
+  //     far={1000}
+  //     aspect={cameras[viewIndex].aspect}
+  //     zoom={0.5}
+  //     position={toVector3(cameras[viewIndex].pose?.aPoseB?.position)}
+  //     quaternion={toQuaternion(cameras[viewIndex].pose?.aPoseB?.rotation)}
+  //   />
+  // );
+  // const firstPersonScene = (
+  //   <Scene controls={false} ground={false}>
+  //     <Sky />
+  //     <FisheyeEffect />
+  //     {apriltagRig}
+  //     <group
+  //       position={toVector3(apriltagRigPoseCameraRig.position)}
+  //       quaternion={toQuaternion(apriltagRigPoseCameraRig.rotation)}
+  //     >
+  //       {firstPersonCamera}
+  //     </group>
+  //   </Scene>
+  // );
 
   const apriltagRigPoseCameraRig = getInverse(
     cameraRigPosesApriltagRig[index].aPoseB || matrix4ToSE3Pose(new Matrix4())
@@ -125,10 +156,7 @@ const MultiViewApriltagRigModelElement: React.FC<SingleElementVisualizerProps<
     multiViewDetections[viewIndex].detectionsPerView[index];
 
   // Reprojection Images
-  const reprojectionImages = value.reprojectionImages.filter(
-    (i) =>
-      i.cameraModel?.frameName === value.cameraRig?.cameras[viewIndex].frameName
-  )[index];
+  const reprojectionImage = value.reprojectionImages[index];
 
   return (
     <Card json={value} timestamp={timestamp}>
@@ -169,7 +197,7 @@ const MultiViewApriltagRigModelElement: React.FC<SingleElementVisualizerProps<
           step={1}
         />
         <div className={styles.sceneTablePair}>
-          <Card>
+          <Card title={"Apriltag Rig + Camera Rig"}>
             <Scene groundTransparency={true}>
               {apriltagRig}
               <group
@@ -180,7 +208,7 @@ const MultiViewApriltagRigModelElement: React.FC<SingleElementVisualizerProps<
               </group>
             </Scene>
           </Card>
-          <Card>
+          <Card title={"Tag Details"}>
             <Table striped bordered size="sm" responsive="md">
               <thead>
                 <tr>
@@ -199,20 +227,28 @@ const MultiViewApriltagRigModelElement: React.FC<SingleElementVisualizerProps<
             </Table>
           </Card>
         </div>
+        <Card title="Reprojection Images">
+          {reprojectionImage && (
+            <ImageVisualizer.Element
+              {...props}
+              value={[0, reprojectionImage]}
+            />
+          )}
+        </Card>
 
-        <h6> View </h6>
-        <RangeSlider
-          value={viewIndex}
-          onChange={(_, v) => setViewIndex(v)}
-          min={0}
-          max={maxViewIndex}
-          step={1}
-          tooltipLabel={() =>
-            value.cameraRig?.cameras[viewIndex].frameName || viewIndex
-          }
-        />
+        <Card title={"Apriltag Detections"}>
+          <h6> View </h6>
+          <RangeSlider
+            value={viewIndex}
+            onChange={(_, v) => setViewIndex(v)}
+            min={0}
+            max={maxViewIndex}
+            step={1}
+            tooltipLabel={() =>
+              value.cameraRig?.cameras[viewIndex].frameName || viewIndex
+            }
+          />
 
-        <div className={styles.scenePair}>
           {/* Unfortunately we don't have the timestamp for these detections */}
           {apriltagDetections && (
             <ApriltagDetectionsVisualizer.Element
@@ -220,13 +256,7 @@ const MultiViewApriltagRigModelElement: React.FC<SingleElementVisualizerProps<
               value={[0, apriltagDetections]}
             />
           )}
-          {reprojectionImages && (
-            <ImageVisualizer.Element
-              {...props}
-              value={[0, reprojectionImages]}
-            />
-          )}
-        </div>
+        </Card>
       </Card>
     </Card>
   );
