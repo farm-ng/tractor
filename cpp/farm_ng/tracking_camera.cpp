@@ -247,13 +247,18 @@ class SingleCameraPipeline {
   TrackingCameraCommand latest_command_;
   std::atomic<int> post_count_;
 };
+CameraModel GridCameraModel() {
+  auto model = Default1080HDCameraModel();
+  model.set_image_height(model.image_height() * 1.5);
+  return model;
+}
 class MultiCameraPipeline {
  public:
   MultiCameraPipeline(EventBus& event_bus)
       : event_bus_(event_bus),
         work_(pool_.get_io_service()),
-        udp_streamer_(event_bus, Default1080HDCameraModel(),
-                      VideoStreamer::MODE_MP4_UDP, 5000) {}
+        udp_streamer_(event_bus, GridCameraModel(), VideoStreamer::MODE_MP4_UDP,
+                      5000) {}
 
   void Start(size_t n_threads) { pool_.Start(n_threads); }
 
@@ -291,8 +296,12 @@ class MultiCameraPipeline {
       }
       images.push_back(frame.image);
     }
-    udp_streamer_.AddFrame(ConstructGridImage(images, cv::Size(1920, 1080), 2),
-                           synced_frame_data.front().stamp());
+    auto grid_camera = GridCameraModel();
+    udp_streamer_.AddFrame(
+        ConstructGridImage(
+            images,
+            cv::Size(grid_camera.image_width(), grid_camera.image_height()), 2),
+        synced_frame_data.front().stamp());
   }
   EventBus& event_bus_;
 

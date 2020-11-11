@@ -683,7 +683,7 @@ std::vector<MultiViewApriltagDetections> LoadMultiViewApriltagDetections(
   for (const Event& event : apriltag_series[root_camera_name + "/apriltags"]) {
     ApriltagDetections detections;
     CHECK(event.data().UnpackTo(&detections));
-    if (tag_filter.AddApriltags(detections)) {
+    if (!config.filter_stable_tags() || tag_filter.AddApriltags(detections)) {
       MultiViewApriltagDetections mv_detections;
       for (auto name_series : apriltag_series) {
         auto nearest_event =

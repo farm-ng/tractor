@@ -27,7 +27,7 @@ class Blobstore:
 
     def read_protobuf_from_binary_file(self, path, message):
         self._check_valid_path(path)
-        with open(os.path.join(self.root, path)) as f:
+        with open(os.path.join(self.root, path), 'rb') as f:
             message.ParseFromString(f.read())
 
     def bucket_relative_path(self, bucket_id):
