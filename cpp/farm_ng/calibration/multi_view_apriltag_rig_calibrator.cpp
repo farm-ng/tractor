@@ -600,8 +600,10 @@ void ModelError(MultiViewApriltagRigModel* model) {
       // cv::waitKey(0);
     }
     Image& reprojection_image = *model->add_reprojection_images();
-    reprojection_image.mutable_camera_model()->set_image_width(1280 * 3);
-    reprojection_image.mutable_camera_model()->set_image_height(720 * 2);
+    int image_width = 1280 * 3;
+    int image_height = 720 * 2;
+    reprojection_image.mutable_camera_model()->set_image_width(image_width);
+    reprojection_image.mutable_camera_model()->set_image_height(image_height);
     auto resource_path = GetUniqueArchiveResource(
         FrameNameNumber(
             "reprojection-" + farm_ng_proto::tractor::v1::SolverStatus_Name(
@@ -610,9 +612,9 @@ void ModelError(MultiViewApriltagRigModel* model) {
         "png", "image/png");
     reprojection_image.mutable_resource()->CopyFrom(resource_path.first);
     LOG(INFO) << resource_path.second.string();
-    CHECK(
-        cv::imwrite(resource_path.second.string(),
-                    ConstructGridImage(images, cv::Size(1280 * 3, 720 * 2), 3)))
+    CHECK(cv::imwrite(
+        resource_path.second.string(),
+        ConstructGridImage(images, cv::Size(image_width, image_height), 3)))
         << "Could not write: " << resource_path.second;
   }
   for (auto& stats : tag_stats) {
