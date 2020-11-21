@@ -33,8 +33,7 @@ repos:
         name: sort python imports
         args: [--force-single-line-imports,
         --line-length=160,
-        --project=farm_ng,
-        --project=farm_ng_proto]
+        --project=farm_ng]
 -   repo: https://github.com/asottile/pyupgrade
     rev: v2.0.1
     hooks:

@@ -1,0 +1,7 @@
+add_subdirectory(calibration)
+
+add_executable(calibrate_apriltag_rig calibrate_apriltag_rig.cpp)
+target_link_libraries(calibrate_apriltag_rig farm_ng_calibration)
+
+add_executable(calibrate_multi_view_apriltag_rig calibrate_multi_view_apriltag_rig.cpp)
+target_link_libraries(calibrate_multi_view_apriltag_rig farm_ng_calibration)

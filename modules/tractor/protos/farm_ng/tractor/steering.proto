@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package farm_ng.tractor;
+option go_package = "github.com/farm-ng/genproto/tractor";
+
+message SteeringCommand {
+  enum Mode {
+    MODE_UNSPECIFIED = 0; MODE_JOYSTICK_MANUAL = 1;
+    MODE_JOYSTICK_CRUISE_CONTROL = 2;
+    MODE_SERVO = 3;
+  }
+  double deadman = 1;
+  double brake = 2;
+  double velocity = 3;
+  double angular_velocity = 4;
+  Mode mode = 5;
+  bool reset_goal = 6;
+}

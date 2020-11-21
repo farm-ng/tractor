@@ -10,7 +10,7 @@ services:
     build:
       context: ..
       dockerfile: docker/base.Dockerfile
-    entrypoint: build/cpp/farm_ng/ipc_logger
+    entrypoint: build/modules/core/cpp/farm_ng/ipc_logger
     restart: always
     environment:
       - BLOBSTORE_ROOT=/farm_ng_data
@@ -22,7 +22,7 @@ services:
     build:
       context: ..
       dockerfile: docker/base.Dockerfile
-    entrypoint: build/cpp/farm_ng/tracking_camera
+    entrypoint: build/modules/perception/cpp/farm_ng/tracking_camera
     restart: always
     environment:
       - BLOBSTORE_ROOT=/farm_ng_data
@@ -32,7 +32,7 @@ services:
     privileged: true
     network_mode: host
   programd:
-    entrypoint: ./env.sh python -m farm_ng.program_supervisor
+    entrypoint: ./env.sh python -m farm_ng.frontend.program_supervisor
     image: farmng/base:n_cameras
     build:
       context: ..

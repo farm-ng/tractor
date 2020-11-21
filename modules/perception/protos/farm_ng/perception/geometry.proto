@@ -1,0 +1,60 @@
+syntax = "proto3";
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/wrappers.proto";
+
+package farm_ng.perception;
+option go_package = "github.com/farm-ng/genproto/perception";
+
+message Vec2 {
+  double x = 1;
+  double y = 2;
+}
+
+message PartialVec2 {
+  google.protobuf.DoubleValue x = 1;
+  google.protobuf.DoubleValue y = 2;
+}
+
+message Vec3 {
+  double x = 1;
+  double y = 2;
+  double z = 3;
+}
+
+message PartialVec3 {
+  google.protobuf.DoubleValue x = 1;
+  google.protobuf.DoubleValue y = 2;
+  google.protobuf.DoubleValue z = 3;
+}
+
+message Quaternion {
+  double x = 1;
+  double y = 2;
+  double z = 3;
+  double w = 4;
+}
+
+message SE3Pose {
+  Vec3 position = 1;
+  Quaternion rotation = 2;
+  google.protobuf.Timestamp stamp = 3;
+}
+
+message NamedSE3Pose {
+  SE3Pose a_pose_b = 1;
+  string frame_a = 2;
+  string frame_b = 3;
+}
+
+message TrajectorySE3 {
+  repeated SE3Pose a_poses_b = 1;
+  string frame_a = 2;
+  string frame_b = 3;
+}
+
+message Matrix {
+  uint32 rows = 1;
+  uint32 cols = 2;
+  repeated double data = 3 [packed = true];
+};

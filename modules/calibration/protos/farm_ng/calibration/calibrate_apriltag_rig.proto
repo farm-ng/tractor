@@ -1,0 +1,46 @@
+syntax = "proto3";
+
+import "google/protobuf/timestamp.proto";
+import "farm_ng/core/resource.proto";
+import "farm_ng/calibration/calibrator.proto";
+
+package farm_ng.calibration;
+option go_package = "github.com/farm-ng/genproto/calibration";
+
+message CalibrateApriltagRigConfiguration {
+  // Serialized CaptureVideoDatasetResult
+  farm_ng.core.Resource calibration_dataset = 1;
+  // A list of tag ids to consider as one rigid object or "rig".
+  repeated int32 tag_ids = 2;
+  // This tag id will be considered the root coordinate system of the
+  // rig, and all transforms will be estimated with respect to this tag.
+  int32 root_tag_id = 3;
+
+  // name of the result.
+  string name = 4;
+
+  bool filter_stable_tags = 5;
+  string camera_name = 6;
+}
+
+message CalibrateApriltagRigStatus {
+  oneof input_required {
+    CalibrateApriltagRigConfiguration input_required_configuration = 1;
+  }
+  // Serialized CalibrateApriltagRigResult
+  farm_ng.core.Resource result = 2;
+
+  SolverIterationSummary iteration_summary = 3;
+}
+
+message CalibrateApriltagRigResult {
+  // Configuration which initiated the computation of this result.
+  CalibrateApriltagRigConfiguration configuration = 1;
+  farm_ng.core.Resource monocular_apriltag_rig_initial = 2;
+  farm_ng.core.Resource monocular_apriltag_rig_solved = 3;
+  SolverStatus solver_status = 4;
+  double rmse = 5;
+  google.protobuf.Timestamp stamp_end = 6;
+  // Debug event log.
+  farm_ng.core.Resource event_log = 7;
+}

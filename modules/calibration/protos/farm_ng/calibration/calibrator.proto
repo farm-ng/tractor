@@ -1,0 +1,318 @@
+syntax = "proto3";
+
+import "farm_ng/core/resource.proto";
+import "farm_ng/perception/apriltag.proto";
+import "farm_ng/perception/camera_model.proto";
+import "farm_ng/perception/geometry.proto";
+import "farm_ng/perception/image.proto";
+import "google/protobuf/timestamp.proto";
+
+package farm_ng.calibration;
+option go_package = "github.com/farm-ng/genproto/calibration";
+
+// The solver status, relatively generic and used to denote if a model is just
+// an initialization, has been solved and converged, or if the solver failed.
+enum SolverStatus {
+  SOLVER_STATUS_UNSPECIFIED = 0;
+  SOLVER_STATUS_INITIAL = 1;
+  SOLVER_STATUS_CONVERGED = 2;
+  SOLVER_STATUS_FAILED = 3;
+}
+
+// NOTE: This is deprecated.
+// Commands that the calibrator process listens to.
+message CalibratorCommand {
+  // This finishes (runs the solver) calibration if it is currently running and
+  // puts the process into a more or less idle state.
+  message Solve {
+  }
+
+  // TODO Solve command for incremental solutions while capturing.
+
+  // Start rigid apriltag rig calibration, and listening to ApriltagDetections
+  // messages that are sent to "calibrator/*" and accumulating the detections
+  // until Stop is received.
+  message ApriltagRigStart {
+    // The tag ids to consider rigid, all other tag detections will be ignored.
+    repeated int32 tag_ids = 1;
+  }
+
+  // This oneof is parsed via switch statement inside the calibration process to
+  // determine what action to take.
+  oneof command {
+    Solve solve = 3;
+    ApriltagRigStart apriltag_rig_start = 2;
+  }
+}
+
+// NOTE: This is deprecated.
+// The status message produced by the Calibration process.
+message CalibratorStatus {
+  // Sent periodically, when ever a new frame is added, and once after the Stop
+  // command and the solver has run.
+  message ApriltagRigProgress {
+    int32 num_frames = 1;
+    // The rig model saved to disk.
+    // Will be a json encoded protobuf with type MonocularApriltagRigModel.
+    farm_ng.core.Resource rig_model_resource = 3;
+    bool finished = 4;
+  }
+
+  oneof status {
+    ApriltagRigProgress apriltag_rig = 1;
+  }
+}
+
+// From ceres::IterationSummary
+message SolverIterationSummary {
+  // Current iteration number.
+  int32 iteration = 1;
+
+  // Step was numerically valid, i.e., all values are finite and the
+  // step reduces the value of the linearized model.
+  //
+  // Note: step_is_valid is always true when iteration = 0.
+  bool step_is_valid = 2;
+
+  // Step did not reduce the value of the objective function
+  // sufficiently, but it was accepted because of the relaxed
+  // acceptance criterion used by the non-monotonic trust region
+  // algorithm.
+  //
+  // Note: step_is_nonmonotonic is always false when iteration = 0;
+  bool step_is_nonmonotonic = 3;
+
+  // Whether or not the minimizer accepted this step or not. If the
+  // ordinary trust region algorithm is used, this means that the
+  // relative reduction in the objective function value was greater
+  // than Solver::Options::min_relative_decrease. However, if the
+  // non-monotonic trust region algorithm is used
+  // (Solver::Options:use_nonmonotonic_steps = true), then even if the
+  // relative decrease is not sufficient, the algorithm may accept the
+  // step and the step is declared successful.
+  //
+  // Note: step_is_successful is always true when iteration = 0.
+  bool step_is_successful = 4;
+
+  // Value of the objective function.
+  double cost = 5;
+
+  // Change in the value of the objective function in this
+  // iteration. This can be positive or negative.
+  double cost_change = 6;
+
+  // Infinity norm of the gradient vector.
+  double gradient_max_norm = 7;
+
+  // 2-norm of the gradient vector.
+  double gradient_norm = 8;
+
+  // 2-norm of the size of the step computed by the optimization
+  // algorithm.
+  double step_norm = 9;
+
+  // For trust region algorithms, the ratio of the actual change in
+  // cost and the change in the cost of the linearized approximation.
+  double relative_decrease = 10;
+
+  // Size of the trust region at the end of the current iteration. For
+  // the Levenberg-Marquardt algorithm, the regularization parameter
+  // mu = 1.0 / trust_region_radius.
+  double trust_region_radius = 11;
+
+  // For the inexact step Levenberg-Marquardt algorithm, this is the
+  // relative accuracy with which the Newton(LM) step is solved. This
+  // number affects only the iterative solvers capable of solving
+  // linear systems inexactly. Factorization-based exact solvers
+  // ignore it.
+  double eta = 12;
+
+  // Step sized computed by the line search algorithm.
+  double step_size = 13;
+
+  // Number of function value evaluations used by the line search algorithm.
+  int32 line_search_function_evaluations = 14;
+
+  // Number of function gradient evaluations used by the line search algorithm.
+  int32 line_search_gradient_evaluations = 15;
+
+  // Number of iterations taken by the line search algorithm.
+  int32 line_search_iterations = 16;
+
+  // Number of iterations taken by the linear solver to solve for the
+  // Newton step.
+  int32 linear_solver_iterations = 17;
+
+  // All times reported below are wall times.
+
+  // Time (in seconds) spent inside the minimizer loop in the current
+  // iteration.
+  double iteration_time_in_seconds = 18;
+
+  // Time (in seconds) spent inside the trust region step solver.
+  double step_solver_time_in_seconds = 19;
+
+  // Time (in seconds) since the user called Solve().
+  double cumulative_time_in_seconds = 20;
+}
+
+message PerImageRmse {
+  int32 frame_number = 1;
+  double rmse = 2;
+  string camera_name = 3;
+}
+
+// Per tag statistics generated by the solver, which can be used for determining
+// the quality of the rig solution.
+message ApriltagRigTagStats {
+  // Which april tag id does this refer to in the rig.
+  int32 tag_id = 1;
+  // How many frames was this tag observed in the dataset.
+  int32 n_frames = 2;
+  // The tag's RMSE (sqrt(mean(reprojection_error**2))) over the entire rig
+  // calibration dataset.
+  double tag_rig_rmse = 3;
+  // Per image RMSE of this tag.  The keys to this map are the index into the
+  // repeated detections in the parent rig model.
+  // If an RMSE is high on a particular image, it may be an outlier and this
+  // granular information can be used for debugging issues in the calibration
+  // data.
+  repeated PerImageRmse per_image_rmse = 4;
+}
+
+// A monocular dataset and model used for estimating the parameters of an
+// ApriltagRig. This assumes a single camera with a fixed lense was used to
+// capture a set of images and apriltag detections.
+// This datastructure is produced by the calibration solver, and could be used
+// to resolve the calibration if required.
+message MonocularApriltagRigModel {
+  // Solved for rig, this bit is reusable for tracking or downstream
+  // calibration.
+  farm_ng.perception.ApriltagRig rig = 1;
+  // Is this the initial rig, or did the solver converge, fail...
+  // For diagnosis of failures or unexpected results its useful to look at the
+  // initialization first.
+  SolverStatus solver_status = 2;
+  // The total rig RMSE of all tags from all images.
+  double rmse = 3;
+  // Per tag statistics, can be used to
+  repeated ApriltagRigTagStats tag_stats = 4;
+
+  // The camera frame name, used in NamedSE3Poses.
+  string camera_frame_name = 5;
+  // The ApriltagDetections that are used to initialize and solve the
+  // rig. For debugging purposes, these typically have the image resources
+  // associated with them.  The tag_stats.per_image_rmse keys refer to the
+  // elements of this collection.
+  repeated farm_ng.perception.ApriltagDetections detections = 6;
+
+  // The solver also estimates the pose of each of the camera views in
+  // detections to the the rig.  This is may not be the same length of
+  // detections, for example if the detections had outliers or not enough
+  // detections to estimate the pose, but the frame names
+  // <camera_frame_name>/<detections_index %05d> encode
+  // encode which index in detections these refer to.
+  repeated farm_ng.perception.NamedSE3Pose camera_poses_rig = 7;
+
+  // Each image where we are able to estimate a pose has a projection debug
+  // image, which shows the detected points, and the reprojected corners of the
+  // rig.
+  repeated farm_ng.perception.Image reprojection_images = 8;
+}
+
+
+message MultiViewApriltagRigModel {
+  // Solved for rig, this bit is reusable for tracking or downstream
+  // calibration.
+  farm_ng.perception.ApriltagRig apriltag_rig = 1;
+  farm_ng.perception.MultiViewCameraRig camera_rig = 2;
+
+  // Is this the initial rig, or did the solver converge, fail...
+  // For diagnosis of failures or unexpected results its useful to look at the
+  // initialization first.
+  SolverStatus solver_status = 3;
+  // The total rig RMSE of all tags from all images.
+  double rmse = 4;
+
+  // Per tag statistics, can be used to
+  repeated ApriltagRigTagStats tag_stats = 5;
+
+  // The ApriltagDetections that are used to initialize and solve the
+  // rig. For debugging purposes, these typically have the image resources
+  // associated with them.  The tag_stats.per_image_rmse keys refer to the
+  // elements of this collection.
+  repeated farm_ng.perception.MultiViewApriltagDetections multi_view_detections = 6;
+
+  // The solver also estimates the pose of each of the camera views in
+  // detections to the the rig.  This is may not be the same length of
+  // detections, for example if the detections had outliers or not enough
+  // detections to estimate the pose, but the frame names
+  // <camera_frame_name>/<detections_index %05d> encode
+  // encode which index in detections these refer to.
+  repeated farm_ng.perception.NamedSE3Pose camera_rig_poses_apriltag_rig = 7;
+
+
+  // Each image where we are able to estimate a pose has a projection debug
+  // image, which shows the detected points, and the reprojected corners of the
+  // rig.
+  repeated farm_ng.perception.Image reprojection_images = 9;
+}
+
+message BaseToCameraModel {
+  message WheelMeasurement {
+    double wheel_velocity_rads_left = 1;
+    double wheel_velocity_rads_right = 2;
+    // duration that the measurement applies to, in seconds
+    // Used to integrate odometry_pose_base
+    double dt = 3;
+    // The timestamp from the robot, when this measurement was sampled.
+    google.protobuf.Timestamp stamp = 4;
+  }
+
+  message Sample {
+    farm_ng.perception.NamedSE3Pose camera_pose_rig_start = 1;
+    farm_ng.perception.NamedSE3Pose camera_pose_rig_end = 2;
+    farm_ng.perception.TrajectorySE3 camera_trajectory_rig = 3;
+    repeated WheelMeasurement wheel_measurements = 4;
+
+    farm_ng.perception.TrajectorySE3 odometry_trajectory_base = 5;
+    farm_ng.perception.TrajectorySE3 visual_odometry_trajectory_base = 6;
+  }
+  // For diagnosis of failures or unexpected results its useful to look at the
+  // initialization first.
+  SolverStatus solver_status = 1;
+
+  double rmse = 2;
+  double wheel_baseline = 3;
+  double wheel_radius = 4;
+  farm_ng.perception.NamedSE3Pose base_pose_camera = 5;
+  repeated Sample samples = 6;
+
+  BaseToCameraInitialization initialization = 7;
+}
+
+message CalibrationParameter {
+  double value = 1;
+  bool constant = 2;
+}
+
+enum ViewDirection {
+  VIEW_DIRECTION_UNSPECIFIED = 0;
+  VIEW_DIRECTION_FRONT = 1;
+  VIEW_DIRECTION_FRONT_INVERTED = 2;
+  VIEW_DIRECTION_REAR = 3;
+  VIEW_DIRECTION_REAR_INVERTED = 4;
+}
+
+message ViewInitialization {
+  CalibrationParameter x = 1;
+  CalibrationParameter y = 2;
+  CalibrationParameter z = 3;
+  ViewDirection view_direction = 4;
+}
+
+message BaseToCameraInitialization {
+  CalibrationParameter wheel_radius = 1;
+  CalibrationParameter wheel_baseline = 2;
+  ViewInitialization base_pose_camera = 3;
+}

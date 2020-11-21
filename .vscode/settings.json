@@ -1,6 +1,8 @@
 {
   "clang-format.style": "google",
-  "eslint.workingDirectories": ["./app/frontend"],
+  "eslint.workingDirectories": [
+    "./app/frontend"
+  ],
   "files.exclude": {
     "**/.git": true,
     "**/.DS_Store": true,
@@ -31,13 +33,14 @@
   "python.sortImports.args": [
     "--force-single-line-imports",
     "--line-length=160",
-    "--project=farm_ng",
-    "--project=farm_ng_proto"
+    "--project=farm_ng"
   ],
   "editor.formatOnSave": true,
   "protoc": {
     "compile_on_save": false,
-    "options": ["--proto_path=${workspaceRoot}/protos"]
+    "options": [
+      "--proto_path=${workspaceRoot}/protos"
+    ]
   },
   "[javascript]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode"

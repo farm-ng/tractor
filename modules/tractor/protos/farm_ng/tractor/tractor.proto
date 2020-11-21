@@ -1,0 +1,80 @@
+syntax = "proto3";
+
+import "farm_ng/perception/geometry.proto";
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/wrappers.proto";
+
+package farm_ng.tractor;
+option go_package = "github.com/farm-ng/genproto/tractor";
+
+message TractorState {
+  // Absolute distance traveled in meters. This resets to zero when the tractor
+  // program starts, which is usually on system boot; i.e. it will reset if the
+  // program or computer is restarted.
+  double abs_distance_traveled = 1;
+
+  // TODO(ethanrublee) Consider using wheel measurements message to abstract
+  // this a bit more.
+  double wheel_velocity_rads_left = 2;
+  double wheel_velocity_rads_right = 3;
+  double wheel_velocity_rads_left_aft = 14;
+  double wheel_velocity_rads_right_aft = 15;
+
+  double commanded_brake_current = 4;
+  // At the moment we command the same wheel velocity for fore and aft wheels
+  double commanded_wheel_velocity_rads_left = 5;
+  double commanded_wheel_velocity_rads_right = 6;
+
+  double target_unicycle_velocity = 7;
+  double target_unicycle_angular_velocity = 8;
+
+  // estimated odometry_pose_base, based on integrating the wheel velocity
+  // above, through the current kinematic model based on the TractorConfig.
+  // This is likely to slip based on poor traction moments, as its only based on
+  // motor hall effect tachometer measurements.  It may also be inaccurate if
+  // the tractor config does not match the tractor's actual wheel baseline or
+  // radius.
+  farm_ng.perception.NamedSE3Pose odometry_pose_base = 9;
+
+  // Timestamp of this estimate.
+  google.protobuf.Timestamp stamp = 10;
+
+  // The time duration between state updates, in seconds.
+  double dt = 11;
+
+  double average_update_rate_left_motor = 12;
+  double average_update_rate_right_motor = 13;
+  double average_update_rate_left_aft_motor = 18;
+  double average_update_rate_right_aft_motor = 19;
+}
+
+message TractorConfig {
+  // distance between the wheels, in meters
+  google.protobuf.DoubleValue wheel_baseline = 1;
+
+  // Radius of wheel, in meters, if both wheels are same radius.
+  google.protobuf.DoubleValue wheel_radius = 2;
+
+  // If radius is measured to be different in each wheel, these values override
+  // the wheel_radius value.
+  google.protobuf.DoubleValue wheel_radius_left = 5;
+  google.protobuf.DoubleValue wheel_radius_right = 6;
+
+  // Hub motor gear ratio
+  google.protobuf.DoubleValue hub_motor_gear_ratio = 3;
+  // Hub motor polls
+  google.protobuf.Int32Value hub_motor_poll_pairs = 4;
+
+  // Extrinsic relationships to sensors.
+  repeated farm_ng.perception.NamedSE3Pose base_poses_sensor = 7;
+
+  // Enum for the motor/kinematic topology
+  enum Topology {
+    TOPOLOGY_UNSPECIFIED = 0;
+    TOPOLOGY_TWO_MOTOR_DIFF_DRIVE = 1;
+    TOPOLOGY_TWO_MOTOR_TRACKS = 2;
+    TOPOLOGY_FOUR_MOTOR_SKID_STEER = 3;
+    TOPOLOGY_FOUR_MOTOR_TRACKS = 4;
+  }
+  Topology topology = 8;
+}

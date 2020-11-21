@@ -1,0 +1,12 @@
+{
+  "name": "@farm-ng/genproto-${_module}",
+  "version": "0.1.0",
+  "description": "farm-ng generated protobufs",
+  "main": "index.js",
+  "license": "https://github.com/farm-ng/tractor/blob/master/LICENSE",
+  "private": true,
+  "dependencies": {
+    "long": "^4.0.0",
+    "protobufjs": "^6.10.1"
+  }
+}

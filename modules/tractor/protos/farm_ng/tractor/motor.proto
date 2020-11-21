@@ -1,0 +1,24 @@
+syntax = "proto3";
+
+import "google/protobuf/wrappers.proto";
+
+package farm_ng.tractor;
+option go_package = "github.com/farm-ng/genproto/tractor";
+
+message MotorControllerState {
+  google.protobuf.DoubleValue rpm = 1;
+  google.protobuf.DoubleValue current = 2;
+  google.protobuf.DoubleValue duty_cycle = 3;
+  google.protobuf.DoubleValue amp_hours = 4;
+  google.protobuf.DoubleValue amp_hours_charged = 5;
+  google.protobuf.DoubleValue watt_hours = 6;
+  google.protobuf.DoubleValue watt_hours_charged = 7;
+  google.protobuf.DoubleValue temp_fet = 8;
+  google.protobuf.DoubleValue temp_motor = 9;
+  google.protobuf.DoubleValue current_in = 10;
+  google.protobuf.DoubleValue pid_pos = 11;
+  google.protobuf.DoubleValue tachometer = 12;
+  google.protobuf.DoubleValue input_voltage = 13;
+  google.protobuf.DoubleValue commanded_rpm = 14;
+  google.protobuf.DoubleValue commanded_brake_current = 15;
+}

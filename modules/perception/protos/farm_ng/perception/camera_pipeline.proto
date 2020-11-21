@@ -1,0 +1,42 @@
+syntax = "proto3";
+
+import "google/protobuf/wrappers.proto";
+
+package farm_ng.perception;
+option go_package = "github.com/farm-ng/genproto/perception";
+
+message CameraPipelineCommand {
+  message RecordStop {}
+  message RecordStart {
+    enum Mode {
+      MODE_UNSPECIFIED = 0; MODE_EVERY_FRAME = 1; MODE_EVERY_APRILTAG_FRAME = 2;
+      MODE_APRILTAG_STABLE = 3;
+    }
+    Mode mode = 1;
+  }
+
+  oneof command {
+    RecordStop record_stop = 3;
+    RecordStart record_start = 1;
+  }
+}
+
+message CameraConfig {
+  enum Model {
+    MODEL_UNSPECIFIED = 0;
+    MODEL_INTEL_T265 = 1;
+    MODEL_INTEL_D435I = 2;
+    MODEL_INTEL_D415 = 3;
+  }
+
+  string name = 1;
+  string serial_number = 2;
+  Model model = 3;
+
+  google.protobuf.Int32Value udp_stream_port = 4;
+  string frame_grabber_name = 5; // Which frame_grabber driver to use?
+}
+
+message CameraPipelineConfig {
+  repeated CameraConfig camera_configs = 1;
+}

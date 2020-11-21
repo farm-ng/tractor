@@ -1,0 +1,7 @@
+add_subdirectory(perception)
+
+add_executable(capture_video_dataset capture_video_dataset.cpp)
+target_link_libraries(capture_video_dataset farm_ng_perception)
+
+add_executable(tracking_camera tracking_camera.cpp)
+target_link_libraries(tracking_camera farm_ng_perception)

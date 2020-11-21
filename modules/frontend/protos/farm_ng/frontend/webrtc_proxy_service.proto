@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+package farm_ng.frontend;
+option go_package = "github.com/farm-ng/genproto/frontend";
+
+message InitiatePeerConnectionRequest {
+  // The offerer's Session Description Protocol description, as base64-encoded
+  // JSON
+  string sdp = 1;
+}
+
+message InitiatePeerConnectionResponse {
+  // The answerer's Session Description Protocol description, as base64-encoded
+  // JSON
+  string sdp = 1;
+}
+
+// Proxies UDP, including RTP video, to/from a WebRTC peer
+service WebRTCProxyService {
+  rpc InitiatePeerConnection(InitiatePeerConnectionRequest)
+      returns (InitiatePeerConnectionResponse) {}
+}

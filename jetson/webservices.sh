@@ -1,3 +1,3 @@
 #!/bin/bash -ex
 
-PORT=80 ./env.sh build/go/farm-ng-webservices
+PORT=80 ./env.sh build/go/farm_ng_webservices
