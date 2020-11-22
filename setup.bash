@@ -20,8 +20,8 @@ export PYTHONPATH=$FARM_NG_ROOT/env/lib
 
 for module in core calibration frontend perception tractor
 do
-  export PYTHONPATH=modules/$module/python:$PYTHONPATH
-  export PYTHONPATH=build/modules/$module/protos/python:$PYTHONPATH
+  export PYTHONPATH=$FARM_NG_ROOT/modules/$module/python:$PYTHONPATH
+  export PYTHONPATH=$FARM_NG_ROOT/build/modules/$module/protos/python:$PYTHONPATH
 done
 
 export LD_LIBRARY_PATH=$FARM_NG_ROOT/env/lib
