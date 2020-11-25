@@ -11,11 +11,12 @@ export FARM_NG_ROOT=$( cd "$( dirname "${SOURCE}" )" >/dev/null 2>&1 && pwd )
 
 # Python
 if [ ! -f $FARM_NG_ROOT/env/bin/activate ]; then
-    virtualenv $FARM_NG_ROOT/env
+  python3 -m venv $FARM_NG_ROOT/env
 fi
 
 . $FARM_NG_ROOT/env/bin/activate
-pip install -r $FARM_NG_ROOT/requirements.txt
+pip3 install wheel
+pip3 install -r $FARM_NG_ROOT/requirements.txt
 
 # Go
 FARM_NG_GOPATH=$FARM_NG_ROOT/env/go

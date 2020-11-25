@@ -59,6 +59,7 @@ sudo apt-get install -y \
      network-manager \
      protobuf-compiler \
      python3-pip \
+     python3-venv \
      yarn
 
 # Virtualenv
