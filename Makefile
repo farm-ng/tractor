@@ -19,8 +19,8 @@ cpp:
 	cd build && rm -rf ./* && cmake -DCMAKE_PREFIX_PATH=`pwd`/../env -DCMAKE_BUILD_TYPE=Release .. && make -j`nproc --ignore=1`
 
 frontend:
-	cd app/frontend && yarn && yarn build
-	cp -rT app/frontend/dist build/frontend
+	cd modules/frontend/frontend/ && yarn && yarn build
+	cp -rT modules/frontend/frontend/dist build/frontend
 
 protos:
 	mkdir -p build
@@ -34,10 +34,10 @@ third_party:
 
 test:
 	./env.sh pytest $(PY_TEST_FILTER)
-	cd app/frontend && yarn test$(JS_TEST_FILTER)
+	cd modules/frontend/frontend && yarn test $(JS_TEST_FILTER)
 
 webserver:
-	cd go/webrtc && ../../env.sh make
+	cd modules/frontend/go/webrtc && ../../../../env.sh make
 
 webservices:
 	make protos
