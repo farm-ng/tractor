@@ -227,7 +227,7 @@ class SingleCameraPipeline {
   }
 
   EventBus& event_bus_;
-  boost::asio::strand strand_;
+  boost::asio::io_service::strand strand_;
   CameraModel camera_model_;
   ApriltagDetector detector_;
   VideoStreamer video_file_writer_;

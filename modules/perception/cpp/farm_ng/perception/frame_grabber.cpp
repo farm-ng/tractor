@@ -1,3 +1,5 @@
+#include <iostream>
+
 #include "farm_ng/perception/frame_grabber.h"
 
 namespace farm_ng {
@@ -24,12 +26,10 @@ std::unique_ptr<FrameGrabber> FrameGrabber::MakeFrameGrabber(
 }
 int FrameGrabber::AddFrameGrabberFactory(const std::string& frame_grabber_name,
                                          FrameGrabberFactory factory) {
-  CHECK(FrameGrabberFactoryRegistry()
-            .insert(std::make_pair(frame_grabber_name, factory))
-            .second)
-      << "FrameGrabberFactory Name already registered: " << frame_grabber_name;
-  LOG(INFO) << "FramgeGrabberFactory registered for name: "
-            << frame_grabber_name;
+FrameGrabberFactoryRegistry()
+            .insert(std::make_pair(frame_grabber_name, factory));
+  std::cerr << "FramgeGrabberFactory registered for name: "
+            << frame_grabber_name << std::endl;
   return 0;
 }
 
