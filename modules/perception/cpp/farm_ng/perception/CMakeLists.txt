@@ -7,6 +7,7 @@ find_package(Sophus REQUIRED)
 foreach(src_prefix
    apriltag
    camera_model
+   camera_pipeline
    pose_utils
    time_series
    tracking_camera_utils

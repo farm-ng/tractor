@@ -12,7 +12,10 @@ add_library(farm_ng_core SHARED
   init.cpp
   init.h
   ipc.cpp
-  ipc.h)
+  ipc.h
+  thread_pool.cpp
+  thread_pool.h
+  )
 
 target_include_directories(farm_ng_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../..)
 target_link_libraries(
