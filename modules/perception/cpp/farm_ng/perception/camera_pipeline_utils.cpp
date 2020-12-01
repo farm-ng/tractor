@@ -1,4 +1,4 @@
-#include "farm_ng/perception/tracking_camera_utils.h"
+#include "farm_ng/perception/camera_pipeline_utils.h"
 
 #include <glog/logging.h>
 
@@ -18,14 +18,14 @@ void RequestStartCapturing(EventBus& bus,
 }
 void RequestStartCapturing(EventBus& bus, CameraPipelineCommand command) {
   LOG(INFO) << "RequestStartCapturing: "
-            << MakeEvent("tracking_camera/command", command).ShortDebugString();
-  bus.Send(MakeEvent("tracking_camera/command", command));
+            << MakeEvent("camera_pipeline/command", command).ShortDebugString();
+  bus.Send(MakeEvent("camera_pipeline/command", command));
 }
 
 void RequestStopCapturing(EventBus& bus) {
   CameraPipelineCommand command;
   command.mutable_record_stop();
-  bus.Send(MakeEvent("tracking_camera/command", command));
+  bus.Send(MakeEvent("camera_pipeline/command", command));
 }
 
 }  // namespace perception

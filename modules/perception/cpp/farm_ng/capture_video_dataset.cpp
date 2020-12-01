@@ -8,7 +8,7 @@
 #include "farm_ng/core/blobstore.h"
 #include "farm_ng/core/init.h"
 #include "farm_ng/core/ipc.h"
-#include "farm_ng/perception/tracking_camera_utils.h"
+#include "farm_ng/perception/camera_pipeline_utils.h"
 
 #include "farm_ng/perception/apriltag.pb.h"
 #include "farm_ng/perception/camera_pipeline.pb.h"
@@ -66,17 +66,17 @@ class CaptureVideoDatasetProgram {
       bus_.get_io_service().run_one();
     }
 
-    WaitForServices(bus_, {"ipc_logger", "tracking_camera"});
+    WaitForServices(bus_, {"ipc_logger", "camera_pipeline"});
     LoggingStatus log = StartLogging(bus_, configuration_.name());
-    CameraPipelineCommand tracking_camera_command;
+    CameraPipelineCommand camera_pipeline_command;
     if (configuration_.detect_apriltags()) {
-      tracking_camera_command.mutable_record_start()->set_mode(
+      camera_pipeline_command.mutable_record_start()->set_mode(
           CameraPipelineCommand::RecordStart::MODE_EVERY_APRILTAG_FRAME);
     } else {
-      tracking_camera_command.mutable_record_start()->set_mode(
+      camera_pipeline_command.mutable_record_start()->set_mode(
           CameraPipelineCommand::RecordStart::MODE_EVERY_FRAME);
     }
-    RequestStartCapturing(bus_, tracking_camera_command);
+    RequestStartCapturing(bus_, camera_pipeline_command);
 
     try {
       bus_.get_io_service().run();

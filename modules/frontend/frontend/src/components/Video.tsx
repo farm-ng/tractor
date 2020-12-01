@@ -54,7 +54,7 @@ export const Video: React.FC = () => {
 
         resize();
         drawAprilTagDetections(
-          busEventStore.lastSnapshot.get("tracking_camera/front/apriltags")
+          busEventStore.lastSnapshot.get("camera_pipeline/front/apriltags")
             ?.latestEvent as ApriltagDetections,
           ctx,
           canvas,

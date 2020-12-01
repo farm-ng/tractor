@@ -5,6 +5,10 @@
 #include "farm_ng/perception/camera_model.h"
 #include "farm_ng/perception/image_utils.h"
 
+using farm_ng::core::Bucket;
+using farm_ng::core::MakeEvent;
+using farm_ng::core::ReadProtobufFromJsonFile;
+
 namespace farm_ng {
 namespace perception {
 
@@ -212,25 +216,21 @@ void MultiCameraPipeline::OnFrame(
       synced_frame_data.front().stamp());
 }
 
-TrackingCameraClient::TrackingCameraClient(EventBus& bus)
+CameraPipelineClient::CameraPipelineClient(EventBus& bus)
     : io_service_(bus.get_io_service()),
       event_bus_(bus),
 
       multi_camera_pipeline_(event_bus_),
       multi_camera_(event_bus_) {
   event_bus_.GetEventSignal()->connect(
-      std::bind(&TrackingCameraClient::on_event, this, std::placeholders::_1));
+      std::bind(&CameraPipelineClient::on_event, this, std::placeholders::_1));
 
   event_bus_.AddSubscriptions(
       {// subscribe to logger commands for resource archive path changes,
        // should this just be default?
        std::string("^logger/.*"),
-       // subscribe to steering commands to toggle new goals for VO
-       std::string("^steering$"),
        // tracking camera commands, recording, etc.
-       std::string("^tracking_camera/command$"),
-       // tractor states for VO
-       std::string("^tractor_state$")});
+       std::string("^camera_pipeline/command$")});
 
   CameraPipelineConfig config = ReadProtobufFromJsonFile<CameraPipelineConfig>(
       GetBucketAbsolutePath(Bucket::BUCKET_CONFIGURATIONS) / "camera.json");
@@ -248,12 +248,12 @@ TrackingCameraClient::TrackingCameraClient(EventBus& bus)
                 std::placeholders::_1));
 }
 
-void TrackingCameraClient::on_command(const CameraPipelineCommand& command) {
+void CameraPipelineClient::on_command(const CameraPipelineCommand& command) {
   latest_command_ = command;
   multi_camera_pipeline_.Post(latest_command_);
 }
 
-void TrackingCameraClient::on_event(const EventPb& event) {
+void CameraPipelineClient::on_event(const EventPb& event) {
   CameraPipelineCommand command;
   if (event.data().UnpackTo(&command)) {
     on_command(command);

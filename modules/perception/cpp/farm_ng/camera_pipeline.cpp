@@ -1,12 +1,12 @@
+#include "farm_ng/perception/camera_pipeline.h"
 #include "farm_ng/core/init.h"
 #include "farm_ng/core/ipc.h"
-#include "farm_ng/perception/camera_pipeline.h"
 
 void Cleanup(farm_ng::core::EventBus& bus) {}
 
 int Main(farm_ng::core::EventBus& bus) {
   try {
-    farm_ng::perception::TrackingCameraClient client(bus);
+    farm_ng::perception::CameraPipelineClient client(bus);
     bus.get_io_service().run();
   } catch (...) {
   }

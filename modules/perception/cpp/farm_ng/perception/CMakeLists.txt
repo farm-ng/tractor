@@ -10,7 +10,7 @@ foreach(src_prefix
    camera_pipeline
    pose_utils
    time_series
-   tracking_camera_utils
+   camera_pipeline_utils
 )
   list(APPEND cpp_files ${src_prefix}.cpp)
   list(APPEND h_files ${src_prefix}.h)

@@ -11,15 +11,9 @@
 
 #include "farm_ng/perception/camera_model.pb.h"
 #include "farm_ng/perception/camera_pipeline.pb.h"
-// #include "farm_ng/perception/geometry.pb.h"
 
 typedef farm_ng::core::Event EventPb;
-using farm_ng::core::Bucket;
-using farm_ng::core::BUCKET_CONFIGURATIONS;
 using farm_ng::core::EventBus;
-using farm_ng::core::MakeEvent;
-using farm_ng::core::ReadProtobufFromJsonFile;
-using farm_ng::core::Subscription;
 using farm_ng::core::ThreadPool;
 
 namespace farm_ng {
@@ -95,9 +89,9 @@ class MultiCameraPipeline {
   std::map<std::string, SingleCameraPipeline> pipelines_;
 };
 
-class TrackingCameraClient {
+class CameraPipelineClient {
  public:
-  TrackingCameraClient(EventBus& bus);
+  CameraPipelineClient(EventBus& bus);
   void on_command(const CameraPipelineCommand& command);
   void on_event(const EventPb& event);
 

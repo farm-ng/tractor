@@ -8,8 +8,8 @@ from farm_ng.core.blobstore import Blobstore
 from farm_ng.core.resource_pb2 import BUCKET_CONFIGURATIONS
 from farm_ng.perception.apriltag_pb2 import ApriltagConfig
 from farm_ng.perception.apriltag_pb2 import TagConfig
-from farm_ng.perception.tracking_camera_pb2 import CameraConfig
-from farm_ng.perception.tracking_camera_pb2 import CameraPipelineConfig
+from farm_ng.perception.camera_pipeline_pb2 import CameraConfig
+from farm_ng.perception.camera_pipeline_pb2 import CameraPipelineConfig
 from farm_ng.tractor.tractor_pb2 import TractorConfig
 
 
@@ -74,11 +74,11 @@ class CameraConfigManager:
         config.camera_configs.extend(
             [
                 CameraConfig(
-                    serial_number='15322110300', name='tracking_camera/front', model=CameraConfig.MODEL_INTEL_T265,
+                    serial_number='15322110300', name='camera_pipeline/front', model=CameraConfig.MODEL_INTEL_T265,
                     udp_stream_port=Int32Value(value=5000),
                 ),
                 CameraConfig(
-                    serial_number='923322071915', name='tracking_camera/front_depth', model=CameraConfig.MODEL_INTEL_D435I,
+                    serial_number='923322071915', name='camera_pipeline/front_depth', model=CameraConfig.MODEL_INTEL_D435I,
                     udp_stream_port=Int32Value(value=5001),
                 ),
             ],

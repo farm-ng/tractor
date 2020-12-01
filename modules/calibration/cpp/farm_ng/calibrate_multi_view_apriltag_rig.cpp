@@ -31,7 +31,7 @@ DEFINE_int32(
     "The root tag id, -1 will result in root_tag_id == first value in tag_ids");
 
 DEFINE_bool(filter_stable_tags, false, "Run filter for stable tags.");
-DEFINE_string(root_camera_name, "tracking_camera/front/left",
+DEFINE_string(root_camera_name, "camera_pipeline/front/left",
               "Which camera to treat as the root.");
 
 typedef farm_ng::core::Event EventPb;
