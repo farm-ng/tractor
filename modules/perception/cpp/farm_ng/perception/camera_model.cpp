@@ -18,7 +18,7 @@ CameraModel DefaultFishEyeT265CameraModel() {
   model.add_distortion_coefficients(-0.039864420890808105);
   model.add_distortion_coefficients(0.0068964879028499126);
   model.add_distortion_coefficients(0);
-  model.set_frame_name("camera_pipeline/front/left");
+  model.set_frame_name("tracking_camera/front/left");
   return model;
 }
 CameraModel Default1080HDCameraModel() {

@@ -74,11 +74,11 @@ class CameraConfigManager:
         config.camera_configs.extend(
             [
                 CameraConfig(
-                    serial_number='15322110300', name='camera_pipeline/front', model=CameraConfig.MODEL_INTEL_T265,
+                    serial_number='15322110300', name='tracking_camera/front', model=CameraConfig.MODEL_INTEL_T265,
                     udp_stream_port=Int32Value(value=5000),
                 ),
                 CameraConfig(
-                    serial_number='923322071915', name='camera_pipeline/front_depth', model=CameraConfig.MODEL_INTEL_D435I,
+                    serial_number='923322071915', name='tracking_camera/front_depth', model=CameraConfig.MODEL_INTEL_D435I,
                     udp_stream_port=Int32Value(value=5001),
                 ),
             ],
