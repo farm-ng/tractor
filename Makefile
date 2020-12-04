@@ -24,7 +24,7 @@ frontend:
 
 protos:
 	mkdir -p build
-	cd build && rm -rf ./* && cmake .. && make -j`nproc --ignore=1` farm_ng_all_protobuf_go farm_ng_all_protobuf_ts
+	cd build && cmake .. && make -j`nproc --ignore=1` farm_ng_all_protobuf_go farm_ng_all_protobuf_ts
 
 systemd:
 	cd jetson && sudo ./install.sh
