@@ -1,0 +1,18 @@
+{
+  "files.exclude": {
+    "**/build": false,
+    "**/env": false,
+    "**/third_party/build-*": false
+  },
+  "[go]": {
+    "editor.codeActionsOnSave": {
+      "source.organizeImports": false
+    }
+  },
+  "[go.mod]": {
+    "editor.codeActionsOnSave": {
+      "source.organizeImports": false
+    }
+  },
+  "editor.formatOnSave": false
+}

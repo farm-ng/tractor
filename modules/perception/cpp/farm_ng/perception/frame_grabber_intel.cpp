@@ -123,6 +123,7 @@ class FrameGrabberIntel : public FrameGrabber {
       std::stringstream ss;
       ss << "RealSense error calling " << e.get_failed_function() << "("
          << e.get_failed_args() << "):\n    " << e.what();
+      LOG(ERROR) << ss.str();
       throw std::runtime_error(ss.str());
     }
   }

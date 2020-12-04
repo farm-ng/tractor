@@ -19,7 +19,7 @@ cpp:
 	cd build && rm -rf ./* && cmake -DCMAKE_PREFIX_PATH=`pwd`/../env -DCMAKE_BUILD_TYPE=Release .. && make -j`nproc --ignore=1`
 
 frontend:
-	cd modules/frontend/frontend/ && yarn && yarn build
+	cd modules/frontend/frontend && yarn && yarn build
 	cp -rT modules/frontend/frontend/dist build/frontend
 
 protos:
