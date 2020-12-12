@@ -5,7 +5,7 @@ import "farm_ng/core/resource.proto";
 package farm_ng.perception;
 option go_package = "github.com/farm-ng/genproto/perception";
 
-// Depthmap encoded as a normal image. See https://developers.google.com/depthmap-metadata/encoding
+// Depthmap encoded as an 8bit/16bit image (jpg,png). See https://developers.google.com/depthmap-metadata/encoding
 // Depth (d) is normalized (d_n) to [0,1],
 // for range=RANGE_LINEAR
 //    d_n = (d-depth_near)/(depth_far-depth_near)
@@ -24,8 +24,8 @@ message Depthmap {
         RANGE_INVERSE=2;
     };
   Range range=1;
-  float depth_near=2;
-  float depth_far=3;
-  // depthmap data.  This is typically a jpeg or png image.
+  double depth_near=2;
+  double depth_far=3;
+  // depthmap data.  This is typically a jpg or png image.
   farm_ng.core.Resource resource = 4;
 }
