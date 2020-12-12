@@ -1,6 +1,7 @@
 syntax = "proto3";
 
 import "farm_ng/core/resource.proto";
+import "farm_ng/perception/depthmap.proto";
 import "farm_ng/perception/camera_model.proto";
 import "google/protobuf/wrappers.proto";
 
@@ -18,4 +19,8 @@ message Image {
 
   // If resource is a video, the frame rate of the video
   google.protobuf.DoubleValue fps = 4;
+
+  // If the image has a depthmap associated with it, this
+  // is assumed to be mapped to the same camera_model as the image itself.
+  Depthmap depthmap = 5;
 }

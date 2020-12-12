@@ -3,6 +3,7 @@ farm_ng_add_protobufs(farm_ng_perception_protobuf
   ./farm_ng/perception/apriltag.proto
   ./farm_ng/perception/camera_model.proto
   ./farm_ng/perception/geometry.proto
+  ./farm_ng/perception/depthmap.proto
   ./farm_ng/perception/image.proto
   ./farm_ng/perception/capture_video_dataset.proto
   ./farm_ng/perception/create_video_dataset.proto
