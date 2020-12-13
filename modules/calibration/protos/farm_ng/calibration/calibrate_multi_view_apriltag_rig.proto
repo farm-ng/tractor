@@ -21,11 +21,6 @@ message CalibrateMultiViewApriltagRigConfiguration {
   string name = 5;
   string tag_rig_name = 6;
   bool filter_stable_tags = 7;
-  // Run detection on images
-  bool detect_tags = 8;
-  // json serialized farm_ng.perception.TagConfig, used by detector
-  // if this is not set it defaults to loading the configurations/apriltags.json file.
-  farm_ng.core.Resource tag_config = 9;
 }
 
 message CalibrateMultiViewApriltagRigStatus {

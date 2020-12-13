@@ -31,9 +31,6 @@ DEFINE_int32(
     "The root tag id, -1 will result in root_tag_id == first value in tag_ids");
 
 DEFINE_bool(filter_stable_tags, false, "Run filter for stable tags.");
-DEFINE_bool(detect_tags, false, "Run detection on input.");
-DEFINE_string(tag_config, "",
-              "ApriltagConfig json path, relative to blobstore.  If not set, uses configurations/apriltag.json");
 DEFINE_string(root_camera_name, "tracking_camera/front/left",
               "Which camera to treat as the root.");
 
@@ -202,12 +199,6 @@ int Main(farm_ng::core::EventBus& bus) {
   config.set_name(FLAGS_name);
   config.set_tag_rig_name(FLAGS_tag_rig_name);
   config.set_filter_stable_tags(FLAGS_filter_stable_tags);
-  config.set_detect_tags(FLAGS_detect_tags);
-  if(!FLAGS_tag_config.empty()) {
-    config.mutable_tag_config()->set_path(FLAGS_tag_config);
-    config.mutable_tag_config()->set_content_type(ContentTypeProtobufJson<farm_ng::perception::ApriltagConfig>());
-  }
-
 
   farm_ng::calibration::CalibrateMultiViewApriltagRigProgram program(
       bus, config, FLAGS_interactive);

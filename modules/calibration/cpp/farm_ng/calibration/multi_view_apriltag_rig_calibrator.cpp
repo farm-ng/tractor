@@ -319,13 +319,6 @@ std::vector<MultiViewApriltagDetections> LoadMultiViewApriltagDetections(
 
   std::map<std::string, TimeSeries<Event>> apriltag_series;
 
-  std::map<std::string, std::shared_ptr<perception::ApriltagDetector>> per_camera_detectors;
-  std::optional<perception::ApriltagConfig> tag_config;
-  if(config.has_tag_config()) {
-  tag_config = ReadProtobufFromResource<perception::ApriltagConfig>(config.tag_config());
-
-  }
-  ImageLoader image_loader;
   while (true) {
     EventPb event;
     try {
@@ -333,40 +326,8 @@ std::vector<MultiViewApriltagDetections> LoadMultiViewApriltagDetections(
     } catch (std::runtime_error& e) {
       break;
     }
-    Image image;
     ApriltagDetections unfiltered_detections;
-    bool has_detections = false;
-    if( config.detect_tags() && event.data().UnpackTo(&image)) {
-      if(image.camera_model().distortion_coefficients_size() == 0) {
-        for(int i = 0; i < 8;++i) {
-        image.mutable_camera_model()->add_distortion_coefficients(0);
-        }
-      }
-      LOG(INFO) << image.camera_model().frame_name() << " " << image.frame_number().ShortDebugString() << " " << image.resource().ShortDebugString();
-      if(per_camera_detectors.count(image.camera_model().frame_name()) == 0) {
-        const perception::ApriltagConfig* tag_config_ptr = nullptr;
-        if(tag_config.has_value()) {
-          tag_config_ptr = &tag_config.value();
-        }
-        per_camera_detectors.emplace(image.camera_model().frame_name(), std::shared_ptr<perception::ApriltagDetector>(new perception::ApriltagDetector(image.camera_model(), nullptr, tag_config_ptr)));
-      }
-      cv::Mat image_mat = image_loader.LoadImage(image);
-      cv::Mat gray;
-      if(image_mat.channels() == 3) {
-          cv::cvtColor(image_mat, gray, cv::COLOR_BGR2GRAY);
-      }else {
-        CHECK_EQ(image_mat.channels(),1);
-        gray = image_mat;
-      }
-      unfiltered_detections = per_camera_detectors[image.camera_model().frame_name()]->Detect(gray, event.stamp());
-      unfiltered_detections.mutable_image()->CopyFrom(image);
-      has_detections = true;
-    }
-
-    if (!config.detect_tags() && event.data().UnpackTo(&unfiltered_detections)) {
-      has_detections = true;
-    }
-    if(has_detections) {
+    if (event.data().UnpackTo(&unfiltered_detections)) {
       ApriltagDetections detections = unfiltered_detections;
       detections.clear_detections();
       for (const auto& detection : unfiltered_detections.detections()) {
@@ -376,8 +337,8 @@ std::vector<MultiViewApriltagDetections> LoadMultiViewApriltagDetections(
       }
       event.mutable_data()->PackFrom(detections);
 
-      event.set_name(detections.image().camera_model().frame_name() + "/detections");
-      LOG(INFO) << event.name() << " " << detections.detections_size();
+      event.set_name(detections.image().camera_model().frame_name() +
+                     "/apriltags");
       apriltag_series[event.name()].insert(event);
     }
   }
@@ -393,14 +354,15 @@ std::vector<MultiViewApriltagDetections> LoadMultiViewApriltagDetections(
   ApriltagsFilter tag_filter;
   std::vector<MultiViewApriltagDetections> mv_detections_series;
   auto time_window =
-      google::protobuf::util::TimeUtil::MillisecondsToDuration(1000.0 / 7);
+      google::protobuf::util::TimeUtil::MillisecondsToDuration(1000.0 / 2);
 
   std::map<std::string, int> detection_counts;
 
   for (const Event& event : apriltag_series[root_camera_name + "/apriltags"]) {
     ApriltagDetections detections;
     CHECK(event.data().UnpackTo(&detections));
-    if (!config.filter_stable_tags() || tag_filter.AddApriltags(detections,2,20)) {
+    if (!config.filter_stable_tags() ||
+        tag_filter.AddApriltags(detections, 5, 7)) {
       MultiViewApriltagDetections mv_detections;
       for (auto name_series : apriltag_series) {
         auto nearest_event =
@@ -449,7 +411,6 @@ PoseGraph TagRigFromMultiViewDetections(
         ApriltagRig::Node node;
         node.set_id(detection.id());
         node.set_frame_name(FrameRigTag(config.tag_rig_name(), detection.id()));
-
         node.set_tag_size(detection.tag_size());
         for (const auto& v : PointsTag(detection)) {
           EigenToProto(v, node.add_points_tag());
