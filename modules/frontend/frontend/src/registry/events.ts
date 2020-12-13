@@ -48,6 +48,10 @@ import {
   CaptureVideoDatasetStatus,
 } from "@farm-ng/genproto-perception/farm_ng/perception/capture_video_dataset";
 import {
+  DetectApriltagsConfiguration,
+  DetectApriltagsStatus,
+} from "@farm-ng/genproto-perception/farm_ng/perception/detect_apriltags";
+import {
   CalibrateApriltagRigConfiguration,
   CalibrateApriltagRigResult,
   CalibrateApriltagRigStatus,
@@ -88,6 +92,8 @@ export type EventType =
   | CaptureVideoDatasetConfiguration
   | CaptureVideoDatasetResult
   | CaptureVideoDatasetStatus
+  | DetectApriltagsConfiguration
+  | DetectApriltagsStatus
   | Image
   | LoggingCommand
   | LoggingStatus
@@ -146,6 +152,8 @@ export const eventRegistry = inferKeys({
   "type.googleapis.com/farm_ng.perception.CaptureVideoDatasetConfiguration": CaptureVideoDatasetConfiguration,
   "type.googleapis.com/farm_ng.perception.CaptureVideoDatasetResult": CaptureVideoDatasetResult,
   "type.googleapis.com/farm_ng.perception.CaptureVideoDatasetStatus": CaptureVideoDatasetStatus,
+  "type.googleapis.com/farm_ng.perception.DetectApriltagsConfiguration": DetectApriltagsConfiguration,
+  "type.googleapis.com/farm_ng.perception.DetectApriltagsStatus": DetectApriltagsStatus,
   "type.googleapis.com/farm_ng.perception.Image": Image,
   "type.googleapis.com/farm_ng.perception.NamedSE3Pose": NamedSE3Pose,
   "type.googleapis.com/farm_ng.perception.SE3Pose": SE3Pose,

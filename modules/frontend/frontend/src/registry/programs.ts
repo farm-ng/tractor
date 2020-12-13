@@ -1,6 +1,7 @@
 import { CalibrateApriltagRigProgram } from "../components/programs/CalibrateApriltagRig";
 import { CalibrateBaseToCameraProgram } from "../components/programs/CalibrateBaseToCamera";
 import { CaptureVideoDatasetProgram } from "../components/programs/CaptureVideoDataset";
+import { DetectApriltagsProgram } from "../components/programs/DetectApriltags";
 import { EventType } from "./events";
 import { Event as BusEvent } from "@farm-ng/genproto-core/farm_ng/core/io";
 import { CalibrateMultiViewApriltagRigProgram } from "../components/programs/CalibrateMultiViewApriltagRig";
@@ -21,6 +22,7 @@ export const programRegistry: Program[] = [
   CalibrateApriltagRigProgram as Program,
   CalibrateBaseToCameraProgram as Program,
   CalibrateMultiViewApriltagRigProgram as Program,
+  DetectApriltagsProgram as Program,
 ];
 
 export function programForProgramId(programId: string): Program | null {

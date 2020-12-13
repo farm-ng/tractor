@@ -32,4 +32,7 @@ message DetectApriltagsStatus {
 
   // Number of frames captured per tag id
   repeated PerTagIdNumFrames per_tag_id_num_frames = 4;
+
+  // Configuration.
+  DetectApriltagsConfiguration configuration = 5;
 }

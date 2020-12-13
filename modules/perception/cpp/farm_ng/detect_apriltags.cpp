@@ -71,6 +71,9 @@ class DetectApriltagsProgram {
 
     CaptureVideoDatasetResult result;
 
+    result.mutable_configuration()->set_name(configuration_.name());
+    result.mutable_configuration()->set_detect_apriltags(true);
+
     result.mutable_stamp_begin()->CopyFrom(MakeTimestampNow());
 
     LoggingStatus log = StartLogging(bus_, configuration_.name());
@@ -226,6 +229,7 @@ class DetectApriltagsProgram {
   void set_configuration(DetectApriltagsConfiguration configuration) {
     configuration_ = configuration;
     status_.clear_input_required_configuration();
+    status_.mutable_configuration()->CopyFrom(configuration_);
     send_status();
   }
 

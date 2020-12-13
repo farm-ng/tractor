@@ -38,9 +38,18 @@ message CalibrateMultiViewApriltagRigResult {
   CalibrateMultiViewApriltagRigConfiguration configuration = 1;
   farm_ng.core.Resource multi_view_apriltag_rig_initial = 2;
   farm_ng.core.Resource multi_view_apriltag_rig_solved = 3;
+
+  // A json serialized camera_rig
+  farm_ng.core.Resource camera_rig_solved = 8;
+  // A json serialized apriltag rig
+  farm_ng.core.Resource apriltag_rig_solved = 9;
+
   SolverStatus solver_status = 4;
   double rmse = 5;
+
+  google.protobuf.Timestamp stamp_begin = 10;
   google.protobuf.Timestamp stamp_end = 6;
+
   // Debug event log.
   farm_ng.core.Resource event_log = 7;
 }

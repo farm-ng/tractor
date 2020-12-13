@@ -19,6 +19,8 @@ import { TractorConfigVisualizer } from "../components/scope/visualizers/Tractor
 import { CaptureVideoDatasetConfigurationVisualizer } from "../components/scope/visualizers/CaptureVideoDatasetConfiguration";
 import { CaptureVideoDatasetStatusVisualizer } from "../components/scope/visualizers/CaptureVideoDatasetStatus";
 import { CaptureVideoDatasetResultVisualizer } from "../components/scope/visualizers/CaptureVideoDatasetResult";
+import { DetectApriltagsConfigurationVisualizer } from "../components/scope/visualizers/DetectApriltagsConfiguration";
+import { DetectApriltagsStatusVisualizer } from "../components/scope/visualizers/DetectApriltagsStatus";
 import { ApriltagConfigVisualizer } from "../components/scope/visualizers/ApriltagConfig";
 import { CameraConfigVisualizer } from "../components/scope/visualizers/CameraConfig";
 import { CameraPipelineConfigVisualizer } from "../components/scope/visualizers/CameraPipelineConfig";
@@ -77,6 +79,8 @@ export const visualizerRegistry: { [k: string]: Visualizer } = [
   CaptureVideoDatasetConfigurationVisualizer,
   CaptureVideoDatasetResultVisualizer,
   CaptureVideoDatasetStatusVisualizer,
+  DetectApriltagsConfigurationVisualizer,
+  DetectApriltagsStatusVisualizer,
   ImageVisualizer,
   MonocularApriltagRigModelVisualizer,
   MultiViewApriltagRigModelVisualizer,
