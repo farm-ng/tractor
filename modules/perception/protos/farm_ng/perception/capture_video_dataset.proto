@@ -52,6 +52,8 @@ message CaptureVideoDatasetResult {
   // Number of frames captured per tag id
   repeated PerTagIdNumFrames per_tag_id_num_frames = 6;
 
+  // The time the capture started
+  google.protobuf.Timestamp stamp_begin = 7;
   // The time the capture completed
   google.protobuf.Timestamp stamp_end = 3;
 

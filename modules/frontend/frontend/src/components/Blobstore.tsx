@@ -53,8 +53,17 @@ const bestGuessEventType = (
   if (folderChain.map((_) => _.name).includes("base_to_camera_models")) {
     return "type.googleapis.com/farm_ng.calibration.CalibrateBaseToCameraResult";
   }
+  if (folderChain.map((_) => _.name).includes("calibration_boards")) {
+    return "type.googleapis.com/farm_ng.perception.ApriltagRig";
+  }
   if (folderChain.map((_) => _.name).includes("calibration-datasets")) {
     return "type.googleapis.com/farm_ng.perception.CaptureVideoDatasetResult";
+  }
+  if (folderChain.map((_) => _.name).includes("video_datasets")) {
+    return "type.googleapis.com/farm_ng.perception.CreateVideoDatasetResult";
+  }
+  if (folderChain.map((_) => _.name).includes("intrinsic_models")) {
+    return "type.googleapis.com/farm_ng.calibration.CalibrateIntrinsicsResult";
   }
   return undefined;
 };
