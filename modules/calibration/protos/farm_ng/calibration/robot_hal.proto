@@ -10,7 +10,7 @@ message CapturePoseRequest {
   // The commanded pose(s).
   // The interpretation of this set of poses is application-specific.
   // For example, an application with a mobile manipulator might interpret two poses as
-  // world_pose_base and arm_base_pose_tool.
+  // world_pose_base and arm_base_pose_tool
   repeated farm_ng.perception.NamedSE3Pose poses = 1;
 }
 

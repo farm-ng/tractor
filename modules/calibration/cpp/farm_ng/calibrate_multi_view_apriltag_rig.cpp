@@ -30,7 +30,7 @@ DEFINE_int32(
     root_tag_id, -1,
     "The root tag id, -1 will result in root_tag_id == first value in tag_ids");
 
-DEFINE_bool(filter_stable_tags, false, "Run filter for stable tags.");
+DEFINE_bool(filter_stable_tags, true, "Run filter for stable tags.");
 DEFINE_string(root_camera_name, "tracking_camera/front/left",
               "Which camera to treat as the root.");
 
@@ -75,6 +75,11 @@ class CalibrateMultiViewApriltagRigProgram {
     }
     LOG(INFO) << "config:\n" << configuration_.DebugString();
 
+    CalibrateMultiViewApriltagRigResult result;
+    result.mutable_stamp_begin()->CopyFrom(MakeTimestampNow());
+    result.mutable_configuration()->CopyFrom(configuration_);
+
+
     if (configuration_.tag_ids_size() == 0) {
       LOG(INFO) << "No tag_ids set.";
       return -1;
@@ -97,8 +102,7 @@ class CalibrateMultiViewApriltagRigProgram {
         InitialMultiViewApriltagModelFromConfig(configuration_);
     LOG(INFO) << "Initial model computed.";
 
-    CalibrateMultiViewApriltagRigResult result;
-    result.mutable_configuration()->CopyFrom(configuration_);
+
     result.mutable_multi_view_apriltag_rig_initial()->CopyFrom(
         ArchiveProtobufAsBinaryResource("initial", initial_model_pb));
     result.set_rmse(initial_model_pb.rmse());
@@ -115,6 +119,14 @@ class CalibrateMultiViewApriltagRigProgram {
     result.set_rmse(final_model_pb.rmse());
     result.set_solver_status(final_model_pb.solver_status());
     result.mutable_stamp_end()->CopyFrom(MakeTimestampNow());
+
+    // Write out json rigs for down stream consumption.
+    result.mutable_camera_rig_solved()->CopyFrom(
+              ArchiveProtobufAsJsonResource("camera_rig_solved", final_model_pb.camera_rig()));
+    result.mutable_apriltag_rig_solved()->CopyFrom(
+              ArchiveProtobufAsJsonResource("apriltag_rig_solved", final_model_pb.apriltag_rig()));
+
+
 
     // TODO some how save the result in the archive directory as well, so its
     // self contained.

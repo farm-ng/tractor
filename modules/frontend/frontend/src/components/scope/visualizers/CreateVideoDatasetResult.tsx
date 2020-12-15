@@ -3,16 +3,16 @@ import * as React from "react";
 import { SingleElementVisualizerProps } from "../../../registry/visualization";
 import { KeyValueTable } from "./KeyValueTable";
 import { Card } from "./Card";
-import { CaptureVideoDatasetResult } from "@farm-ng/genproto-perception/farm_ng/perception/capture_video_dataset";
+import { CreateVideoDatasetResult } from "@farm-ng/genproto-perception/farm_ng/perception/create_video_dataset";
 import {
   StandardComponent,
   StandardComponentOptions,
 } from "./StandardComponent";
-import { CaptureVideoDatasetConfigurationVisualizer } from "./CaptureVideoDatasetConfiguration";
+import { CreateVideoDatasetConfigurationVisualizer } from "./CreateVideoDatasetConfiguration";
 import { formatValue } from "../../../utils/formatValue";
 
-const CaptureVideoDatasetResultElement: React.FC<SingleElementVisualizerProps<
-  CaptureVideoDatasetResult
+const CreateVideoDatasetResultElement: React.FC<SingleElementVisualizerProps<
+  CreateVideoDatasetResult
 >> = (props) => {
   const {
     value: [timestamp, value],
@@ -57,7 +57,7 @@ const CaptureVideoDatasetResultElement: React.FC<SingleElementVisualizerProps<
       {configuration && (
         <Card title="Configuration">
           {
-            <CaptureVideoDatasetConfigurationVisualizer.Element
+            <CreateVideoDatasetConfigurationVisualizer.Element
               {...props}
               value={[0, configuration]}
             />
@@ -68,10 +68,10 @@ const CaptureVideoDatasetResultElement: React.FC<SingleElementVisualizerProps<
   );
 };
 
-export const CaptureVideoDatasetResultVisualizer = {
-  id: "CaptureVideoDatasetResult",
-  types: ["type.googleapis.com/farm_ng.perception.CaptureVideoDatasetResult"],
+export const CreateVideoDatasetResultVisualizer = {
+  id: "CreateVideoDatasetResult",
+  types: ["type.googleapis.com/farm_ng.perception.CreateVideoDatasetResult"],
   options: StandardComponentOptions,
-  Component: StandardComponent(CaptureVideoDatasetResultElement),
-  Element: CaptureVideoDatasetResultElement,
+  Component: StandardComponent(CreateVideoDatasetResultElement),
+  Element: CreateVideoDatasetResultElement,
 };

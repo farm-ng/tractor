@@ -17,41 +17,21 @@ import { Scene } from "./Scene";
 import { KeyValueTable } from "./KeyValueTable";
 import { PerspectiveCamera } from "./Camera";
 import {
+  cameraModelToThreeJSFOV,
   matrix4ToSE3Pose,
-  se3PoseToMatrix4,
+  openCVPoseToThreeJSPose,
   toQuaternion,
   toVector3,
 } from "../../../utils/protoConversions";
-import { Euler, Matrix4 } from "three";
+import { Matrix4 } from "three";
 import { ApriltagRigVisualizer } from "./ApriltagRig";
 import { useState } from "react";
 import RangeSlider from "react-bootstrap-range-slider";
-import { getInverse, rad2deg } from "../../../utils/geometry";
+import { getInverse } from "../../../utils/geometry";
 import { ImageVisualizer } from "./Image";
 import { ApriltagDetectionsVisualizer } from "./ApriltagDetections";
 import styles from "./MultiViewApriltagRigModel.module.scss";
 import { NamedSE3PoseVisualizer } from "./NamedSE3Pose";
-import { NamedSE3Pose } from "@farm-ng/genproto-perception/farm_ng/perception/geometry";
-import { CameraModel } from "@farm-ng/genproto-perception/farm_ng/perception/camera_model";
-
-function openCVPoseToThreeJSPose(pose: NamedSE3Pose): NamedSE3Pose {
-  if (!pose.aPoseB) {
-    console.warn("Could not convert openCV pose to threeJS pose: ", pose);
-    return pose;
-  }
-  const opencvTthreejs = new Matrix4().makeRotationFromEuler(
-    new Euler(Math.PI, 0, 0)
-  );
-  const cameraTransform = se3PoseToMatrix4(pose.aPoseB);
-  return {
-    ...pose,
-    aPoseB: matrix4ToSE3Pose(cameraTransform.multiply(opencvTthreejs)),
-  };
-}
-
-function cameraModelToThreeJSFOV(cameraModel: CameraModel): number {
-  return rad2deg(2 * Math.atan(cameraModel.imageHeight / (2 * cameraModel.fy)));
-}
 
 const MultiViewApriltagRigModelElement: React.FC<SingleElementVisualizerProps<
   MultiViewApriltagRigModel

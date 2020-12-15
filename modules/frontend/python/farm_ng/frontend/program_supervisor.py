@@ -48,6 +48,24 @@ library = {
         name='Capture Video Dataset',
         description='Capture video segments, for use in other programs',
     ),
+    'create_video_dataset': ProgramInfo(
+        path=f'{farm_ng_root}/build/modules/perception/cpp/farm_ng/create_video_dataset',
+        args=['-interactive'],
+        name='Create Video Dataset',
+        description='Create video dataset from mp4s, for use in other programs',
+    ),
+    'calibrate_intrinsics': ProgramInfo(
+        path=f'{farm_ng_root}/build/modules/calibration/cpp/farm_ng/calibrate_intrinsics',
+        args=['-interactive'],
+        name='Intrinsics Calibration',
+        description='Calibrates camera intrinsics from data collected with create_video_dataset',
+    ),
+    'detect_apriltags': ProgramInfo(
+        path=f'{farm_ng_root}/build/modules/perception/cpp/farm_ng/detect_apriltags',
+        args=['-interactive'],
+        name='Detect Apriltags',
+        description='Given a video dataset, this runs apriltag detection on each image. Discards existing apriltag detections.',
+    ),
     'calibrate_multi_view_apriltag_rig': ProgramInfo(
         path=f'{farm_ng_root}/build/modules/calibration/cpp/farm_ng/calibrate_multi_view_apriltag_rig',
         args=['-interactive'],

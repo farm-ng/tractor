@@ -43,6 +43,11 @@ sudo apt-get install -y \
      grafana \
      gstreamer1.0-libav \
      libatlas-base-dev \
+     libavcodec-dev \
+     libavformat-dev \
+     libavutil-dev \
+     libavresample-dev \
+     libswscale-dev \
      libboost-filesystem-dev \
      libboost-regex-dev \
      libboost-system-dev \
