@@ -161,7 +161,6 @@ void SingleCameraPipeline::Compute(FrameData frame_data) {
 
 CameraModel GridCameraModel() {
   auto model = Default1080HDCameraModel();
-  model.set_image_height(model.image_height() * 1.5);
   return model;
 }
 
@@ -209,10 +208,14 @@ void MultiCameraPipeline::OnFrame(
     images.push_back(frame.image);
   }
   auto grid_camera = GridCameraModel();
+  int cols = 1;
+  if(images.size() > 1) {
+    cols = 2;
+  }
   udp_streamer_.AddFrame(
       ConstructGridImage(
           images,
-          cv::Size(grid_camera.image_width(), grid_camera.image_height()), 2),
+          cv::Size(grid_camera.image_width(), grid_camera.image_height()), cols),
       synced_frame_data.front().stamp());
 }
 

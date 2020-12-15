@@ -27,6 +27,8 @@ message CameraConfig {
     MODEL_INTEL_T265 = 1;
     MODEL_INTEL_D435I = 2;
     MODEL_INTEL_D415 = 3;
+    // Microsoft Azure Kinect
+    MODEL_K4A = 4;
   }
 
   string name = 1; // frame_name
