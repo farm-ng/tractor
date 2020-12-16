@@ -6,6 +6,8 @@ from google.protobuf.wrappers_pb2 import Int32Value
 
 from farm_ng.core.blobstore import Blobstore
 from farm_ng.core.resource_pb2 import BUCKET_CONFIGURATIONS
+from farm_ng.frontend.program_supervisor_pb2 import Program
+from farm_ng.frontend.program_supervisor_pb2 import ProgramdConfig
 from farm_ng.perception.apriltag_pb2 import ApriltagConfig
 from farm_ng.perception.apriltag_pb2 import TagConfig
 from farm_ng.perception.camera_pipeline_pb2 import CameraConfig
@@ -86,6 +88,79 @@ class CameraConfigManager:
         return config
 
 
+class ProgramdConfigManager:
+    @staticmethod
+    def saved():
+        blobstore = Blobstore()
+        config = ProgramdConfig()
+        blobstore.read_protobuf_from_json_file(
+            os.path.join(blobstore.bucket_relative_path(BUCKET_CONFIGURATIONS), 'programs.json'),
+            config,
+        )
+        return config
+
+    @staticmethod
+    def default():
+        config = ProgramdConfig()
+        config.programs.extend([
+            Program(
+                id='calibrate_apriltag_rig',
+                path='build/modules/calibration/cpp/farm_ng/calibrate_apriltag_rig',
+                args=['-interactive'],
+                name='Apriltag Rig Calibration',
+                description='Solves an apriltag rig from data collected with capture_video_dataset',
+            ),
+            Program(
+                id='calibrate_base_to_camera',
+                path='build/modules/tractor/cpp/farm_ng/calibrate_base_to_camera',
+                args=['-interactive'],
+                name='Base-to-Camera Calibration',
+                description=(
+                    'Solves a base_pose_camera and other base calibration parameters from '
+                    'an apriltag rig and data collected with capture_video_dataset'
+                ),
+            ),
+            Program(
+                id='capture_video_dataset',
+                path='build/modules/perception/cpp/farm_ng/capture_video_dataset',
+                args=['-interactive'],
+                name='Capture Video Dataset',
+                description='Capture video segments, for use in other programs',
+            ),
+            Program(
+                id='create_video_dataset',
+                path='build/modules/perception/cpp/farm_ng/create_video_dataset',
+                args=['-interactive'],
+                name='Create Video Dataset',
+                description='Create video dataset from mp4s, for use in other programs',
+            ),
+            Program(
+                id='calibrate_intrinsics',
+                path='build/modules/calibration/cpp/farm_ng/calibrate_intrinsics',
+                args=['-interactive'],
+                name='Intrinsics Calibration',
+                description='Calibrates camera intrinsics from data collected with create_video_dataset',
+            ),
+            Program(
+                id='detect_apriltags',
+                path='build/modules/perception/cpp/farm_ng/detect_apriltags',
+                args=['-interactive'],
+                name='Detect Apriltags',
+                description='Given a video dataset, this runs apriltag detection on each image. Discards existing apriltag detections.',
+            ),
+            Program(
+                id='calibrate_multi_view_apriltag_rig',
+                path='build/modules/calibration/cpp/farm_ng/calibrate_multi_view_apriltag_rig',
+                args=['-interactive'],
+                name='Multi View Apriltag Rig Calibration',
+                description='Solves a multiview apriltag rig from data collected with capture_video_dataset',
+            ),
+            Program(
+                id='sleep-5', path='sleep', args=['5'], name='Sleep 5', description='Take a nap',
+            ),
+        ])
+
+
 def gentractor(args):
     print(MessageToJson(TractorConfigManager.default(), including_default_value_fields=True))
 
@@ -96,6 +171,10 @@ def genapriltag(args):
 
 def gencamera(args):
     print(MessageToJson(CameraConfigManager.default(), including_default_value_fields=True))
+
+
+def genprogramd(args):
+    print(MessageToJson(ProgramdConfigManager.default(), including_default_value_fields=True))
 
 
 def main():

@@ -5,10 +5,18 @@ import "google/protobuf/timestamp.proto";
 package farm_ng.frontend;
 option go_package = "github.com/farm-ng/genproto/frontend";
 
+message ProgramdConfig {
+  repeated Program[] programs = 1;
+}
+
 message Program {
   string id = 1;
   string name = 2;
   string description = 3;
+
+  // Relative to FARM_NG_ROOT
+  string launch_path = 4;
+  repeated string launch_args = 5;
 }
 
 message ProgramExecution {
