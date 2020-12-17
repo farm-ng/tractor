@@ -101,64 +101,65 @@ class ProgramdConfigManager:
 
     @staticmethod
     def default():
-        config = ProgramdConfig()
-        config.programs.extend([
-            Program(
-                id='calibrate_apriltag_rig',
-                path='build/modules/calibration/cpp/farm_ng/calibrate_apriltag_rig',
-                args=['-interactive'],
-                name='Apriltag Rig Calibration',
-                description='Solves an apriltag rig from data collected with capture_video_dataset',
-            ),
-            Program(
-                id='calibrate_base_to_camera',
-                path='build/modules/tractor/cpp/farm_ng/calibrate_base_to_camera',
-                args=['-interactive'],
-                name='Base-to-Camera Calibration',
-                description=(
-                    'Solves a base_pose_camera and other base calibration parameters from '
-                    'an apriltag rig and data collected with capture_video_dataset'
+        return ProgramdConfig(
+            programs=[
+                Program(
+                    id='calibrate_apriltag_rig',
+                    launch_path=Program.LaunchPath(path='build/modules/calibration/cpp/farm_ng/calibrate_apriltag_rig', root_env_var='FARM_NG_ROOT'),
+                    launch_args=['-interactive'],
+                    name='Apriltag Rig Calibration',
+                    description='Solves an apriltag rig from data collected with capture_video_dataset',
                 ),
-            ),
-            Program(
-                id='capture_video_dataset',
-                path='build/modules/perception/cpp/farm_ng/capture_video_dataset',
-                args=['-interactive'],
-                name='Capture Video Dataset',
-                description='Capture video segments, for use in other programs',
-            ),
-            Program(
-                id='create_video_dataset',
-                path='build/modules/perception/cpp/farm_ng/create_video_dataset',
-                args=['-interactive'],
-                name='Create Video Dataset',
-                description='Create video dataset from mp4s, for use in other programs',
-            ),
-            Program(
-                id='calibrate_intrinsics',
-                path='build/modules/calibration/cpp/farm_ng/calibrate_intrinsics',
-                args=['-interactive'],
-                name='Intrinsics Calibration',
-                description='Calibrates camera intrinsics from data collected with create_video_dataset',
-            ),
-            Program(
-                id='detect_apriltags',
-                path='build/modules/perception/cpp/farm_ng/detect_apriltags',
-                args=['-interactive'],
-                name='Detect Apriltags',
-                description='Given a video dataset, this runs apriltag detection on each image. Discards existing apriltag detections.',
-            ),
-            Program(
-                id='calibrate_multi_view_apriltag_rig',
-                path='build/modules/calibration/cpp/farm_ng/calibrate_multi_view_apriltag_rig',
-                args=['-interactive'],
-                name='Multi View Apriltag Rig Calibration',
-                description='Solves a multiview apriltag rig from data collected with capture_video_dataset',
-            ),
-            Program(
-                id='sleep-5', path='sleep', args=['5'], name='Sleep 5', description='Take a nap',
-            ),
-        ])
+                Program(
+                    id='calibrate_base_to_camera',
+                    launch_path=Program.LaunchPath(path='build/modules/tractor/cpp/farm_ng/calibrate_base_to_camera', root_env_var='FARM_NG_ROOT'),
+                    launch_args=['-interactive'],
+                    name='Base-to-Camera Calibration',
+                    description=(
+                        'Solves a base_pose_camera and other base calibration parameters from '
+                        'an apriltag rig and data collected with capture_video_dataset'
+                    ),
+                ),
+                Program(
+                    id='capture_video_dataset',
+                    launch_path=Program.LaunchPath(path='build/modules/perception/cpp/farm_ng/capture_video_dataset', root_env_var='FARM_NG_ROOT'),
+                    launch_args=['-interactive'],
+                    name='Capture Video Dataset',
+                    description='Capture video segments, for use in other programs',
+                ),
+                Program(
+                    id='create_video_dataset',
+                    launch_path=Program.LaunchPath(path='build/modules/perception/cpp/farm_ng/create_video_dataset', root_env_var='FARM_NG_ROOT'),
+                    launch_args=['-interactive'],
+                    name='Create Video Dataset',
+                    description='Create video dataset from mp4s, for use in other programs',
+                ),
+                Program(
+                    id='calibrate_intrinsics',
+                    launch_path=Program.LaunchPath(path='build/modules/calibration/cpp/farm_ng/calibrate_intrinsics', root_env_var='FARM_NG_ROOT'),
+                    launch_args=['-interactive'],
+                    name='Intrinsics Calibration',
+                    description='Calibrates camera intrinsics from data collected with create_video_dataset',
+                ),
+                Program(
+                    id='detect_apriltags',
+                    launch_path=Program.LaunchPath(path='build/modules/perception/cpp/farm_ng/detect_apriltags', root_env_var='FARM_NG_ROOT'),
+                    launch_args=['-interactive'],
+                    name='Detect Apriltags',
+                    description='Given a video dataset, this runs apriltag detection on each image. Discards existing apriltag detections.',
+                ),
+                Program(
+                    id='calibrate_multi_view_apriltag_rig',
+                    launch_path=Program.LaunchPath(path='build/modules/calibration/cpp/farm_ng/calibrate_multi_view_apriltag_rig', root_env_var='FARM_NG_ROOT'),
+                    launch_args=['-interactive'],
+                    name='Multi View Apriltag Rig Calibration',
+                    description='Solves a multiview apriltag rig from data collected with capture_video_dataset',
+                ),
+                Program(
+                    id='sleep-5', launch_path=Program.LaunchPath(path='sleep'), launch_args=['5'], name='Sleep 5', description='Take a nap',
+                ),
+            ],
+        )
 
 
 def gentractor(args):
@@ -173,7 +174,7 @@ def gencamera(args):
     print(MessageToJson(CameraConfigManager.default(), including_default_value_fields=True))
 
 
-def genprogramd(args):
+def genprograms(args):
     print(MessageToJson(ProgramdConfigManager.default(), including_default_value_fields=True))
 
 
@@ -186,6 +187,8 @@ def main():
     genapriltag_parser.set_defaults(func=genapriltag)
     gencamera_parser = subparsers.add_parser('gencamera')
     gencamera_parser.set_defaults(func=gencamera)
+    genprograms_parser = subparsers.add_parser('genprograms')
+    genprograms_parser.set_defaults(func=genprograms)
 
     list_parser = subparsers.add_parser('list')
     list_parser.set_defaults(

@@ -1,14 +1,15 @@
 import asyncio
 import logging
 import os
-from collections import namedtuple
+
+import google.protobuf.json_format as json_format
 
 from farm_ng.core.ipc import EventBus
 from farm_ng.core.ipc import EventBusQueue
 from farm_ng.core.ipc import get_event_bus
 from farm_ng.core.ipc import get_message
 from farm_ng.core.ipc import make_event
-from farm_ng.frontend.program_supervisor_pb2 import Program
+from farm_ng.frontend.program_supervisor_pb2 import ProgramdConfig
 from farm_ng.frontend.program_supervisor_pb2 import ProgramSupervisorStatus
 from farm_ng.frontend.program_supervisor_pb2 import StartProgramRequest
 from farm_ng.frontend.program_supervisor_pb2 import StopProgramRequest
@@ -18,52 +19,22 @@ logger.setLevel(logging.INFO)
 
 farm_ng_root = os.environ['FARM_NG_ROOT']
 
-ProgramInfo = namedtuple('ProgramInfo', 'path args name description')
-
-library = {
-    'calibrate_apriltag_rig_playback': ProgramInfo(
-        path=f'{farm_ng_root}/build/modules/core/cpp/farm_ng/log_playback',
-        args=['-send', '-log', f'{farm_ng_root}/../tractor-data/cal01/events-02498-00000.log'],
-        name='Apriltag Rig Calibration Playback',
-        description='Log playback',
-    ),
-    'calibrate_apriltag_rig': ProgramInfo(
-        path=f'{farm_ng_root}/build/modules/calibration/cpp/farm_ng/calibrate_apriltag_rig',
-        args=['-interactive'],
-        name='Apriltag Rig Calibration',
-        description='Solves an apriltag rig from data collected with capture_video_dataset',
-    ),
-    'calibrate_base_to_camera': ProgramInfo(
-        path=f'{farm_ng_root}/build/modules/tractor/cpp/farm_ng/calibrate_base_to_camera',
-        args=['-interactive'],
-        name='Base-to-Camera Calibration',
-        description=(
-            'Solves a base_pose_camera and other base calibration parameters from '
-            'an apriltag rig and data collected with capture_video_dataset'
-        ),
-    ),
-    'capture_video_dataset': ProgramInfo(
-        path=f'{farm_ng_root}/build/modules/perception/cpp/farm_ng/capture_video_dataset',
-        args=['-interactive'],
-        name='Capture Video Dataset',
-        description='Capture video segments, for use in other programs',
-    ),
-    'calibrate_multi_view_apriltag_rig': ProgramInfo(
-        path=f'{farm_ng_root}/build/modules/calibration/cpp/farm_ng/calibrate_multi_view_apriltag_rig',
-        args=['-interactive'],
-        name='Multi View Apriltag Rig Calibration',
-        description='Solves a multiview apriltag rig from data collected with capture_video_dataset',
-    ),
-    'sleep-5': ProgramInfo(path='sleep', args=['5'], name='Sleep 5', description='Take a nap'),
-}
-libraryPb = [Program(id=_id, name=p.name, description=p.description) for _id, p in library.items()]
-
 
 class ProgramSupervisor:
     def __init__(self, event_bus: EventBus):
+        self._config = ProgramdConfig()
+
+        # For now, load the core program config we check into the source tree.
+        # In the future, could replace or augment, with program config from the blobstore.
+        with open(os.path.join(farm_ng_root, 'modules/frontend/config/programd/programs.json')) as f:
+            json_format.Parse(f.read(), self._config)
+
         self._event_bus = event_bus
         self._event_bus.add_subscriptions(['program_supervisor/request'])
-        self.status = ProgramSupervisorStatus(stopped=ProgramSupervisorStatus.ProgramStopped(), library=libraryPb)
+        self.status = ProgramSupervisorStatus(
+            stopped=ProgramSupervisorStatus.ProgramStopped(),
+            library=self._config.programs,
+        )
         self.shutdown = False
         self.child_process = None
 
@@ -101,7 +72,7 @@ class ProgramSupervisor:
                 if self.status.WhichOneof('status') != 'stopped':
                     logger.info(f"StartProgramRequest received while program status was {self.status.WhichOneof('status')}")
                     continue
-                program_info = library.get(start_request.id)
+                program_info = next((p for p in self._config.programs if p.id == start_request.id), None)
                 if not program_info:
                     logger.info(f'StartProgramRequest received for program {start_request.id} which does not exist.')
                     continue
@@ -109,8 +80,12 @@ class ProgramSupervisor:
                 asyncio.get_event_loop().create_task(self.launch_child_process(program_info))
 
     async def launch_child_process(self, program_info):
-        logger.info('Launching ', program_info.path, program_info.args)
-        self.child_process = await asyncio.create_subprocess_exec(program_info.path, *program_info.args)
+        launch_path = os.path.join(
+            os.environ.get(program_info.launch_path.root_env_var, ''),
+            program_info.launch_path.path,
+        )
+        logger.info('Launching ', launch_path, program_info.launch_args)
+        self.child_process = await asyncio.create_subprocess_exec(launch_path, *program_info.launch_args)
         self.status.running.program.pid = self.child_process.pid
         self.status.running.program.stamp_start.GetCurrentTime()
         await self.monitor_child_process()

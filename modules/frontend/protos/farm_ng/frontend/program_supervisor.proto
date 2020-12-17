@@ -6,7 +6,7 @@ package farm_ng.frontend;
 option go_package = "github.com/farm-ng/genproto/frontend";
 
 message ProgramdConfig {
-  repeated Program[] programs = 1;
+  repeated Program programs = 1;
 }
 
 message Program {
@@ -14,8 +14,14 @@ message Program {
   string name = 2;
   string description = 3;
 
-  // Relative to FARM_NG_ROOT
-  string launch_path = 4;
+  message LaunchPath {
+    string path = 1;
+    // If set, the path will be resolved relative to the
+    // value of this environment variable.
+    string root_env_var = 2;
+  }
+
+  LaunchPath launch_path = 4;
   repeated string launch_args = 5;
 }
 
