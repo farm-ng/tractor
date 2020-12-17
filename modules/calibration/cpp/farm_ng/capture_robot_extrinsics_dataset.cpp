@@ -62,45 +62,11 @@ class RobotHalClient {
 std::vector<CapturePoseRequest> GenerateCapturePoseRequests(
     const CaptureRobotExtrinsicsDatasetConfiguration& configuration) {
   std::vector<CapturePoseRequest> pose_requests;
-
-  auto sampled_workspace = configuration.sampled_workspace();
-  int sample_count_x = std::max(sampled_workspace.sample_count_x(), 1);
-  int sample_count_y = std::max(sampled_workspace.sample_count_y(), 1);
-  int sample_count_z = std::max(sampled_workspace.sample_count_z(), 1);
-
-  auto target_coordinate = [=](int i, double size, int sample_count) -> double {
-    if (i == 0) {
-      return 0;
-    }
-    if (i == sample_count - 1) {
-      return size;
-    }
-    return i * size / (sample_count - 1);
-  };
-
-  for (double ix = 0; ix < sample_count_x; ix++) {
-    for (double iy = 0; iy < sample_count_y; iy++) {
-      for (double iz = 0; iz < sample_count_z; iz++) {
-        Sophus::SE3d base_pose_workspace;
-        ProtoToSophus(
-            sampled_workspace.workspace().base_pose_workspace().a_pose_b(),
-            &base_pose_workspace);
-        Sophus::SE3d workspace_pose_target = Sophus::SE3d::trans(
-            target_coordinate(ix, sampled_workspace.workspace().size().x(),
-                              sample_count_x),
-            target_coordinate(iy, sampled_workspace.workspace().size().y(),
-                              sample_count_y),
-            target_coordinate(iz, sampled_workspace.workspace().size().z(),
-                              sample_count_z));
-
-        CapturePoseRequest pose_request;
+  for(auto base_pose_link: configuration.base_poses_link()) {
+      CapturePoseRequest pose_request;
         NamedSE3Pose* pose = pose_request.add_poses();
-        SophusToProto(base_pose_workspace * workspace_pose_target,
-                      configuration.base_frame_name(),
-                      configuration.link_frame_name(), pose);
+        pose->CopyFrom(base_pose_link);
         pose_requests.push_back(pose_request);
-      }
-    }
   }
   return pose_requests;
 }

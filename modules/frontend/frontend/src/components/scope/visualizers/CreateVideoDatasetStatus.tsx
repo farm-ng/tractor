@@ -3,41 +3,35 @@ import * as React from "react";
 import { SingleElementVisualizerProps } from "../../../registry/visualization";
 import { KeyValueTable } from "./KeyValueTable";
 import { Card } from "./Card";
-import { CaptureVideoDatasetResult } from "@farm-ng/genproto-perception/farm_ng/perception/capture_video_dataset";
+import {
+  CreateVideoDatasetResult,
+  CreateVideoDatasetStatus,
+} from "@farm-ng/genproto-perception/farm_ng/perception/create_video_dataset";
+import { useFetchResource } from "../../../hooks/useFetchResource";
 import {
   StandardComponent,
   StandardComponentOptions,
 } from "./StandardComponent";
-import { CaptureVideoDatasetConfigurationVisualizer } from "./CaptureVideoDatasetConfiguration";
+import { CreateVideoDatasetResultVisualizer } from "./CreateVideoDatasetResult";
 import { formatValue } from "../../../utils/formatValue";
 
-const CaptureVideoDatasetResultElement: React.FC<SingleElementVisualizerProps<
-  CaptureVideoDatasetResult
+const CreateVideoDatasetStatusElement: React.FC<SingleElementVisualizerProps<
+  CreateVideoDatasetStatus
 >> = (props) => {
   const {
     value: [timestamp, value],
+    resources,
   } = props;
 
-  const {
-    configuration,
-    perCameraNumFrames,
-    perTagIdNumFrames,
-    stampBegin,
-    stampEnd,
-    dataset,
-  } = value;
+  const result = useFetchResource<CreateVideoDatasetResult>(
+    value.result,
+    resources
+  );
+  const { perCameraNumFrames, perTagIdNumFrames } = value;
 
   return (
     <Card timestamp={timestamp} json={value}>
       <Card title="Summary">
-        <KeyValueTable
-          records={[
-            ["Stamp Begin", stampBegin],
-            ["Stamp End", stampEnd],
-            ["Dataset URL", dataset?.path],
-          ]}
-        />
-
         <KeyValueTable
           headers={["Camera Name", "Num Frames"]}
           records={perCameraNumFrames.map<[string, unknown]>((_) => [
@@ -54,12 +48,12 @@ const CaptureVideoDatasetResultElement: React.FC<SingleElementVisualizerProps<
           ])}
         />
       </Card>
-      {configuration && (
-        <Card title="Configuration">
+      {result && (
+        <Card title="Result">
           {
-            <CaptureVideoDatasetConfigurationVisualizer.Element
+            <CreateVideoDatasetResultVisualizer.Element
               {...props}
-              value={[0, configuration]}
+              value={[0, result]}
             />
           }
         </Card>
@@ -68,10 +62,10 @@ const CaptureVideoDatasetResultElement: React.FC<SingleElementVisualizerProps<
   );
 };
 
-export const CaptureVideoDatasetResultVisualizer = {
-  id: "CaptureVideoDatasetResult",
-  types: ["type.googleapis.com/farm_ng.perception.CaptureVideoDatasetResult"],
+export const CreateVideoDatasetStatusVisualizer = {
+  id: "CreateVideoDatasetStatus",
+  types: ["type.googleapis.com/farm_ng.perception.CreateVideoDatasetStatus"],
   options: StandardComponentOptions,
-  Component: StandardComponent(CaptureVideoDatasetResultElement),
-  Element: CaptureVideoDatasetResultElement,
+  Component: StandardComponent(CreateVideoDatasetStatusElement),
+  Element: CreateVideoDatasetStatusElement,
 };

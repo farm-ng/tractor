@@ -267,6 +267,9 @@ class PoseGraph {
       LOG(WARNING) << frame_b << " isn't in graph.";
       return std::optional<SE3d>();
     }
+    if (frame_a == frame_b) {
+      return SE3d::rotX(0.0);
+    }
     if (!HasEdge(frame_a, frame_b)) {
       LOG(WARNING) << "No edge between: " << frame_a << " <-> " << frame_b;
       return std::optional<SE3d>();

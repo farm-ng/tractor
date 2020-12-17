@@ -1,5 +1,7 @@
 #include "farm_ng/calibration/multi_view_apriltag_rig_calibrator.h"
 
+#include <map>
+
 #include <ceres/ceres.h>
 #include <google/protobuf/util/time_util.h>
 #include <boost/graph/adjacency_list.hpp>
@@ -334,6 +336,9 @@ std::vector<MultiViewApriltagDetections> LoadMultiViewApriltagDetections(
         }
       }
       event.mutable_data()->PackFrom(detections);
+
+      event.set_name(detections.image().camera_model().frame_name() +
+                     "/apriltags");
       apriltag_series[event.name()].insert(event);
     }
   }
@@ -349,14 +354,15 @@ std::vector<MultiViewApriltagDetections> LoadMultiViewApriltagDetections(
   ApriltagsFilter tag_filter;
   std::vector<MultiViewApriltagDetections> mv_detections_series;
   auto time_window =
-      google::protobuf::util::TimeUtil::MillisecondsToDuration(1000.0 / 7);
+      google::protobuf::util::TimeUtil::MillisecondsToDuration(1000.0 / 2);
 
   std::map<std::string, int> detection_counts;
 
   for (const Event& event : apriltag_series[root_camera_name + "/apriltags"]) {
     ApriltagDetections detections;
     CHECK(event.data().UnpackTo(&detections));
-    if (!config.filter_stable_tags() || tag_filter.AddApriltags(detections)) {
+    if (!config.filter_stable_tags() ||
+        tag_filter.AddApriltags(detections, 5, 7)) {
       MultiViewApriltagDetections mv_detections;
       for (auto name_series : apriltag_series) {
         auto nearest_event =
@@ -405,7 +411,6 @@ PoseGraph TagRigFromMultiViewDetections(
         ApriltagRig::Node node;
         node.set_id(detection.id());
         node.set_frame_name(FrameRigTag(config.tag_rig_name(), detection.id()));
-
         node.set_tag_size(detection.tag_size());
         for (const auto& v : PointsTag(detection)) {
           EigenToProto(v, node.add_points_tag());

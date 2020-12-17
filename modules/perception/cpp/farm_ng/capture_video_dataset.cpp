@@ -67,7 +67,10 @@ class CaptureVideoDatasetProgram {
     }
 
     WaitForServices(bus_, {"ipc_logger", "camera_pipeline"});
+
     LoggingStatus log = StartLogging(bus_, configuration_.name());
+    CaptureVideoDatasetResult result;
+    result.mutable_stamp_begin()->CopyFrom(MakeTimestampNow());
     CameraPipelineCommand camera_pipeline_command;
     if (configuration_.detect_apriltags()) {
       camera_pipeline_command.mutable_record_start()->set_mode(
@@ -81,7 +84,6 @@ class CaptureVideoDatasetProgram {
     try {
       bus_.get_io_service().run();
     } catch (std::exception& e) {
-      CaptureVideoDatasetResult result;
       result.mutable_configuration()->CopyFrom(configuration_);
       result.set_num_frames(status_.num_frames());
       result.mutable_stamp_end()->CopyFrom(MakeTimestampNow());
