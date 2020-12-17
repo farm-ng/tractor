@@ -2,8 +2,8 @@ syntax = "proto3";
 
 import "google/protobuf/timestamp.proto";
 
-package farm_ng.frontend;
-option go_package = "github.com/farm-ng/genproto/frontend";
+package farm_ng.core;
+option go_package = "github.com/farm-ng/genproto/core";
 
 message ProgramdConfig {
   repeated Program programs = 1;

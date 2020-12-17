@@ -9,12 +9,12 @@ from farm_ng.core.ipc import EventBusQueue
 from farm_ng.core.ipc import get_event_bus
 from farm_ng.core.ipc import get_message
 from farm_ng.core.ipc import make_event
-from farm_ng.frontend.program_supervisor_pb2 import ProgramdConfig
-from farm_ng.frontend.program_supervisor_pb2 import ProgramSupervisorStatus
-from farm_ng.frontend.program_supervisor_pb2 import StartProgramRequest
-from farm_ng.frontend.program_supervisor_pb2 import StopProgramRequest
+from farm_ng.core.programd_pb2 import ProgramdConfig
+from farm_ng.core.programd_pb2 import ProgramSupervisorStatus
+from farm_ng.core.programd_pb2 import StartProgramRequest
+from farm_ng.core.programd_pb2 import StopProgramRequest
 
-logger = logging.getLogger('program_supervisor')
+logger = logging.getLogger('programd')
 logger.setLevel(logging.INFO)
 
 farm_ng_root = os.environ['FARM_NG_ROOT']
@@ -26,11 +26,11 @@ class ProgramSupervisor:
 
         # For now, load the core program config we check into the source tree.
         # In the future, could replace or augment, with program config from the blobstore.
-        with open(os.path.join(farm_ng_root, 'modules/frontend/config/programd/programs.json')) as f:
+        with open(os.path.join(farm_ng_root, 'modules/core/config/programd/programs.json')) as f:
             json_format.Parse(f.read(), self._config)
 
         self._event_bus = event_bus
-        self._event_bus.add_subscriptions(['program_supervisor/request'])
+        self._event_bus.add_subscriptions(['programd/request'])
         self.status = ProgramSupervisorStatus(
             stopped=ProgramSupervisorStatus.ProgramStopped(),
             library=self._config.programs,
@@ -43,7 +43,7 @@ class ProgramSupervisor:
 
     async def send_status(self):
         while not self.shutdown:
-            event = make_event('program_supervisor/status', self.status)
+            event = make_event('programd/status', self.status)
             self._event_bus.send(event)
             await asyncio.sleep(1)
 
@@ -52,7 +52,7 @@ class ProgramSupervisor:
             while not self.shutdown:
                 stop_request: StopProgramRequest = await get_message(
                     event_queue,
-                    'program_supervisor/request',
+                    'programd/request',
                     StopProgramRequest,
                 )
                 if self.status.WhichOneof('status') != 'running':
@@ -68,7 +68,7 @@ class ProgramSupervisor:
     async def handle_start(self):
         with EventBusQueue(self._event_bus) as event_queue:
             while not self.shutdown:
-                start_request: StartProgramRequest = await get_message(event_queue, 'program_supervisor/request', StartProgramRequest)
+                start_request: StartProgramRequest = await get_message(event_queue, 'programd/request', StartProgramRequest)
                 if self.status.WhichOneof('status') != 'stopped':
                     logger.info(f"StartProgramRequest received while program status was {self.status.WhichOneof('status')}")
                     continue
@@ -100,6 +100,6 @@ class ProgramSupervisor:
 
 
 if __name__ == '__main__':
-    event_bus = get_event_bus('program_supervisor')
+    event_bus = get_event_bus('programd')
     supervisor = ProgramSupervisor(event_bus)
     event_bus.event_loop().run_until_complete(supervisor.run())

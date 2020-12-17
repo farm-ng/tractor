@@ -5,9 +5,9 @@ from google.protobuf.json_format import MessageToJson
 from google.protobuf.wrappers_pb2 import Int32Value
 
 from farm_ng.core.blobstore import Blobstore
+from farm_ng.core.programd_pb2 import Program
+from farm_ng.core.programd_pb2 import ProgramdConfig
 from farm_ng.core.resource_pb2 import BUCKET_CONFIGURATIONS
-from farm_ng.frontend.program_supervisor_pb2 import Program
-from farm_ng.frontend.program_supervisor_pb2 import ProgramdConfig
 from farm_ng.perception.apriltag_pb2 import ApriltagConfig
 from farm_ng.perception.apriltag_pb2 import TagConfig
 from farm_ng.perception.camera_pipeline_pb2 import CameraConfig
