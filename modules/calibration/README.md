@@ -1,6 +1,6 @@
 ## Overview
 
-This module provides a toolset for batch calibration of sensors to machines. It leverages fiducial markers and human-in-the-loop for capture and labeling. 
+This module provides a toolset for batch calibration of sensors to machines. It leverages fiducial markers and human-in-the-loop for capture and labeling.
 
 In the long-term, we'd like to provide real-time calibration tools such as monitoring calibration accuracy, online sensor calibration, and natural-feature calibration.
 

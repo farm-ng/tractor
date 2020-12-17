@@ -17,7 +17,7 @@ yarn
 
 ### Run in development
 
-In production, the API and SPA are served by the same server. 
+In production, the API and SPA are served by the same server.
 
 In development it's helpful to run them separately.
 
