@@ -1,0 +1,107 @@
+syntax = "proto3";
+
+import "google/protobuf/wrappers.proto";
+import "google/protobuf/timestamp.proto";
+
+
+package farm_ng.motors;
+option go_package = "github.com/farm-ng/genproto/motors";
+
+
+message ODriveAxis {
+  enum Error {
+  ERROR_UNSPECIFIED=0;
+
+// An invalid state was requested.
+ ERROR_INVALID_STATE=0x00000001;
+// The DC voltage fell below the limit configured in config.dc_bus_undervoltage_trip_level.
+ERROR_DC_BUS_UNDER_VOLTAGE= 0x00000002;
+
+
+// The DC voltage exceeded the limit configured in config.dc_bus_overvoltage_trip_level.
+ERROR_DC_BUS_OVER_VOLTAGE=0x00000004;
+
+ERROR_CURRENT_MEASUREMENT_TIMEOUT=0x00000008;
+
+// The brake resistor was unexpectedly disarmed.
+ERROR_BRAKE_RESISTOR_DISARMED=0x00000010;
+// The motor was unexpectedly disarmed.
+ERROR_MOTOR_DISARMED  =  0x00000020;
+
+// Check motor.error for more information.
+ERROR_MOTOR_FAILED  = 0x00000040;
+
+ERROR_SENSORLESS_ESTIMATOR_FAILED  =  0x00000080;
+
+// Check encoder.error for more information.
+ERROR_ENCODER_FAILED  = 0x00000100;
+
+
+
+ERROR_CONTROLLER_FAILED  =  0x00000200;
+
+
+ERROR_WATCHDOG_TIMER_EXPIRED  =  0x00000800;
+
+
+ERROR_MIN_ENDSTOP_PRESSED  = 0x00001000;
+
+ERROR_MAX_ENDSTOP_PRESSED  =  0x00002000;
+
+ERROR_ESTOP_REQUESTED  = 0x00004000;
+
+// the min endstop was not enabled during homing
+ERROR_HOMING_WITHOUT_ENDSTOP  =  0x00020000;
+
+// Check fet_thermistor.error and motor_thermistor.error for more information.
+ERROR_OVER_TEMP = 0x00040000;
+}
+enum State {
+  STATE_UNSPECIFIED=0;
+  // Disable motor PWM and do nothing.
+  STATE_IDLE=1;
+
+  // Run the startup procedure.  
+  STATE_STARTUP_SEQUENCE=2;
+
+  // Run motor calibration and then encoder offset calibration (or encoder index search if <axis>.encoder.config.use_index is True).
+  STATE_FULL_CALIBRATION_SEQUENCE=3;
+  
+
+  // Measure phase resistance and phase inductance of the motor.
+  STATE_MOTOR_CALIBRATION=4;
+
+  // Run sensorless control.
+  STATE_SENSORLESS_CONTROL=5;
+  
+  // Turn the motor in one direction until the encoder index is traversed.
+  STATE_ENCODER_INDEX_SEARCH=6;
+  
+  // Turn the motor in one direction for a few seconds and then back to measure the offset between the encoder position and the electrical phase.
+  STATE_ENCODER_OFFSET_CALIBRATION=7;
+
+  // Run closed loop control.
+  STATE_CLOSED_LOOP_CONTROL=8;
+
+  // Run lockin spin.
+  STATE_LOCKIN_SPIN=9;
+  
+
+  
+  //   Run encoder direction search.
+  STATE_ENCODER_DIR_FIND=  10;
+    
+
+  // Run axis homing function.
+  STATE_HOMING=11;
+
+}
+  google.protobuf.Timestamp stamp = 1;
+
+  // This is a bitset, so can be multiple errors..
+repeated Error error = 2;
+State current_state=3;
+  google.protobuf.DoubleValue input_velocity = 4;
+  google.protobuf.DoubleValue encoder_position_estimate = 5;
+  google.protobuf.DoubleValue encoder_velocity_estimate = 6;
+}

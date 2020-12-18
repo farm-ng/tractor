@@ -11,9 +11,10 @@ from google.protobuf.timestamp_pb2 import Timestamp
 
 from farm_ng.core.ipc import get_event_bus
 from farm_ng.core.ipc import make_event
-from farm_ng.tractor import motor_pb2
-from farm_ng.tractor.canbus import CANSocket
-from farm_ng.tractor.config import TractorConfigManager
+#from farm_ng.tractor import motor_pb2
+from farm_ng.motors.canbus import CANSocket
+
+#from farm_ng.tractor.config import TractorConfigManager
 
 logger = logging.getLogger('farm_ng.motor')
 
@@ -276,25 +277,25 @@ def main():
         'right_motor',
         config.wheel_radius.value,
         config.hub_motor_gear_ratio.value,
-        config.hub_motor_poll_pairs.value, 7, can_socket,
+        config.hub_motor_poll_pairs.value, 20, can_socket,
     )
     right_motor_aft = HubMotor(
         'right_motor_aft',
         config.wheel_radius.value,
         config.hub_motor_gear_ratio.value,
-        config.hub_motor_poll_pairs.value, 8, can_socket,
+        config.hub_motor_poll_pairs.value, 21, can_socket,
     )
     left_motor = HubMotor(
         'left_motor',
         config.wheel_radius.value,
         config.hub_motor_gear_ratio.value,
-        config.hub_motor_poll_pairs.value, 9, can_socket,
+        config.hub_motor_poll_pairs.value, 10, can_socket,
     )
     left_motor_aft = HubMotor(
         'left_motor_aft',
         config.wheel_radius.value,
         config.hub_motor_gear_ratio.value,
-        config.hub_motor_poll_pairs.value, 10, can_socket,
+        config.hub_motor_poll_pairs.value, 11, can_socket,
     )
 
     count = [0]
@@ -308,9 +309,9 @@ def main():
                 MessageToString(left_motor.get_state(), as_one_line=True),
             )
         right_motor.send_velocity_command(0.0)
-        right_motor_aft.send_velocity_command(0.0)
+        # right_motor_aft.send_velocity_command(0.0)
         left_motor.send_velocity_command(0.0)
-        left_motor_aft.send_velocity_command(0.0)
+        # left_motor_aft.send_velocity_command(0.0)
         count[0] += 1
 
     loop.add_reader(can_socket, lambda: can_socket.recv())

@@ -312,6 +312,10 @@
 "@farm-ng/genproto-frontend@link:../../../build/modules/frontend/protos/ts":
   version "0.0.0"
 
+"@farm-ng/genproto-motors@link:../../../build/modules/motors/protos/ts":
+  version "0.0.0"
+  uid ""
+
 "@farm-ng/genproto-perception@link:../../../build/modules/perception/protos/ts":
   version "0.0.0"
 

@@ -52,6 +52,7 @@
     "@farm-ng/genproto-calibration": "link:../../../build/modules/calibration/protos/ts",
     "@farm-ng/genproto-core": "link:../../../build/modules/core/protos/ts",
     "@farm-ng/genproto-frontend": "link:../../../build/modules/frontend/protos/ts",
+    "@farm-ng/genproto-motors": "link:../../../build/modules/motors/protos/ts",
     "@farm-ng/genproto-perception": "link:../../../build/modules/perception/protos/ts",
     "@farm-ng/genproto-tractor": "link:../../../build/modules/tractor/protos/ts",
     "bootstrap": "^4.5.2",

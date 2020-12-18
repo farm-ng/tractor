@@ -36,6 +36,7 @@ import { CalibrateMultiViewApriltagRigStatusVisualizer } from "../components/sco
 import { MultiViewApriltagRigModelVisualizer } from "../components/scope/visualizers/MultiViewApriltagRigModel";
 import { VideoFileCameraVisualizer } from "../components/scope/visualizers/VideoFileCamera";
 import { CameraModelVisualizer } from "../components/scope/visualizers/CameraModel";
+import { ODriveAxisVisualizer } from "../components/scope/visualizers/ODriveAxis";
 
 export interface VisualizerOptionConfig {
   label: string;
@@ -101,6 +102,7 @@ export const visualizerRegistry: { [k: string]: Visualizer } = [
   MonocularApriltagRigModelVisualizer,
   MultiViewApriltagRigModelVisualizer,
   NamedSE3PoseVisualizer,
+  ODriveAxisVisualizer,
   SteeringCommandVisualizer,
   CameraPipelineConfigVisualizer,
   TractorConfigVisualizer,

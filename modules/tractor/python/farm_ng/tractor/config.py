@@ -31,9 +31,9 @@ class TractorConfigManager:
     @staticmethod
     def default():
         config = TractorConfig()
-        config.wheel_baseline.value = _in2m(42.0)
-        config.wheel_radius.value = _in2m(17/2.0)
-        config.hub_motor_gear_ratio.value = 29.9
+        config.wheel_baseline.value = _in2m(48.0)
+        config.wheel_radius.value = 0.27574/2.0
+        config.hub_motor_gear_ratio.value = 29.909722222
         config.hub_motor_poll_pairs.value = 8
         config.topology = TractorConfig.Topology.TOPOLOGY_TWO_MOTOR_DIFF_DRIVE
         return config

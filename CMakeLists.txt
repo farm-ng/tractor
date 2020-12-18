@@ -14,7 +14,7 @@ list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 include(cmake/farm_ng_modules.cmake)
 include(cmake/farm_ng_find_base_packages.cmake)
 
-list(APPEND _modules core perception calibration tractor frontend)
+list(APPEND _modules core motors perception calibration tractor frontend)
 
 if(BUILD_ONLY_PROTO)
   message(STATUS "Build only proto.")

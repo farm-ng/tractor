@@ -149,6 +149,6 @@
       "*.ipp": "cpp",
       "core": "cpp"
     },
-    "python.pythonPath": "env/bin/python"
+    "python.pythonPath": "env/bin/python:build/modules/core/protos/python:build/modules/perception/protos/python:build/modules/calibration/protos/python:build/modules/tractor/protos/python:build/modules/frontend/protos/python:build/modules/motors/protos/python"
   }
 }

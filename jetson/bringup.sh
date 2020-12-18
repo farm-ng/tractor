@@ -32,6 +32,10 @@ ifconfig lo multicast
 #
 # https://github.com/IntelRealSense/librealsense/issues/4681
 # https://github.com/mvp/uhubctl/issues/258
+#
+# Also seems important to cycle the power for the canable pro
+# device. Sometimes after a soft reboot we've noticed the canbus
+# doesn't start
 /opt/farm_ng/sbin/uhubctl -l 2-1 -p 1 -a cycle
 
 # let the usb devices come back, TODO(ethanrublee) watch for

@@ -61,7 +61,7 @@ class BaseSteering:
         self.rate_hz = rate_hz
         self.v = 0
         self.v_acc = 2.0/self.rate_hz
-        self.v_max = 2.0
+        self.v_max = 1.25
         self.w = 0
         self.w_acc = (2*np.pi)/self.rate_hz
         self.w_max = np.pi/2

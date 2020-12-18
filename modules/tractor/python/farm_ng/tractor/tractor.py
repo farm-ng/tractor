@@ -12,14 +12,14 @@ from farm_ng.core.ipc import EventBus
 from farm_ng.core.ipc import get_event_bus
 from farm_ng.core.ipc import make_event
 from farm_ng.core.periodic import Periodic
+from farm_ng.motors.canbus import CANSocket
+from farm_ng.motors.motor_odrive import HubMotor
 from farm_ng.perception.geometry_pb2 import NamedSE3Pose
+from farm_ng.perception.proto_utils import proto_to_se3
 from farm_ng.perception.proto_utils import se3_to_proto
-from farm_ng.perceptionproto_utils import proto_to_se3
-from farm_ng.tractor.canbus import CANSocket
 from farm_ng.tractor.config import TractorConfigManager
 from farm_ng.tractor.controller import TractorMoveToGoalController
 from farm_ng.tractor.kinematics import TractorKinematics
-from farm_ng.tractor.motor import HubMotor
 from farm_ng.tractor.steering import SteeringClient
 from farm_ng.tractor.steering_pb2 import SteeringCommand
 from farm_ng.tractor.tractor_pb2 import TractorConfig
@@ -62,7 +62,7 @@ class TractorController:
         # self.record_counter = 0
         # self.recording = False
         self.event_bus = event_bus
-        self.event_bus.add_subscriptions(['pose/tractor/base/goal'])
+        self.event_bus.add_subscriptions(['pose/tractor/base/goal', 'steering'])
         self.event_bus.add_event_callback(self._on_event)
 
         self.lock_out = False
@@ -80,26 +80,24 @@ class TractorController:
 
         radius = self.config.wheel_radius.value
         gear_ratio = self.config.hub_motor_gear_ratio.value
-        poll_pairs = self.config.hub_motor_poll_pairs.value
+        invert_right = True
+        invert_left = False
         self.right_motor = HubMotor(
-            'right_motor',
-            radius, gear_ratio, poll_pairs, 7, self.can_socket,
+            'right_motor', 20, self.can_socket, radius=radius, gear_ratio=gear_ratio, invert=invert_right
+        )
+        self.right_motor_aft = HubMotor(
+            'right_motor_aft', 21, self.can_socket, radius=radius, gear_ratio=gear_ratio, invert=invert_right
         )
         self.left_motor = HubMotor(
-            'left_motor',
-            radius, gear_ratio, poll_pairs, 9, self.can_socket,
+            'left_motor', 10, self.can_socket, radius=radius, gear_ratio=gear_ratio, invert=invert_left
         )
-
-        if self.config.topology == TractorConfig.TOPOLOGY_FOUR_MOTOR_SKID_STEER:
-            logger.info('Four Motor Skid Steer Mode')
-            self.right_motor_aft = HubMotor(
-                'right_motor_aft',
-                radius, gear_ratio, poll_pairs, 8, self.can_socket,
-            )
-            self.left_motor_aft = HubMotor(
-                'left_motor_aft',
-                radius, gear_ratio, poll_pairs, 10, self.can_socket,
-            )
+        self.left_motor_aft = HubMotor(
+            'left_motor_aft', 11, self.can_socket, radius=radius, gear_ratio=gear_ratio, invert=invert_left
+        )
+        self.motors = [self.right_motor,
+                       self.right_motor_aft,
+                       self.left_motor,
+                       self.left_motor_aft]
 
         self.control_timer = Periodic(
             self.command_period_seconds, self.event_bus.event_loop(),
@@ -132,11 +130,8 @@ class TractorController:
         self.tractor_state.commanded_wheel_velocity_rads_left = left
         self.tractor_state.commanded_wheel_velocity_rads_right = right
 
-        self.right_motor.send_velocity_command_rads(right)
-        self.left_motor.send_velocity_command_rads(left)
-        if self.config.topology == TractorConfig.TOPOLOGY_FOUR_MOTOR_SKID_STEER:
-            self.right_motor_aft.send_velocity_command_rads(right)
-            self.left_motor_aft.send_velocity_command_rads(left)
+        self.right_motor.set_input_velocity_rads(right)
+        self.left_motor.set_input_velocity_rads(left)
 
     def _servo(self, steering_command: SteeringCommand):
         vel = max(steering_command.velocity, 0)
@@ -150,10 +145,10 @@ class TractorController:
         now.GetCurrentTime()
 
         if (self.n_cycle % (5*self.command_rate_hz)) == 0:
+            motor_state_str = '\n '.join(['%s : %s' % (m.name, MessageToString(m.get_state(), as_one_line=True)) for m in self.motors])
             logger.info(
-                '\nright motor:\n  %s\nleft motor:\n  %s\n state:\n %s',
-                MessageToString(self.right_motor.get_state(), as_one_line=True),
-                MessageToString(self.left_motor.get_state(), as_one_line=True),
+
+                '\n %s\n state:\n %s', motor_state_str,
                 MessageToString(self.tractor_state, as_one_line=True),
             )
 
@@ -162,12 +157,6 @@ class TractorController:
         self.tractor_state.wheel_velocity_rads_right = self.right_motor.velocity_rads()
         self.tractor_state.average_update_rate_left_motor = self.left_motor.average_update_rate()
         self.tractor_state.average_update_rate_right_motor = self.right_motor.average_update_rate()
-
-        if self.config.topology == TractorConfig.TOPOLOGY_FOUR_MOTOR_SKID_STEER:
-            self.tractor_state.wheel_veolcity_rads_left_aft = self.left_motor_aft.velocity_rads()
-            self.tractor_state.wheel_veolcity_rads_right_aft = self.right_motor_aft.velocity_rads()
-            self.tractor_state.average_update_rate_left_aft_motor = self.left_motor_aft.average_update_rate()
-            self.tractor_state.average_update_rate_right_aft_motor = self.right_motor_aft.average_update_rate()
 
         if self._last_odom_stamp is not None:
             dt = (now.ToMicroseconds() - self._last_odom_stamp.ToMicroseconds())*1e-6
@@ -211,12 +200,8 @@ class TractorController:
             self.tractor_state.commanded_wheel_velocity_rads_right = 0.0
             self.tractor_state.target_unicycle_velocity = 0.0
             self.tractor_state.target_unicycle_angular_velocity = 0.0
-            self.right_motor.send_current_brake_command(brake_current)
-            self.left_motor.send_current_brake_command(brake_current)
-            if self.config.topology == TractorConfig.TOPOLOGY_FOUR_MOTOR_SKID_STEER:
-                self.right_motor_aft.send_current_brake_command(brake_current)
-                self.left_motor_aft.send_current_brake_command(brake_current)
-
+            self.right_motor.set_input_velocity_rads(0)
+            self.left_motor.set_input_velocity_rads(0)
             self.move_to_goal_controller.reset()
         elif steering_command.mode in (SteeringCommand.MODE_SERVO,):
             self._servo(steering_command)
@@ -228,7 +213,7 @@ class TractorController:
 def main():
     logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 
-    event_bus = get_event_bus('farm_ng.tractor')
+    event_bus = get_event_bus('tractor')
     controller = TractorController(event_bus)
     logger.info('Created controller %s', controller)
     event_bus.event_loop().run_forever()

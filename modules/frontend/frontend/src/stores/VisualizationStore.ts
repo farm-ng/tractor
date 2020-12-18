@@ -1,7 +1,7 @@
 import { observable, computed, transaction } from "mobx";
 import {
   BusEventEmitter,
-  BusEventEmitterHandle
+  BusEventEmitterHandle,
 } from "../models/BusEventEmitter";
 import { ResourceArchive } from "../models/ResourceArchive";
 import { StreamingBuffer } from "../models/StreamingBuffer";
@@ -10,10 +10,11 @@ import {
   Visualizer,
   VisualizerOption,
   VisualizerOptionConfig,
-  visualizersForEventType
+  visualizersForEventType,
 } from "../registry/visualization";
 import { Buffer, TimestampedEvent } from "../types/common";
 import { duration } from "../utils/duration";
+// import { testBuffer } from "../utils/testBuffer";
 
 function mapToDateRange(value: number, startDate: Date, endDate: Date): Date {
   return new Date(
@@ -51,7 +52,7 @@ export class Panel {
   @computed get options(): VisualizerOption[] {
     return this.optionConfigs.map((o, index) => ({
       ...o,
-      value: o.options[this.selectedOptions[index]]
+      value: o.options[this.selectedOptions[index]],
     }));
   }
 
