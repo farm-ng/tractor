@@ -33,10 +33,3 @@ export PATH=$FARM_NG_GOPATH/bin:/usr/local/go/bin:$PATH
 # Set BLOBSTORE_ROOT if it's not already set
 : ${BLOBSTORE_ROOT:=`dirname $FARM_NG_ROOT`/tractor-data}
 export BLOBSTORE_ROOT
-
-# history -a causes the last command to be written to history file automatically
-# history -r imports the history 
-export PROMPT_COMMAND='history -a;history -r'
-
-# Make Bash append rather than overwrite the history on disk 
-shopt -s histappend
