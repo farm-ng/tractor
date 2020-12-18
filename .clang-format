@@ -94,8 +94,6 @@ PenaltyReturnTypeOnItsOwnLine: 200
 PointerAlignment: Left
 RawStringFormats:
   - Language:        TextProto
-    Delimiters:
-      - pb
     BasedOnStyle:    google
 ReflowComments:  true
 SortIncludes:    true

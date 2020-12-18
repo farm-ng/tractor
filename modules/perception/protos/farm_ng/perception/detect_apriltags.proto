@@ -1,0 +1,38 @@
+syntax = "proto3";
+
+import "farm_ng/core/resource.proto";
+import "farm_ng/perception/capture_video_dataset.proto";
+
+package farm_ng.perception;
+option go_package = "github.com/farm-ng/genproto/perception";
+
+
+message DetectApriltagsConfiguration {
+  // name of the result
+  string name = 1;
+  // Serialized CaptureVideoDatasetResult
+  farm_ng.core.Resource video_dataset = 2;
+
+  // json serialized farm_ng.perception.ApriltagConfig, used by detector
+  // if this is not set it defaults to loading the configurations/apriltags.json file.
+  farm_ng.core.Resource tag_config = 3;
+}
+
+
+message DetectApriltagsStatus {
+  // Serialized CaptureVideoDatasetResult
+  farm_ng.core.Resource result = 1;
+
+  oneof input_required {
+    DetectApriltagsConfiguration input_required_configuration = 2;
+  }
+
+  // Number of frames captured per camera
+  repeated PerCameraNumFrames per_camera_num_frames = 3;
+
+  // Number of frames captured per tag id
+  repeated PerTagIdNumFrames per_tag_id_num_frames = 4;
+
+  // Configuration.
+  DetectApriltagsConfiguration configuration = 5;
+}

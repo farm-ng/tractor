@@ -59,7 +59,9 @@ RUN cd third_party && ./install.sh
 COPY CMakeLists.txt .
 COPY cmake cmake
 COPY modules modules
-RUN	mkdir -p build && \
+SHELL ["/bin/bash", "-c"]
+RUN	. setup.bash && \
+  mkdir -p build && \
   cd build && \
   cmake -DCMAKE_PREFIX_PATH=`pwd`/../env -DCMAKE_BUILD_TYPE=Release -DDISABLE_PROTOC_ts=TRUE -DDISABLE_PROTOC_go=TRUE .. && \
   make -j`nproc --ignore=1`

@@ -14,7 +14,7 @@ export function useFetchResource<T extends EventType>(
   const [value, setValue] = useState<T>();
   useEffect(() => {
     const fetchResult = async (): Promise<void> => {
-      if (!resource || !resourceArchive) {
+      if (!resource || !resourceArchive || !resource.path) {
         return;
       }
       try {

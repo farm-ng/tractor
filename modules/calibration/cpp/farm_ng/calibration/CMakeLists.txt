@@ -4,6 +4,7 @@ foreach(src_prefix
       apriltag_rig_calibrator
       epipolar
       flow_book_keeper
+      intrinsic_calibrator
       local_parameterization
       multi_view_apriltag_rig_calibrator
       solver
@@ -18,7 +19,11 @@ add_library(farm_ng_calibration
   ${h_files}
 )
 target_include_directories(farm_ng_calibration PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../..)
-target_link_libraries(farm_ng_calibration farm_ng_calibration_protobuf farm_ng_perception ${CERES_LIBRARIES})
+target_link_libraries(farm_ng_calibration
+  farm_ng_calibration_protobuf
+  farm_ng_perception
+  ${CERES_LIBRARIES}
+)
 
 
 # TODO add tests!

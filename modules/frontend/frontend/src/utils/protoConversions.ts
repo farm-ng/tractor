@@ -2,10 +2,13 @@ import {
   Vec3 as Vec3Proto,
   Quaternion as QuaternionProto,
   SE3Pose as SE3PoseProto,
+  NamedSE3Pose,
 } from "@farm-ng/genproto-perception/farm_ng/perception/geometry";
-import { Quaternion, Vector3, Matrix4 } from "three";
+import { Quaternion, Vector3, Matrix4, Euler } from "three";
 import { Resource } from "@farm-ng/genproto-core/farm_ng/core/resource";
 import { EventTypeId, eventTypeIds } from "../registry/events";
+import { CameraModel } from "@farm-ng/genproto-perception/farm_ng/perception/camera_model";
+import { rad2deg } from "./geometry";
 
 export function toVector3(v?: Vec3Proto): Vector3 {
   return v ? new Vector3(v.x, v.y, v.z) : new Vector3();
@@ -41,6 +44,25 @@ export function se3PoseToMatrix4(pose: SE3PoseProto): Matrix4 {
     new Vector3(1, 1, 1)
   );
   return m;
+}
+
+export function openCVPoseToThreeJSPose(pose: NamedSE3Pose): NamedSE3Pose {
+  if (!pose.aPoseB) {
+    console.warn("Could not convert openCV pose to threeJS pose: ", pose);
+    return pose;
+  }
+  const opencvTthreejs = new Matrix4().makeRotationFromEuler(
+    new Euler(Math.PI, 0, 0)
+  );
+  const cameraTransform = se3PoseToMatrix4(pose.aPoseB);
+  return {
+    ...pose,
+    aPoseB: matrix4ToSE3Pose(cameraTransform.multiply(opencvTthreejs)),
+  };
+}
+
+export function cameraModelToThreeJSFOV(cameraModel: CameraModel): number {
+  return rad2deg(2 * Math.atan(cameraModel.imageHeight / (2 * cameraModel.fy)));
 }
 
 const resourceFormats = ["application/json", "application/protobuf"] as const;

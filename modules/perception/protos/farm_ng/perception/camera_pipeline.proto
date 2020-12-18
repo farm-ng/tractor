@@ -29,7 +29,7 @@ message CameraConfig {
     MODEL_INTEL_D415 = 3;
   }
 
-  string name = 1;
+  string name = 1; // frame_name
   string serial_number = 2;
   Model model = 3;
 

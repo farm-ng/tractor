@@ -2,6 +2,7 @@
 #define FARM_NG_CALIBRATION_APRILTAG_H_
 #include <array>
 
+#include <glog/logging.h>
 #include <Eigen/Dense>
 #include <opencv2/core.hpp>
 
@@ -47,7 +48,8 @@ class ApriltagsFilter {
  public:
   ApriltagsFilter();
   void Reset();
-  bool AddApriltags(const ApriltagDetections& detections);
+  bool AddApriltags(const ApriltagDetections& detections, int steady_count = 5,
+                    int window_size = 7);
 
  private:
   cv::Mat mask_;
@@ -57,7 +59,8 @@ class ApriltagsFilter {
 class ApriltagDetector {
  public:
   ApriltagDetector(const CameraModel& camera_model,
-                   farm_ng::core::EventBus* event_bus = nullptr);
+                   farm_ng::core::EventBus* event_bus = nullptr,
+                   const ApriltagConfig* config = nullptr);
 
   ~ApriltagDetector();
 
@@ -69,6 +72,45 @@ class ApriltagDetector {
  private:
   class Impl;
   std::shared_ptr<Impl> impl_;
+};
+
+// Helper class for looking up rig frame names based on tag ids.  Useful in
+// combination with the PoseGraph which uses string names for looking up poses.
+class ApriltagRigIdMap {
+ public:
+  ApriltagRigIdMap() = default;
+
+  struct FrameNames {
+    std::string tag_frame;
+    std::string rig_frame;
+  };
+
+  // Adds all the nodes in the given ApriltagRig to the map.
+  // Precondition: all tag ids must be unique, within the given rig and w.r.t.
+  // any previously added rig.
+  void AddRig(const ApriltagRig& rig) {
+    for (const ApriltagRig::Node& node : rig.nodes()) {
+      insert(rig, node);
+    }
+  }
+
+  std::optional<FrameNames> GetFrameNames(int tag_id) {
+    auto it_name = id_frame_map_.find(tag_id);
+    if (it_name != id_frame_map_.end()) {
+      return it_name->second;
+    }
+    return std::nullopt;
+  }
+
+ private:
+  void insert(const ApriltagRig& rig, const ApriltagRig::Node& node) {
+    auto it_inserted = id_frame_map_.insert(
+        std::make_pair(node.id(), FrameNames{node.frame_name(), rig.name()}));
+    // Here we prevent any duplicate tag ids.
+    CHECK(it_inserted.second)
+        << "Failed to insert duplicate node: " << node.ShortDebugString();
+  }
+  std::map<int, FrameNames> id_frame_map_;
 };
 
 }  // namespace perception

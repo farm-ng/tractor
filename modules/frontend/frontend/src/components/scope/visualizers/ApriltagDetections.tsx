@@ -23,7 +23,7 @@ const ApriltagDetectionsElement: React.FC<SingleElementVisualizerProps<
   useEffect(() => {
     const fetchImage = async (): Promise<void> => {
       const resource = value.image?.resource;
-      if (resources && resource) {
+      if (resources && resource && resource.path) {
         try {
           setImgSrc(await resources.getDataUrl(resource.path));
         } catch (e) {

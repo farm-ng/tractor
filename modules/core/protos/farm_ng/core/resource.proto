@@ -7,18 +7,23 @@ package farm_ng.core;
 option go_package = "github.com/farm-ng/genproto/core";
 
 message Resource {
-  // The normalized path of this resource within a resource archive.
-  //
-  // Paths are relative to the root of the resource archive.
-  // The first path segment should be the string representation of a
-  // `Bucket` key.
-  //
-  // Paths must be in the form "foo/bar/baz.jpg", with no leading
-  // slash, no relative path segments ("foo/../bar"), and no duplicate
-  // separators ("foo//bar").
-  string path = 1;
+  oneof payload {
+    // The normalized path of this resource within a resource archive.
+    //
+    // Paths are relative to the root of the resource archive.
+    // The first path segment should be the string representation of a
+    // `Bucket` key.
+    //
+    // Paths must be in the form "foo/bar/baz.jpg", with no leading
+    // slash, no relative path segments ("foo/../bar"), and no duplicate
+    // separators ("foo//bar").
+    string path = 1;
 
-  // The content-type (aka MIME-type) of the file.
+    // The serialized payload
+    bytes data = 2;
+  }
+
+  // The content-type (aka MIME-type) of the payload.
   // See https://www.iana.org/assignments/media-types/media-types.xhtml.
   //
   // For protobufs, we expect a `content_type` in one of the following formats:
@@ -44,6 +49,8 @@ enum Bucket {
   BUCKET_BASE_TO_CAMERA_MODELS = 4;
   BUCKET_VIDEO_DATASETS = 5;
   BUCKET_CONFIGURATIONS = 6;
+  BUCKET_INTRINSIC_MODELS = 7;
+  BUCKET_ROBOT_EXTRINSICS_DATASETS = 8;
 }
 
 message File {

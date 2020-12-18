@@ -1,5 +1,5 @@
 find_package(Boost REQUIRED system filesystem)
-find_package(gflags REQUIRED)
+find_package(gflags REQUIRED COMPONENTS shared)
 find_package(Glog REQUIRED)
 
 add_library(farm_ng_core SHARED
@@ -12,7 +12,10 @@ add_library(farm_ng_core SHARED
   init.cpp
   init.h
   ipc.cpp
-  ipc.h)
+  ipc.h
+  thread_pool.cpp
+  thread_pool.h
+  )
 
 target_include_directories(farm_ng_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../..)
 target_link_libraries(
@@ -21,6 +24,7 @@ target_link_libraries(
   ${Boost_FILESYSTEM_LIBRARY}
   ${Boost_SYSTEM_LIBRARY}
   dl
+  pthread
   gflags
   ${GLOG_LIBRARIES}
 )
