@@ -8,6 +8,8 @@
 
 #include "farm_ng/core/ipc.h"
 
+#include "farm_ng/perception/image.pb.h"
+#include "farm_ng/perception/depthmap.pb.h"
 #include "farm_ng/perception/camera_model.pb.h"
 #include "farm_ng/perception/camera_pipeline.pb.h"
 
@@ -18,6 +20,11 @@ struct FrameData {
   CameraConfig config;
   CameraModel camera_model;
   cv::Mat image;
+
+  // optional depthmap
+  cv::Mat depthmap;
+  Depthmap::Range depthmap_range;
+
   const google::protobuf::Timestamp& stamp() const { return stamp_; }
   google::protobuf::Timestamp* mutable_stamp() { return &stamp_; }
 

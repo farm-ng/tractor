@@ -147,7 +147,7 @@ class FrameGrabberIntel : public FrameGrabber {
           video_frame->get_timestamp());
 
       std::lock_guard<std::mutex> lock(mtx_);
-      signal_(FrameData({config_, camera_model_, frame_0, stamp}));
+      signal_(FrameData({config_, camera_model_, frame_0, cv::Mat(), Depthmap::RANGE_UNSPECIFIED, stamp}));
     }
   }
   virtual ~FrameGrabberIntel() = default;
