@@ -10,7 +10,7 @@ import { EventType } from "../registry/events";
 import {
   ProgramExecution,
   ProgramSupervisorStatus,
-} from "@farm-ng/genproto-frontend/farm_ng/frontend/program_supervisor";
+} from "@farm-ng/genproto-core/farm_ng/core/programd";
 import { Program, programForProgramId } from "../registry/programs";
 import { TimestampedEventVector } from "../types/common";
 
@@ -83,7 +83,7 @@ export class ProgramsStore {
       }
       if (
         busEvent.data.typeUrl ===
-        "type.googleapis.com/farm_ng.frontend.ProgramSupervisorStatus"
+        "type.googleapis.com/farm_ng.core.ProgramSupervisorStatus"
       ) {
         this.supervisorStatus = decodeAnyEvent(busEvent);
       }
