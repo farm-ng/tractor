@@ -2,6 +2,7 @@ import bisect
 import logging
 import sys
 from collections import deque
+import time
 
 import numpy as np
 from google.protobuf.text_format import MessageToString
@@ -14,6 +15,7 @@ from farm_ng.core.ipc import make_event
 from farm_ng.core.periodic import Periodic
 from farm_ng.motors.canbus import CANSocket
 from farm_ng.motors.motor_odrive import HubMotor
+from farm_ng.motors import motor_pb2
 from farm_ng.perception.geometry_pb2 import NamedSE3Pose
 from farm_ng.perception.proto_utils import proto_to_se3
 from farm_ng.perception.proto_utils import se3_to_proto
@@ -98,6 +100,16 @@ class TractorController:
                        self.right_motor_aft,
                        self.left_motor,
                        self.left_motor_aft]
+
+        #for motor in self.motors:
+        #    motor.reboot()
+        #time.sleep(1)
+
+        for motor in self.motors:
+            motor.clear_errors()
+
+        for motor in self.motors:
+            motor.set_requested_state(motor_pb2.ODriveAxis.STATE_CLOSED_LOOP_CONTROL)
 
         self.control_timer = Periodic(
             self.command_period_seconds, self.event_bus.event_loop(),

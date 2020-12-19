@@ -104,4 +104,6 @@ State current_state=3;
   google.protobuf.DoubleValue input_velocity = 4;
   google.protobuf.DoubleValue encoder_position_estimate = 5;
   google.protobuf.DoubleValue encoder_velocity_estimate = 6;
+    google.protobuf.DoubleValue vbus_voltage = 7;
+
 }

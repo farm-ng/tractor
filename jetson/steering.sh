@@ -1,3 +1,3 @@
 #!/bin/bash -ex
 . setup.bash
-python -m farm_ng.steering
+python -m farm_ng.tractor.steering

@@ -43,6 +43,9 @@ def EncoderEstimatesToProto(fields, odrive_axis: motor_pb2.ODriveAxis):
     odrive_axis.encoder_velocity_estimate.value = fields['encoder_vel_estimate']
 
 
+def VbusVoltageToProto(fields, odrive_axis: motor_pb2.ODriveAxis):
+    odrive_axis.vbus_voltage.value = fields['vbus_voltage']
+
 # Taken from https://github.com/madcowswe/ODrive/blob/devel/tools/odrive/tests/can_test.py
 #
 # Each argument is described as tuple (name, format, scale).
@@ -70,7 +73,7 @@ command_set = {
     'get_iq': (0x014, [('iq_setpoint', 'f', 1), ('iq_measured', 'f', 1)]),  # untested
     'get_sensorless_estimates': (0x015, [('sensorless_pos_estimate', 'f', 1), ('sensorless_vel_estimate', 'f', 1)]),  # untested
     'reboot': (0x016, []),  # tested
-    'get_vbus_voltage': (0x017, [('vbus_voltage', 'f', 1)]),  # tested
+    'get_vbus_voltage': (0x017, [('vbus_voltage', 'f', 1)], VbusVoltageToProto),  # tested
     'clear_errors': (0x018, []),  # partially tested
 }
 
@@ -123,6 +126,7 @@ class HubMotor:
         self._event_bus = get_event_bus(self.name)
         self._latest_state = motor_pb2.ODriveAxis()
         self._request_period_seconds = 1.0/50.0
+        self._request_count = 0
         self._request_timer = Periodic(
             self._request_period_seconds, self._event_bus.event_loop(),
             self._request_loop, name='%s/request_loop' % name,
@@ -131,6 +135,9 @@ class HubMotor:
 
     def _request_loop(self, n_periods):
         self.get_encoder_estimates()
+        if self._request_count % 10 == 0:
+            self.get_vbus_voltage()
+        self._request_count += 1
 
     def _handle_can_message(self, cob_id, data, stamp):
         can_node_id = ((cob_id >> 5) & 0b111111)  # upper 6 bits
@@ -179,8 +186,10 @@ class HubMotor:
         self.can_socket.send(cob_id, bytes([]), flags=socket.CAN_RTR_FLAG)
 
     def get_encoder_estimates(self):
-
         self._send_can_request('get_encoder_estimates')
+    
+    def get_vbus_voltage(self):
+        self._send_can_request('get_vbus_voltage')
 
     def set_input_velocity(self, vel):
         # vel in turns/second
@@ -237,10 +246,10 @@ def main():
     loop = asyncio.get_event_loop()
 
     right_motor = HubMotor(
-        'right_motor',  20, can_socket,
+        'right_motor',  20, can_socket,  invert=True
     )
     right_motor_aft = HubMotor(
-        'right_motor_aft', 21, can_socket,
+        'right_motor_aft', 21, can_socket,  invert=True
     )
     left_motor = HubMotor(
         'left_motor', 10, can_socket,
@@ -266,9 +275,11 @@ def main():
         for motor in motors:
             motor.clear_errors()
         for motor in motors:
-            # motor.set_requested_state(motor_pb2.ODriveAxis.STATE_IDLE)
+            #motor.set_requested_state(motor_pb2.ODriveAxis.STATE_IDLE)
             motor.set_requested_state(motor_pb2.ODriveAxis.STATE_CLOSED_LOOP_CONTROL)
 
+    #left_motor_aft.set_requested_state(motor_pb2.ODriveAxis.STATE_IDLE)
+    #right_motor_aft.set_requested_state(motor_pb2.ODriveAxis.STATE_IDLE)
     count = [0]
 
     global x
