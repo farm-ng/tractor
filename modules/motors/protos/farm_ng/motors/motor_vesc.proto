@@ -2,10 +2,10 @@ syntax = "proto3";
 
 import "google/protobuf/wrappers.proto";
 
-package farm_ng.tractor;
-option go_package = "github.com/farm-ng/genproto/tractor";
+package farm_ng.motors;
+option go_package = "github.com/farm-ng/genproto/motors";
 
-message MotorControllerState {
+message VescState {
   google.protobuf.DoubleValue rpm = 1;
   google.protobuf.DoubleValue current = 2;
   google.protobuf.DoubleValue duty_cycle = 3;

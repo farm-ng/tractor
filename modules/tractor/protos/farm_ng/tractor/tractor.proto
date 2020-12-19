@@ -1,6 +1,8 @@
 syntax = "proto3";
 
 import "farm_ng/perception/geometry.proto";
+import "farm_ng/motors/motor_config.proto";
+
 import "google/protobuf/timestamp.proto";
 import "google/protobuf/wrappers.proto";
 
@@ -49,32 +51,24 @@ message TractorState {
 }
 
 message TractorConfig {
+  enum Model {
+    MODEL_UNSPECIFIED = 0;
+    // two wheel diff drive, with VESC controllers
+    MODEL_HWV_2 = 1;
+    // track based skid steer, 4 motors, with Odrives.
+    MODEL_HWV_3 = 2;
+  }
+
+  Model model = 1;
+
   // distance between the wheels, in meters
-  google.protobuf.DoubleValue wheel_baseline = 1;
+  google.protobuf.DoubleValue wheel_baseline = 2;
 
   // Radius of wheel, in meters, if both wheels are same radius.
-  google.protobuf.DoubleValue wheel_radius = 2;
+  google.protobuf.DoubleValue wheel_radius = 3;
 
-  // If radius is measured to be different in each wheel, these values override
-  // the wheel_radius value.
-  google.protobuf.DoubleValue wheel_radius_left = 5;
-  google.protobuf.DoubleValue wheel_radius_right = 6;
-
-  // Hub motor gear ratio
-  google.protobuf.DoubleValue hub_motor_gear_ratio = 3;
-  // Hub motor polls
-  google.protobuf.Int32Value hub_motor_poll_pairs = 4;
+  repeated farm_ng.motors.MotorConfig motor_configs = 4;
 
   // Extrinsic relationships to sensors.
   repeated farm_ng.perception.NamedSE3Pose base_poses_sensor = 7;
-
-  // Enum for the motor/kinematic topology
-  enum Topology {
-    TOPOLOGY_UNSPECIFIED = 0;
-    TOPOLOGY_TWO_MOTOR_DIFF_DRIVE = 1;
-    TOPOLOGY_TWO_MOTOR_TRACKS = 2;
-    TOPOLOGY_FOUR_MOTOR_SKID_STEER = 3;
-    TOPOLOGY_FOUR_MOTOR_TRACKS = 4;
-  }
-  Topology topology = 8;
 }

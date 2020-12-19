@@ -8,16 +8,17 @@ import linuxfd
 import numpy as np
 from google.protobuf.text_format import MessageToString
 from google.protobuf.timestamp_pb2 import Timestamp
+from google.protobuf.wrappers_pb2 import DoubleValue
+from google.protobuf.wrappers_pb2 import Int32Value
 
 from farm_ng.core.ipc import get_event_bus
 from farm_ng.core.ipc import make_event
-#from farm_ng.tractor import motor_pb2
 from farm_ng.motors.canbus import CANSocket
-
-#from farm_ng.tractor.config import TractorConfigManager
+from farm_ng.motors.motor_config_pb2 import CanbusConfig
+from farm_ng.motors.motor_config_pb2 import MotorConfig
+from farm_ng.motors.motor_vesc_pb2 import VescState
 
 logger = logging.getLogger('farm_ng.motor')
-
 logger.setLevel(logging.INFO)
 
 
@@ -134,20 +135,19 @@ g_vesc_msg_parsers = {
 }
 
 
-class HubMotor:
+class MotorVesc:
     def __init__(
-            self, name, wheel_radius, gear_ratio, poll_pairs,
-            can_node_id, can_socket,
+            self, motor_config: MotorConfig, can_socket,
     ):
-        self.name = name
-        self.can_node_id = can_node_id
+        self.name = motor_config.name
+        self.can_node_id = motor_config.canbus_config.node_id
         self.can_socket = can_socket
-        self.wheel_radius = wheel_radius
-        self.gear_ratio = gear_ratio
-        self.poll_pairs = poll_pairs
+        self.wheel_radius = motor_config.radius.value
+        self.gear_ratio = motor_config.gear_ratio.value
+        self.poll_pairs = motor_config.poll_pairs.value
         self.max_current = 20
         self._event_bus = get_event_bus(self.name)
-        self._latest_state = motor_pb2.MotorControllerState()
+        self._latest_state = VescState()
         self._latest_stamp = Timestamp()
         self.can_socket.add_reader(self._handle_can_message)
         self._last_tachometer_stamp = None
@@ -272,32 +272,29 @@ def main():
     print('Listening on can0')
     loop = asyncio.get_event_loop()
 
-    config = TractorConfigManager.saved()
-    right_motor = HubMotor(
-        'right_motor',
-        config.wheel_radius.value,
-        config.hub_motor_gear_ratio.value,
-        config.hub_motor_poll_pairs.value, 20, can_socket,
-    )
-    right_motor_aft = HubMotor(
-        'right_motor_aft',
-        config.wheel_radius.value,
-        config.hub_motor_gear_ratio.value,
-        config.hub_motor_poll_pairs.value, 21, can_socket,
-    )
-    left_motor = HubMotor(
-        'left_motor',
-        config.wheel_radius.value,
-        config.hub_motor_gear_ratio.value,
-        config.hub_motor_poll_pairs.value, 10, can_socket,
-    )
-    left_motor_aft = HubMotor(
-        'left_motor_aft',
-        config.wheel_radius.value,
-        config.hub_motor_gear_ratio.value,
-        config.hub_motor_poll_pairs.value, 11, can_socket,
+    right_motor = MotorVesc(
+        MotorConfig(
+            name='right_motor', model=MotorConfig.Model.MODEL_VESC,
+            canbus_config=CanbusConfig(canbus='can0', node_id=7),
+            invert=False,
+            radius=DoubleValue(17.0/2.0*0.0254),
+            gear_ratio=DoubleValue(value=29.909722222),
+            poll_pairs=Int32Value(value=8),
+        ),
+        can_socket=can_socket,
     )
 
+    left_motor = MotorVesc(
+        MotorConfig(
+            name='left_motor', model=MotorConfig.Model.MODEL_VESC,
+            canbus_config=CanbusConfig(canbus='can0', node_id=9),
+            invert=False,
+            radius=DoubleValue(17.0/2.0*0.0254),
+            gear_ratio=DoubleValue(value=29.909722222),
+            poll_pairs=Int32Value(value=8),
+        ),
+        can_socket=can_socket,
+    )
     count = [0]
 
     def command_loop():

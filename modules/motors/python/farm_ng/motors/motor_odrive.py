@@ -6,22 +6,14 @@ import struct
 import sys
 import time
 
-# import can
 import linuxfd
-import numpy as np
 from google.protobuf.text_format import MessageToString
-from google.protobuf.timestamp_pb2 import Timestamp
 
 from farm_ng.core.ipc import get_event_bus
 from farm_ng.core.ipc import make_event
 from farm_ng.core.periodic import Periodic
 from farm_ng.motors import motor_pb2
-# from farm_ng.tractor import motor_pb2
 from farm_ng.motors.canbus import CANSocket
-
-# from farm_ng.motors.CANSimple import odrive_s
-
-# from farm_ng.tractor.config import TractorConfigManager
 
 logger = logging.getLogger('farm_ng.motor_odrive')
 
@@ -45,6 +37,7 @@ def EncoderEstimatesToProto(fields, odrive_axis: motor_pb2.ODriveAxis):
 
 def VbusVoltageToProto(fields, odrive_axis: motor_pb2.ODriveAxis):
     odrive_axis.vbus_voltage.value = fields['vbus_voltage']
+
 
 # Taken from https://github.com/madcowswe/ODrive/blob/devel/tools/odrive/tests/can_test.py
 #
@@ -88,13 +81,13 @@ class CANSimpleParser:
 
     def parse(self, msg, odrive_axis: motor_pb2.ODriveAxis):
         fields = struct.unpack(self.fmt, msg[:self.fmt_size])
-        fields = {n: (fields[i] * s) for (i, (n, f, s)) in enumerate(self.cmd_spec[1])}
+        fields_dict = {n: (fields[i] * s) for (i, (n, f, s)) in enumerate(self.cmd_spec[1])}
         if(len(self.cmd_spec) > 2):
-            self.cmd_spec[2](fields, odrive_axis)
-        return fields
+            self.cmd_spec[2](fields_dict, odrive_axis)
+        return fields_dict
 
     def __str__(self):
-        return '%s : %04x - fmt: %s' % (self.cmd_name, self.cmd_id, self.fmt)
+        return f'{self.cmd_name} : {self.cmd_id:04x} - fmt: {self.fmt}'
 
 
 def make_parsers():
@@ -114,9 +107,10 @@ g_odrive_parsers = make_parsers()
 # https://github.com/madcowswe/ODrive/blob/devel/tools/odrive/tests/can_test.py
 
 
-class HubMotor:
+class MotorOdrive:
     def __init__(
-            self, name,  can_node_id, can_socket, radius=1.0, gear_ratio=1.0, invert=False):
+            self, name,  can_node_id, can_socket, radius=1.0, gear_ratio=1.0, invert=False,
+    ):
         self.name = name
         self.radius = radius
         self.gear_ratio = gear_ratio
@@ -132,6 +126,9 @@ class HubMotor:
             self._request_loop, name='%s/request_loop' % name,
         )
         self.can_socket.add_reader(self._handle_can_message)
+
+        self.clear_errors()
+        self.set_requested_state(motor_pb2.ODriveAxis.STATE_CLOSED_LOOP_CONTROL)
 
     def _request_loop(self, n_periods):
         self.get_encoder_estimates()
@@ -153,10 +150,10 @@ class HubMotor:
 
         parser.parse(data, self._latest_state)
 
-        #logger.info('can node id %02d %s', can_node_id, msg)
+        # logger.info('can node id %02d %s', can_node_id, msg)
         self._latest_state.stamp.CopyFrom(stamp)
 
-        if (parser.cmd_name == "get_encoder_estimates"):
+        if (parser.cmd_name == 'get_encoder_estimates'):
             if self.invert:
                 self._latest_state.encoder_position_estimate.value = -self._latest_state.encoder_position_estimate.value
                 self._latest_state.encoder_velocity_estimate.value = -self._latest_state.encoder_velocity_estimate.value
@@ -170,7 +167,7 @@ class HubMotor:
         fmt = '<' + ''.join([f for (n, f, s) in cmd_spec[1]])  # all little endian
 
         if (sorted([n for (n, f, s) in cmd_spec[1]]) != sorted(kwargs.keys())):
-            raise Exception("expected arguments: " + str([n for (n, f, s) in cmd_spec[1]]))
+            raise Exception('expected arguments: ' + str([n for (n, f, s) in cmd_spec[1]]))
 
         fields = [((kwargs[n] / s) if f == 'f' else int(kwargs[n] / s)) for (n, f, s) in cmd_spec[1]]
         data = struct.pack(fmt, *fields)
@@ -187,7 +184,7 @@ class HubMotor:
 
     def get_encoder_estimates(self):
         self._send_can_request('get_encoder_estimates')
-    
+
     def get_vbus_voltage(self):
         self._send_can_request('get_vbus_voltage')
 
@@ -245,16 +242,16 @@ def main():
     print('Listening on can0')
     loop = asyncio.get_event_loop()
 
-    right_motor = HubMotor(
-        'right_motor',  20, can_socket,  invert=True
+    right_motor = MotorOdrive(
+        'right_motor',  20, can_socket,  invert=True,
     )
-    right_motor_aft = HubMotor(
-        'right_motor_aft', 21, can_socket,  invert=True
+    right_motor_aft = MotorOdrive(
+        'right_motor_aft', 21, can_socket,  invert=True,
     )
-    left_motor = HubMotor(
+    left_motor = MotorOdrive(
         'left_motor', 10, can_socket,
     )
-    left_motor_aft = HubMotor(
+    left_motor_aft = MotorOdrive(
         'left_motor_aft', 11, can_socket,
     )
     motors = [right_motor, right_motor_aft, left_motor, left_motor_aft]
@@ -275,11 +272,11 @@ def main():
         for motor in motors:
             motor.clear_errors()
         for motor in motors:
-            #motor.set_requested_state(motor_pb2.ODriveAxis.STATE_IDLE)
+            # motor.set_requested_state(motor_pb2.ODriveAxis.STATE_IDLE)
             motor.set_requested_state(motor_pb2.ODriveAxis.STATE_CLOSED_LOOP_CONTROL)
 
-    #left_motor_aft.set_requested_state(motor_pb2.ODriveAxis.STATE_IDLE)
-    #right_motor_aft.set_requested_state(motor_pb2.ODriveAxis.STATE_IDLE)
+    # left_motor_aft.set_requested_state(motor_pb2.ODriveAxis.STATE_IDLE)
+    # right_motor_aft.set_requested_state(motor_pb2.ODriveAxis.STATE_IDLE)
     count = [0]
 
     global x

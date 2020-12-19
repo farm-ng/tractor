@@ -2,10 +2,13 @@ import argparse
 import os
 
 from google.protobuf.json_format import MessageToJson
+from google.protobuf.wrappers_pb2 import DoubleValue
 from google.protobuf.wrappers_pb2 import Int32Value
 
 from farm_ng.core.blobstore import Blobstore
 from farm_ng.core.resource_pb2 import BUCKET_CONFIGURATIONS
+from farm_ng.motors.motor_config_pb2 import CanbusConfig
+from farm_ng.motors.motor_config_pb2 import MotorConfig
 from farm_ng.perception.apriltag_pb2 import ApriltagConfig
 from farm_ng.perception.apriltag_pb2 import TagConfig
 from farm_ng.perception.camera_pipeline_pb2 import CameraConfig
@@ -31,11 +34,27 @@ class TractorConfigManager:
     @staticmethod
     def default():
         config = TractorConfig()
-        config.wheel_baseline.value = _in2m(48.0)
-        config.wheel_radius.value = 0.27574/2.0
-        config.hub_motor_gear_ratio.value = 29.909722222
-        config.hub_motor_poll_pairs.value = 8
-        config.topology = TractorConfig.Topology.TOPOLOGY_TWO_MOTOR_DIFF_DRIVE
+        config.model = TractorConfig.Model.MODEL_HWV_2
+        config.wheel_baseline.value = _in2m(42.0)
+        config.wheel_radius.value = _in2m(17.0/2.0)
+        config.motor_configs.extend([
+            MotorConfig(
+                name='left_motor', model=MotorConfig.Model.MODEL_VESC,
+                canbus_config=CanbusConfig(canbus='can0', node_id=9),
+                invert=False,
+                radius=config.wheel_radius,
+                gear_ratio=DoubleValue(value=29.909722222),
+                poll_pairs=Int32Value(value=8),
+            ),
+            MotorConfig(
+                name='right_motor', model=MotorConfig.Model.MODEL_VESC,
+                canbus_config=CanbusConfig(canbus='can0', node_id=7),
+                invert=False,
+                radius=config.wheel_radius,
+                gear_ratio=DoubleValue(value=29.909722222),
+                poll_pairs=Int32Value(value=8),
+            ),
+        ])
         return config
 
 

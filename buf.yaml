@@ -3,6 +3,7 @@ build:
     - ./modules/calibration/protos
     - ./modules/core/protos
     - ./modules/perception/protos
+    - ./modules/motors/protos
     - ./modules/tractor/protos
 lint:
   use:

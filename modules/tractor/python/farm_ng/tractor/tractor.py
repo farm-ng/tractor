@@ -2,7 +2,6 @@ import bisect
 import logging
 import sys
 from collections import deque
-import time
 
 import numpy as np
 from google.protobuf.text_format import MessageToString
@@ -14,8 +13,9 @@ from farm_ng.core.ipc import get_event_bus
 from farm_ng.core.ipc import make_event
 from farm_ng.core.periodic import Periodic
 from farm_ng.motors.canbus import CANSocket
-from farm_ng.motors.motor_odrive import HubMotor
-from farm_ng.motors import motor_pb2
+from farm_ng.motors.motor_config_pb2 import MotorConfig
+from farm_ng.motors.motor_odrive import MotorOdrive
+from farm_ng.motors.motor_vesc import MotorVesc
 from farm_ng.perception.geometry_pb2 import NamedSE3Pose
 from farm_ng.perception.proto_utils import proto_to_se3
 from farm_ng.perception.proto_utils import se3_to_proto
@@ -24,7 +24,6 @@ from farm_ng.tractor.controller import TractorMoveToGoalController
 from farm_ng.tractor.kinematics import TractorKinematics
 from farm_ng.tractor.steering import SteeringClient
 from farm_ng.tractor.steering_pb2 import SteeringCommand
-from farm_ng.tractor.tractor_pb2 import TractorConfig
 from farm_ng.tractor.tractor_pb2 import TractorState
 
 logger = logging.getLogger('tractor')
@@ -55,6 +54,15 @@ class TimeSeries:
         return item.message, item.stamp
 
 
+def make_motor(motor_config, can_socket):
+    if motor_config.model == MotorConfig.Model.MODEL_VESC:
+        return MotorVesc(motor_config, can_socket=can_socket)
+    elif motor_config.model == MotorConfig.Model.MODEL_ODRIVE:
+        return MotorOdrive(motor_config, can_socket=can_socket)
+    else:
+        assert False, 'Unspupported motor model.'
+
+
 class TractorController:
     def __init__(self, event_bus: EventBus):
         self.command_rate_hz = 50
@@ -80,36 +88,21 @@ class TractorController:
         self.kinematics = TractorKinematics(tractor_config=self.config)
         self.move_to_goal_controller = TractorMoveToGoalController()
 
-        radius = self.config.wheel_radius.value
-        gear_ratio = self.config.hub_motor_gear_ratio.value
-        invert_right = True
-        invert_left = False
-        self.right_motor = HubMotor(
-            'right_motor', 20, self.can_socket, radius=radius, gear_ratio=gear_ratio, invert=invert_right
-        )
-        self.right_motor_aft = HubMotor(
-            'right_motor_aft', 21, self.can_socket, radius=radius, gear_ratio=gear_ratio, invert=invert_right
-        )
-        self.left_motor = HubMotor(
-            'left_motor', 10, self.can_socket, radius=radius, gear_ratio=gear_ratio, invert=invert_left
-        )
-        self.left_motor_aft = HubMotor(
-            'left_motor_aft', 11, self.can_socket, radius=radius, gear_ratio=gear_ratio, invert=invert_left
-        )
-        self.motors = [self.right_motor,
-                       self.right_motor_aft,
-                       self.left_motor,
-                       self.left_motor_aft]
+        self.motors = [make_motor(motor_config, self.can_socket) for motor_config in self.config.motor_configs]
 
-        #for motor in self.motors:
-        #    motor.reboot()
-        #time.sleep(1)
-
+        self.right_motor = None
+        self.left_motor = None
         for motor in self.motors:
-            motor.clear_errors()
+            if motor.name == 'right_motor':
+                assert self.right_motor is None
+                self.right_motor = motor
 
-        for motor in self.motors:
-            motor.set_requested_state(motor_pb2.ODriveAxis.STATE_CLOSED_LOOP_CONTROL)
+            if motor.name == 'left_motor':
+                assert self.left_motor is None
+                self.left_motor = motor
+
+        assert self.right_motor is not None
+        assert self.left_motor is not None
 
         self.control_timer = Periodic(
             self.command_period_seconds, self.event_bus.event_loop(),
@@ -157,7 +150,7 @@ class TractorController:
         now.GetCurrentTime()
 
         if (self.n_cycle % (5*self.command_rate_hz)) == 0:
-            motor_state_str = '\n '.join(['%s : %s' % (m.name, MessageToString(m.get_state(), as_one_line=True)) for m in self.motors])
+            motor_state_str = '\n '.join(['{} : {}'.format(m.name, MessageToString(m.get_state(), as_one_line=True)) for m in self.motors])
             logger.info(
 
                 '\n %s\n state:\n %s', motor_state_str,

@@ -1,0 +1,34 @@
+syntax = "proto3";
+
+import "google/protobuf/wrappers.proto";
+
+package farm_ng.motors;
+option go_package = "github.com/farm-ng/genproto/motors";
+
+message CanbusConfig {
+  string canbus = 1;
+  uint32 node_id = 2;
+}
+
+message MotorConfig {
+  enum Model {
+    MODEL_UNSPECIFIED = 0;
+    MODEL_VESC = 1;
+    MODEL_ODRIVE = 2;
+  }
+  string name = 1;
+  Model model = 2;
+  oneof bus_config {
+    CanbusConfig canbus_config = 3;
+    // Could support other bus types here (UDP, serial, etc...)
+  }
+
+  // direction of motor should be inverted
+  bool invert = 10;
+  // Wheel radius
+  google.protobuf.DoubleValue radius = 11;
+  // Gear ratio of motor to output shaft
+  google.protobuf.DoubleValue gear_ratio = 12;
+  // Number of magnetic polls, some controllers hide this, leave unpopulated.
+  google.protobuf.Int32Value poll_pairs = 13;
+}
