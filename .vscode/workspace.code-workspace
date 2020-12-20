@@ -68,7 +68,7 @@
     },
     "git.ignoreLimitWarning": true,
     "cmake.cmakePath": "${workspaceRoot}/env/bin/cmake",
-    "cmake.configureOnOpen": true,
+    "cmake.configureOnOpen": false,
     "cmake.configureArgs": ["-DCMAKE_PREFIX_PATH=${workspaceRoot}/env"],
     "cmake.environment": {
       "LD_LIBRARY_PATH":"${workspaceRoot}/env/lib",
@@ -76,6 +76,12 @@
       "PATH": "${workspaceRoot}/env/bin:${workspaceRoot}/env/go/bin:/usr/local/go/bin:${workspaceRoot}/env/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
     },
     "cmake.buildEnvironment":
+    {
+      "LD_LIBRARY_PATH":"${workspaceRoot}/env/lib",
+      "PYTHONPATH":"${workspaceRoot}/env/bin/python:${workspaceRoot}/build/modules/core/protos/python:${workspaceRoot}/build/modules/perception/protos/python:${workspaceRoot}/build/modules/calibration/protos/python:${workspaceRoot}/build/modules/tractor/protos/python:${workspaceRoot}/build/modules/frontend/protos/python:${workspaceRoot}/build/modules/motors/protos/python",
+      "PATH": "${workspaceRoot}/env/bin:${workspaceRoot}/env/go/bin:/usr/local/go/bin:${workspaceRoot}/env/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+    },
+    "cmake.configureEnvironment":
     {
       "LD_LIBRARY_PATH":"${workspaceRoot}/env/lib",
       "PYTHONPATH":"${workspaceRoot}/env/bin/python:${workspaceRoot}/build/modules/core/protos/python:${workspaceRoot}/build/modules/perception/protos/python:${workspaceRoot}/build/modules/calibration/protos/python:${workspaceRoot}/build/modules/tractor/protos/python:${workspaceRoot}/build/modules/frontend/protos/python:${workspaceRoot}/build/modules/motors/protos/python",

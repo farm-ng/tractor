@@ -26,7 +26,6 @@ import {
 } from "@farm-ng/genproto-core/farm_ng/core/io";
 import { Image } from "@farm-ng/genproto-perception/farm_ng/perception/image";
 import { IntrinsicModel } from "@farm-ng/genproto-calibration/farm_ng/calibration/intrinsic_model";
-import { MotorControllerState } from "@farm-ng/genproto-tractor/farm_ng/tractor/motor";
 import { SteeringCommand } from "@farm-ng/genproto-tractor/farm_ng/tractor/steering";
 import {
   CameraPipelineCommand,
@@ -80,7 +79,8 @@ import {
   CalibrateMultiViewApriltagRigStatus,
 } from "@farm-ng/genproto-calibration/farm_ng/calibration/calibrate_multi_view_apriltag_rig";
 import { CameraModel } from "@farm-ng/genproto-perception/farm_ng/perception/camera_model";
-import { ODriveAxis } from "@farm-ng/genproto-motors/farm_ng/motors/motor";
+import { ODriveAxis } from "@farm-ng/genproto-motors/farm_ng/motors/motor_odrive";
+import { VescState } from "@farm-ng/genproto-motors/farm_ng/motors/motor_vesc";
 
 export type EventType =
   | Announce
@@ -119,7 +119,7 @@ export type EventType =
   | LoggingCommand
   | LoggingStatus
   | MonocularApriltagRigModel
-  | MotorControllerState
+  | VescState
   | MultiViewApriltagRigModel
   | NamedSE3Pose
   | ODriveAxis
@@ -195,7 +195,7 @@ export const eventRegistry = inferKeys({
   "type.googleapis.com/farm_ng.perception.CameraPipelineConfig": CameraPipelineConfig,
   "type.googleapis.com/farm_ng.perception.Vec2": Vec2,
   "type.googleapis.com/farm_ng.perception.VideoFileCamera": VideoFileCamera,
-  "type.googleapis.com/farm_ng.tractor.MotorControllerState": MotorControllerState,
+  "type.googleapis.com/farm_ng.motors.VescState": VescState,
   "type.googleapis.com/farm_ng.tractor.SteeringCommand": SteeringCommand,
   "type.googleapis.com/farm_ng.tractor.TractorConfig": TractorConfig,
   "type.googleapis.com/farm_ng.tractor.TractorState": TractorState,

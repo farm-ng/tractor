@@ -2,7 +2,7 @@ import {
   ODriveAxis,
   oDriveAxis_StateToJSON as StateToJSON,
   oDriveAxis_ErrorToJSON as ErrorToJSON,
-} from "@farm-ng/genproto-motors/farm_ng/motors/motor";
+} from "@farm-ng/genproto-motors/farm_ng/motors/motor_odrive";
 import * as React from "react";
 import { VisualizerProps } from "../../../registry/visualization";
 import { colorGenerator } from "../../../utils/colorGenerator";

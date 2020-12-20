@@ -6,7 +6,7 @@ import {
   ODriveAxis,
   ODriveAxis_Error,
   ODriveAxis_State,
-} from "@farm-ng/genproto-motors/farm_ng/motors/motor";
+} from "@farm-ng/genproto-motors/farm_ng/motors/motor_odrive";
 
 export const testBuffer: Buffer = {
   "type.googleapis.com/farm_ng.motors.ODriveAxis": {

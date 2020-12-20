@@ -219,6 +219,9 @@ class MotorVesc:
     def send_velocity_command_rads(self, rads_second):
         rpm = 60*rads_second/(2*math.pi)
         self.send_rpm_command(rpm)
+    
+    def set_input_velocity_rads(self, rads_second):
+        self.send_velocity_command_rads(rads_second)
 
     def send_current_command(self, current_amps):
         CURRENT_FORMAT = '>i'  # big endian, int32
@@ -277,7 +280,7 @@ def main():
             name='right_motor', model=MotorConfig.Model.MODEL_VESC,
             canbus_config=CanbusConfig(canbus='can0', node_id=7),
             invert=False,
-            radius=DoubleValue(17.0/2.0*0.0254),
+            radius=DoubleValue(value=17.0/2.0*0.0254),
             gear_ratio=DoubleValue(value=29.909722222),
             poll_pairs=Int32Value(value=8),
         ),
@@ -289,7 +292,7 @@ def main():
             name='left_motor', model=MotorConfig.Model.MODEL_VESC,
             canbus_config=CanbusConfig(canbus='can0', node_id=9),
             invert=False,
-            radius=DoubleValue(17.0/2.0*0.0254),
+            radius=DoubleValue(value=17.0/2.0*0.0254),
             gear_ratio=DoubleValue(value=29.909722222),
             poll_pairs=Int32Value(value=8),
         ),

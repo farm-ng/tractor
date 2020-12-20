@@ -2,7 +2,7 @@ import * as React from "react";
 import { ListGroup, Card, CardColumns, Table } from "react-bootstrap";
 import { useObserver } from "mobx-react-lite";
 import { TractorState } from "@farm-ng/genproto-tractor/farm_ng/tractor/tractor";
-import { MotorControllerState } from "@farm-ng/genproto-tractor/farm_ng/tractor/motor";
+import { VescState } from "@farm-ng/genproto-motors/farm_ng/motors/motor_vesc";
 import { formatValue } from "../utils/formatValue";
 import { useStores } from "../hooks/useStores";
 import styles from "./Overview.module.scss";
@@ -18,14 +18,14 @@ export const Overview: React.FC = () => {
 
     const rightMotorInputVoltage = (busEventStore.lastSnapshot.get(
       "right_motor/state"
-    )?.latestEvent as MotorControllerState)?.inputVoltage;
+    )?.latestEvent as VescState)?.inputVoltage;
     const rightMotorWarning =
       rightMotorInputVoltage &&
       rightMotorInputVoltage < voltageWarningThreshold;
 
     const leftMotorInputVoltage = (busEventStore.lastSnapshot.get(
       "left_motor/state"
-    )?.latestEvent as MotorControllerState)?.inputVoltage;
+    )?.latestEvent as VescState)?.inputVoltage;
     const leftMotorWarning =
       leftMotorInputVoltage && leftMotorInputVoltage < voltageWarningThreshold;
 

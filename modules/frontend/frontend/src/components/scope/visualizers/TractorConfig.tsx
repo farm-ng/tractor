@@ -9,16 +9,11 @@ import {
   StandardComponent,
 } from "./StandardComponent";
 import { Card } from "./Card";
-import {
-  TractorConfig,
-  TractorConfig_Topology as Topology,
-  tractorConfig_TopologyToJSON as TopologyToJSON,
-} from "@farm-ng/genproto-tractor/farm_ng/tractor/tractor";
+import { TractorConfig } from "@farm-ng/genproto-tractor/farm_ng/tractor/tractor";
 import { KeyValueTable } from "./KeyValueTable";
 import { useFormState } from "../../../hooks/useFormState";
 import Form from "./Form";
 import { NamedSE3PoseVisualizer } from "./NamedSE3Pose";
-import { enumNumericKeys } from "../../../utils/enum";
 
 const TractorConfigForm: React.FC<FormProps<TractorConfig>> = (props) => {
   const [value, setValue] = useFormState(props);
@@ -37,91 +32,6 @@ const TractorConfigForm: React.FC<FormProps<TractorConfig>> = (props) => {
           }));
         }}
       />
-
-      <Form.Group
-        label="Wheel Radius"
-        value={value.wheelRadius}
-        type="number"
-        onChange={(e) => {
-          const wheelRadius = parseFloat(e.target.value);
-          setValue((v) => ({
-            ...v,
-            wheelRadius,
-          }));
-        }}
-      />
-
-      <Form.Group
-        label="Wheel Radius Left"
-        value={value.wheelRadiusLeft}
-        type="number"
-        onChange={(e) => {
-          const wheelRadiusLeft = parseFloat(e.target.value);
-          setValue((v) => ({
-            ...v,
-            wheelRadiusLeft,
-          }));
-        }}
-      />
-
-      <Form.Group
-        label="Wheel Radius Right"
-        value={value.wheelRadiusRight}
-        type="number"
-        onChange={(e) => {
-          const wheelRadiusRight = parseFloat(e.target.value);
-          setValue((v) => ({
-            ...v,
-            wheelRadiusRight,
-          }));
-        }}
-      />
-
-      <Form.Group
-        label="Hub Motor Gear Ratio"
-        value={value.hubMotorGearRatio}
-        type="number"
-        onChange={(e) => {
-          const hubMotorGearRatio = parseFloat(e.target.value);
-          setValue((v) => ({
-            ...v,
-            hubMotorGearRatio,
-          }));
-        }}
-      />
-
-      <Form.Group
-        label="Hub Motor Poll Pairs"
-        value={value.hubMotorPollPairs}
-        type="number"
-        onChange={(e) => {
-          const hubMotorPollPairs = parseInt(e.target.value);
-          setValue((v) => ({
-            ...v,
-            hubMotorPollPairs,
-          }));
-        }}
-      />
-
-      <Form.Group
-        label="Topology"
-        value={value.topology}
-        as="select"
-        onChange={(e) => {
-          const topology = parseInt(e.target.value);
-          setValue((v) => ({ ...v, topology }));
-        }}
-      >
-        {enumNumericKeys(Topology)
-          .filter((k) => k >= 0)
-          .map((k) => {
-            return (
-              <option key={k} value={k}>
-                {TopologyToJSON(k)}
-              </option>
-            );
-          })}
-      </Form.Group>
 
       {value.basePosesSensor.map((basePoseSensor, i) => (
         <NamedSE3PoseVisualizer.Form
@@ -150,17 +60,7 @@ const TractorConfigElement: React.FC<SingleElementVisualizerProps<
 
   return (
     <Card timestamp={timestamp} json={value}>
-      <KeyValueTable
-        records={[
-          ["Wheel Baseline", value.wheelBaseline],
-          ["Wheel Radius", value.wheelRadius],
-          ["Wheel Radius Left", value.wheelRadiusLeft],
-          ["Wheel Radius Right", value.wheelRadiusRight],
-          ["Hub Motor Gear Ratio", value.hubMotorGearRatio],
-          ["Hub Motor Poll Pairs", value.hubMotorPollPairs],
-          ["Topology", TopologyToJSON(value.topology)],
-        ]}
-      />
+      <KeyValueTable records={[["Wheel Baseline", value.wheelBaseline]]} />
 
       {value.basePosesSensor?.map((basePoseSensor) => {
         const title = `${basePoseSensor.frameA}_pose_${basePoseSensor.frameB}`;

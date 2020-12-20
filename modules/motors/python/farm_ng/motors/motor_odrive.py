@@ -12,30 +12,30 @@ from google.protobuf.text_format import MessageToString
 from farm_ng.core.ipc import get_event_bus
 from farm_ng.core.ipc import make_event
 from farm_ng.core.periodic import Periodic
-from farm_ng.motors import motor_pb2
 from farm_ng.motors.canbus import CANSocket
+from farm_ng.motors.motor_odrive_pb2 import ODriveAxis
 
 logger = logging.getLogger('farm_ng.motor_odrive')
 
 logger.setLevel(logging.INFO)
 
 
-def HeartBeatToProto(fields, odrive_axis: motor_pb2.ODriveAxis):
+def HeartBeatToProto(fields, odrive_axis: ODriveAxis):
     err_bitset = fields['error']
     del odrive_axis.error[:]
     if err_bitset != 0:
-        for error in motor_pb2.ODriveAxis.Error.values():
+        for error in ODriveAxis.Error.values():
             if err_bitset & error:
                 odrive_axis.error.append(error)
     odrive_axis.current_state = fields['current_state']
 
 
-def EncoderEstimatesToProto(fields, odrive_axis: motor_pb2.ODriveAxis):
+def EncoderEstimatesToProto(fields, odrive_axis: ODriveAxis):
     odrive_axis.encoder_position_estimate.value = fields['encoder_pos_estimate']
     odrive_axis.encoder_velocity_estimate.value = fields['encoder_vel_estimate']
 
 
-def VbusVoltageToProto(fields, odrive_axis: motor_pb2.ODriveAxis):
+def VbusVoltageToProto(fields, odrive_axis: ODriveAxis):
     odrive_axis.vbus_voltage.value = fields['vbus_voltage']
 
 
@@ -79,7 +79,7 @@ class CANSimpleParser:
         self.fmt = '<' + ''.join([f for (n, f, s) in cmd_spec[1]])  # all little endian
         self.fmt_size = struct.calcsize(self.fmt)
 
-    def parse(self, msg, odrive_axis: motor_pb2.ODriveAxis):
+    def parse(self, msg, odrive_axis: ODriveAxis):
         fields = struct.unpack(self.fmt, msg[:self.fmt_size])
         fields_dict = {n: (fields[i] * s) for (i, (n, f, s)) in enumerate(self.cmd_spec[1])}
         if(len(self.cmd_spec) > 2):
@@ -118,7 +118,7 @@ class MotorOdrive:
         self.can_node_id = can_node_id
         self.can_socket = can_socket
         self._event_bus = get_event_bus(self.name)
-        self._latest_state = motor_pb2.ODriveAxis()
+        self._latest_state = ODriveAxis()
         self._request_period_seconds = 1.0/50.0
         self._request_count = 0
         self._request_timer = Periodic(
@@ -128,7 +128,7 @@ class MotorOdrive:
         self.can_socket.add_reader(self._handle_can_message)
 
         self.clear_errors()
-        self.set_requested_state(motor_pb2.ODriveAxis.STATE_CLOSED_LOOP_CONTROL)
+        self.set_requested_state(ODriveAxis.STATE_CLOSED_LOOP_CONTROL)
 
     def _request_loop(self, n_periods):
         self.get_encoder_estimates()
@@ -206,7 +206,7 @@ class MotorOdrive:
     def average_update_rate(self):
         return self._request_period_seconds
 
-    def set_requested_state(self, state: motor_pb2.ODriveAxis.State):
+    def set_requested_state(self, state: ODriveAxis.State):
         self._send_can_command('set_requested_state', requested_state=state)
 
     def clear_errors(self):
@@ -272,11 +272,11 @@ def main():
         for motor in motors:
             motor.clear_errors()
         for motor in motors:
-            # motor.set_requested_state(motor_pb2.ODriveAxis.STATE_IDLE)
-            motor.set_requested_state(motor_pb2.ODriveAxis.STATE_CLOSED_LOOP_CONTROL)
+            # motor.set_requested_state(ODriveAxis.STATE_IDLE)
+            motor.set_requested_state(ODriveAxis.STATE_CLOSED_LOOP_CONTROL)
 
-    # left_motor_aft.set_requested_state(motor_pb2.ODriveAxis.STATE_IDLE)
-    # right_motor_aft.set_requested_state(motor_pb2.ODriveAxis.STATE_IDLE)
+    # left_motor_aft.set_requested_state(ODriveAxis.STATE_IDLE)
+    # right_motor_aft.set_requested_state(ODriveAxis.STATE_IDLE)
     count = [0]
 
     global x
