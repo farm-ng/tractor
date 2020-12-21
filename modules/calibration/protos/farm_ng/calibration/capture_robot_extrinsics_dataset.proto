@@ -4,7 +4,6 @@ import "farm_ng/calibration/robot_hal.proto";
 import "farm_ng/core/resource.proto";
 import "farm_ng/perception/apriltag.proto";
 import "farm_ng/perception/camera_model.proto";
-import "farm_ng/perception/geometry.proto";
 
 package farm_ng.calibration;
 option go_package = "github.com/farm-ng/genproto/calibration";
