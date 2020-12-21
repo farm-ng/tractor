@@ -88,37 +88,24 @@ class FrameGrabberK4a : public FrameGrabber {
         dev_->start_cameras(&config);
         while (true) {
           // Poll the device for new image data.
-          //
-          // We set the timeout to 0 so we don't block if there isn't an
-          // available frame.
-          //
-          // This works here because we're doing the work on the same thread
-          // that we're using for the UI, and the ViewerWindow class caps the
-          // framerate at the display's refresh rate (the EndFrame() call blocks
-          // on the display's sync).
-          //
-          // If we don't have new image data, we'll just reuse the textures we
-          // generated from the last time we got a capture.
-          //
           k4a::capture capture;
-          if (dev_->get_capture(&capture, std::chrono::milliseconds(0))) {
+          if (dev_->get_capture(&capture, std::chrono::milliseconds(100))) {
             auto stamp = MakeTimestampNow();
-
 
             const k4a::image colorImage = capture.get_color_image();
             CHECK_EQ(colorImage.get_format(), K4A_IMAGE_FORMAT_COLOR_BGRA32);
 
-                    cv::Mat color_mat(
+            cv::Mat color_mat(
                 colorImage.get_height_pixels(), colorImage.get_width_pixels(),
                 CV_8UC4, (void*)colorImage.get_buffer(), cv::Mat::AUTO_STEP);
 
-                const k4a::image depthImage =
-                depth_to_color.depth_image_to_color_camera(capture.get_depth_image());
+            const k4a::image depthImage =
+                depth_to_color.depth_image_to_color_camera(
+                    capture.get_depth_image());
             CHECK_EQ(depthImage.get_format(), K4A_IMAGE_FORMAT_DEPTH16);
-             cv::Mat depthmap(
+            cv::Mat depthmap(
                 depthImage.get_height_pixels(), depthImage.get_width_pixels(),
                 CV_16UC1, (void*)depthImage.get_buffer(), cv::Mat::AUTO_STEP);
-
 
             std::lock_guard<std::mutex> lock(mtx_);
 
@@ -128,7 +115,6 @@ class FrameGrabberK4a : public FrameGrabber {
             frame_data_.mutable_stamp()->CopyFrom(stamp);
 
             signal_(frame_data_);
-            ;
           }
         }
       });
