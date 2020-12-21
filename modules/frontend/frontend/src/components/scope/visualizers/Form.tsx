@@ -2,8 +2,9 @@ import * as React from "react";
 import {
   Button,
   Form as BootstrapForm,
+  InputGroup,
   FormControlProps,
-  FormProps
+  FormProps,
 } from "react-bootstrap";
 import { ButtonProps } from "react-bootstrap/esm/Button";
 import { toCamelCase } from "../../../utils/string";
@@ -15,6 +16,7 @@ interface IGroupProps extends FormControlProps {
   id?: string;
   description?: string;
   checked?: boolean;
+  append?: React.ReactElement;
   onChange: React.ChangeEventHandler<
     HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
   >;
@@ -26,6 +28,7 @@ const Group: React.FC<IGroupProps> = ({
   id,
   description,
   children,
+  append,
   ...props
 }) => {
   const controlId = id || `${toCamelCase(label)}_${simpleUniqueId(4)}`;
@@ -33,14 +36,17 @@ const Group: React.FC<IGroupProps> = ({
   return (
     <BootstrapForm.Group controlId={controlId}>
       <BootstrapForm.Label>{label}</BootstrapForm.Label>
-      <BootstrapForm.Control
-        name={controlId}
-        value={value || defaultValue}
-        step={props.type === "number" ? "any" : undefined}
-        {...props}
-      >
-        {children}
-      </BootstrapForm.Control>
+      <InputGroup>
+        <BootstrapForm.Control
+          name={controlId}
+          value={value || defaultValue}
+          step={props.type === "number" ? "any" : undefined}
+          {...props}
+        >
+          {children}
+        </BootstrapForm.Control>
+        {append && <InputGroup.Append>{append}</InputGroup.Append>}
+      </InputGroup>
       {description && (
         <BootstrapForm.Text className="text-muted">
           {description}

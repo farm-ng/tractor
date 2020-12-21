@@ -18,67 +18,25 @@ import { useFetchResource } from "../../../hooks/useFetchResource";
 import { KeyValueTable } from "./KeyValueTable";
 import { CaptureVideoDatasetResultVisualizer } from "./CaptureVideoDatasetResult";
 import { CaptureVideoDatasetResult } from "@farm-ng/genproto-perception/farm_ng/perception/capture_video_dataset";
+import { ResourceVisualizer } from "./Resource";
+import { useStores } from "../../../hooks/useStores";
 
 const CalibrateMultiViewApriltagRigConfigurationForm: React.FC<FormProps<
   CalibrateMultiViewApriltagRigConfiguration
 >> = (props) => {
   const [value, setValue] = useFormState(props);
+  const { httpResourceArchive } = useStores();
+
+  const loadedVideoDataset = useFetchResource<CaptureVideoDatasetResult>(
+    value.videoDataset,
+    httpResourceArchive
+  );
 
   return (
     <>
       <Form.Group
-        // TODO: Replace with resource browser
-        label="Video Dataset Resource Path"
-        value={value.videoDataset?.path}
-        type="text"
-        onChange={(e) => {
-          const path = e.target.value;
-          setValue((v) => ({
-            ...v,
-            videoDataset: Resource.fromPartial({
-              path,
-              contentType:
-                "application/json; type=type.googleapis.com/farm_ng.perception.CaptureVideoDatasetResult",
-            }),
-          }));
-        }}
-      />
-
-      <h6>Tag IDs</h6>
-      <RepeatedIntForm
-        initialValue={value.tagIds}
-        onChange={(updated) =>
-          setValue((v) => ({
-            ...v,
-            tagIds: updated,
-          }))
-        }
-      />
-
-      <Form.Group
-        label="Root Tag ID"
-        value={value.rootTagId}
-        type="number"
-        onChange={(e) => {
-          const rootTagId = parseInt(e.target.value);
-          setValue((v) => ({ ...v, rootTagId }));
-        }}
-      />
-
-      <Form.Group
-        label="Root Camera Name"
-        value={value.rootCameraName}
-        type="text"
-        onChange={(e) => {
-          const rootCameraName = e.target.value;
-          setValue((v) => ({ ...v, rootCameraName }));
-        }}
-      />
-
-      <Form.Group
-        label="Name"
+        label="Camera Rig Name"
         value={value.name}
-        description="A name for the calibration, used to name the output archive."
         type="text"
         onChange={(e) => {
           const name = e.target.value;
@@ -96,15 +54,96 @@ const CalibrateMultiViewApriltagRigConfigurationForm: React.FC<FormProps<
         }}
       />
 
-      <Form.Group
-        label="Filter stable tags?"
-        checked={value.filterStableTags}
-        type="checkbox"
-        onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-          const filterStableTags = Boolean(e.target.checked);
-          setValue((v) => ({ ...v, filterStableTags }));
-        }}
+      <ResourceVisualizer.Form
+        initialValue={Resource.fromPartial({
+          path: value.videoDataset?.path,
+          contentType:
+            "application/json; type=type.googleapis.com/farm_ng.perception.CaptureVideoDatasetResult",
+        })}
+        onChange={(updated) =>
+          setValue((v) => ({
+            ...v,
+            videoDataset: updated,
+          }))
+        }
       />
+
+      {loadedVideoDataset && (
+        <>
+          <Form.Group
+            label="Root Camera Name"
+            value={value.rootCameraName}
+            as="select"
+            onChange={(e) => {
+              const rootCameraName = e.target.value;
+              setValue((v) => ({ ...v, rootCameraName }));
+            }}
+          >
+            {[
+              <option key={"SELECT"} value={""}>
+                {"SELECT"}
+              </option>,
+              ...loadedVideoDataset.perCameraNumFrames
+                .map((entry) => entry.cameraName)
+                .map((cameraName) => {
+                  return (
+                    <option key={cameraName} value={cameraName}>
+                      {cameraName}
+                    </option>
+                  );
+                }),
+            ]}
+          </Form.Group>
+
+          <h6>Tag IDs</h6>
+          <RepeatedIntForm
+            initialValue={loadedVideoDataset.perTagIdNumFrames.map(
+              (_) => _.tagId
+            )}
+            onChange={(updated) =>
+              setValue((v) => ({
+                ...v,
+                tagIds: updated,
+              }))
+            }
+          />
+
+          <Form.Group
+            label="Root Tag ID"
+            value={value.rootTagId}
+            as="select"
+            onChange={(e) => {
+              const rootTagId = parseInt(e.target.value);
+              setValue((v) => ({ ...v, rootTagId }));
+            }}
+          >
+            {[
+              <option key={"SELECT"} value={""}>
+                {"SELECT"}
+              </option>,
+              ...loadedVideoDataset.perTagIdNumFrames
+                .map((entry) => entry.tagId)
+                .map((tagId) => {
+                  return (
+                    <option key={tagId} value={tagId}>
+                      {tagId}
+                    </option>
+                  );
+                }),
+            ]}
+          </Form.Group>
+
+          <Form.Group
+            label="Filter stable tags?"
+            checked={value.filterStableTags}
+            type="checkbox"
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+              const filterStableTags = Boolean(e.target.checked);
+              setValue((v) => ({ ...v, filterStableTags }));
+            }}
+          />
+        </>
+      )}
     </>
   );
 };

@@ -19,6 +19,7 @@ import { CaptureVideoDatasetResult } from "@farm-ng/genproto-perception/farm_ng/
 import { ApriltagConfig } from "@farm-ng/genproto-perception/farm_ng/perception/apriltag";
 import { ApriltagConfigVisualizer } from "./ApriltagConfig";
 import { CaptureVideoDatasetResultVisualizer } from "./CaptureVideoDatasetResult";
+import { ResourceVisualizer } from "./Resource";
 
 const DetectApriltagsConfigurationForm: React.FC<FormProps<
   DetectApriltagsConfiguration
@@ -37,41 +38,37 @@ const DetectApriltagsConfigurationForm: React.FC<FormProps<
           setValue((v) => ({ ...v, name }));
         }}
       />
-       <Form.Group
-        // TODO: Replace with resource browser
-        label="Video Dataset Resource Path"
-        value={value.videoDataset?.path}
-        type="text"
-        onChange={(e) => {
-          const path = e.target.value;
+
+      <ResourceVisualizer.Form
+        label="Video Dataset"
+        initialValue={Resource.fromPartial({
+          path: value.videoDataset?.path,
+          contentType:
+            "application/json; type=type.googleapis.com/farm_ng.perception.CaptureVideoDatasetResult",
+        })}
+        onChange={(updated) =>
           setValue((v) => ({
             ...v,
-            videoDataset: Resource.fromPartial({
-              path,
-              contentType:
-                "application/json; type=type.googleapis.com/farm_ng.perception.CaptureVideoDatasetResult",
-            }),
-          }));
-        }}
+            videoDataset: updated,
+          }))
+        }
       />
-      <Form.Group
-        // TODO: Replace with resource browser
-        // TODO: Support rendering the apriltagconfig, behind toggle
-        // TODO: Support creating a new apriltagconfig file, and editing the config here.
-        label="ApriltagConfig Resource Path"
-        value={value.tagConfig?.path}
-        type="text"
-        onChange={(e) => {
-          const path = e.target.value;
+
+      <ResourceVisualizer.Form
+        // TODO(isherman): Support rendering the apriltagconfig, behind toggle
+        // TODO(isherman): Support creating a new apriltagconfig file, and editing the config here.
+        label="Tag Configuration"
+        initialValue={Resource.fromPartial({
+          path: value.tagConfig?.path,
+          contentType:
+            "application/json; type=type.googleapis.com/farm_ng.perception.ApriltagConfig",
+        })}
+        onChange={(updated) =>
           setValue((v) => ({
             ...v,
-            tagConfig: Resource.fromPartial({
-              path,
-              contentType:
-                "application/json; type=type.googleapis.com/farm_ng.perception.ApriltagConfig",
-            }),
-          }));
-        }}
+            tagConfig: updated,
+          }))
+        }
       />
     </>
   );
@@ -109,10 +106,7 @@ const DetectApriltagsConfigurationElement: React.FC<SingleElementVisualizerProps
       )}
       {tagConfig && (
         <Card title="ApriltagConfig">
-          <ApriltagConfigVisualizer.Element
-            {...props}
-            value={[0, tagConfig]}
-          />
+          <ApriltagConfigVisualizer.Element {...props} value={[0, tagConfig]} />
         </Card>
       )}
     </Card>

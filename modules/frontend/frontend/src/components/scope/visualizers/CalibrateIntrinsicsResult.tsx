@@ -14,6 +14,10 @@ import { KeyValueTable } from "./KeyValueTable";
 import { solverStatusToJSON } from "@farm-ng/genproto-calibration/farm_ng/calibration/calibrator";
 import { IntrinsicModelVisualizer } from "./IntrinsicModel";
 import { useStores } from "../../../hooks/useStores";
+import { JsonPopover } from "../../JsonPopover";
+import { Icon } from "../../Icon";
+import { Button, Table } from "react-bootstrap";
+import { CameraModel } from "@farm-ng/genproto-perception/farm_ng/perception/camera_model";
 
 const CalibrateIntrinsicsResultElement: React.FC<SingleElementVisualizerProps<
   CalibrateIntrinsicsResult
@@ -26,8 +30,12 @@ const CalibrateIntrinsicsResultElement: React.FC<SingleElementVisualizerProps<
   const { baseUrl } = useStores();
   const blobstoreUrl = `${baseUrl}/blobstore`;
 
-  const intrinsicsSolved = useFetchResource<IntrinsicModel>(
+  const loadedIntrinsicsSolved = useFetchResource<IntrinsicModel>(
     value.intrinsicsSolved,
+    resources
+  );
+  const loadedCameraModel = useFetchResource<CameraModel>(
+    value.cameraModel,
     resources
   );
 
@@ -52,13 +60,34 @@ const CalibrateIntrinsicsResultElement: React.FC<SingleElementVisualizerProps<
           ]}
         />
       </Card>
-      {cameraModel && (
-        <Card title="Output">
-          <a target="_blank" href={`${blobstoreUrl}/${cameraModel.path}`}>
-            {cameraModel.path}
-          </a>
-        </Card>
-      )}
+      <Card title="Outputs">
+        <Table bordered hover size="sm" responsive="md">
+          <tbody>
+            {cameraModel && (
+              <JsonPopover
+                trigger="hover"
+                json={loadedCameraModel || "loading..."}
+                collapsed={1}
+              >
+                <tr>
+                  <td> Camera Model </td>
+                  <td>
+                    <Button
+                      download
+                      href={`${blobstoreUrl}/${cameraModel.path}`}
+                    >
+                      <Icon id="download" />
+                    </Button>
+                  </td>
+                  <td>
+                    <p>{cameraModel.path}</p>
+                  </td>
+                </tr>
+              </JsonPopover>
+            )}
+          </tbody>
+        </Table>
+      </Card>
       {configuration && (
         <Card title="Configuration">
           {
@@ -69,11 +98,11 @@ const CalibrateIntrinsicsResultElement: React.FC<SingleElementVisualizerProps<
           }
         </Card>
       )}
-      {intrinsicsSolved && (
+      {loadedIntrinsicsSolved && (
         <Card title="Details">
           <IntrinsicModelVisualizer.Element
             {...props}
-            value={[0, intrinsicsSolved]}
+            value={[0, loadedIntrinsicsSolved]}
           />
         </Card>
       )}

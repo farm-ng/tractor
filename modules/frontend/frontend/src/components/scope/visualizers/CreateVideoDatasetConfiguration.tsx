@@ -6,10 +6,7 @@ import {
 } from "../../../registry/visualization";
 import { KeyValueTable } from "./KeyValueTable";
 import { Card } from "./Card";
-import {
-  CreateVideoDatasetConfiguration,
-  VideoFileCamera,
-} from "@farm-ng/genproto-perception/farm_ng/perception/create_video_dataset";
+import { CreateVideoDatasetConfiguration } from "@farm-ng/genproto-perception/farm_ng/perception/create_video_dataset";
 import {
   StandardComponent,
   StandardComponentOptions,
@@ -18,20 +15,22 @@ import { useFormState } from "../../../hooks/useFormState";
 import Form from "./Form";
 import { Resource } from "@farm-ng/genproto-core/farm_ng/core/resource";
 import { VideoFileCameraVisualizer } from "./VideoFileCamera";
+import { ResourceVisualizer } from "./Resource";
+import { useStableKey } from "../../../hooks/useStableKey";
 
 const CreateVideoDatasetConfigurationForm: React.FC<FormProps<
   CreateVideoDatasetConfiguration
 >> = (props) => {
   const [value, setValue] = useFormState(props);
 
-  const { videoFileCameras, apriltagRigs } = value;
+  const { apriltagRigs } = value;
+  const keyedVideoFileCameras = useStableKey(value.videoFileCameras);
 
   return (
     <>
       <Form.Group
         label="Name"
         value={value.name}
-        description="A name for the dataset, used to name the output archive."
         type="text"
         onChange={(e) => {
           const name = e.target.value;
@@ -48,8 +47,8 @@ const CreateVideoDatasetConfigurationForm: React.FC<FormProps<
         }}
       />
 
-      {videoFileCameras?.map((videoFileCamera, index) => (
-        <div key={videoFileCamera.cameraFrameName}>
+      {keyedVideoFileCameras?.map(([key, videoFileCamera], index) => (
+        <div key={key}>
           <VideoFileCameraVisualizer.Form
             initialValue={videoFileCamera}
             onChange={(updated) =>
@@ -61,6 +60,8 @@ const CreateVideoDatasetConfigurationForm: React.FC<FormProps<
               }))
             }
           />
+          {/* Disabled until multiple video file inputs are supported
+
           <Form.ButtonGroup
             buttonText="X"
             onClick={() =>
@@ -72,10 +73,11 @@ const CreateVideoDatasetConfigurationForm: React.FC<FormProps<
                 ],
               }))
             }
-          />
+          /> */}
         </div>
       ))}
 
+      {/* Disabled until multiple video file inputs are supported
       <Form.ButtonGroup
         buttonText="+"
         onClick={() =>
@@ -87,29 +89,27 @@ const CreateVideoDatasetConfigurationForm: React.FC<FormProps<
             ],
           }))
         }
-      />
+      /> */}
 
       {apriltagRigs?.map((apriltagRig, index) => (
         <div key={apriltagRig.path}>
-          <Form.Group
-            // TODO: Replace with resource browser
-            label="Resource Path"
-            value={apriltagRig.path}
-            type="text"
-            onChange={(e) => {
-              const path = e.target.value;
+          <ResourceVisualizer.Form
+            label="Apriltag Rig"
+            initialValue={Resource.fromPartial({
+              path: apriltagRig.path,
+              contentType:
+                "application/json; type=type.googleapis.com/farm_ng.perception.ApriltagRig",
+            })}
+            onChange={(updated) =>
               setValue((v) => ({
                 ...v,
                 apriltagRigs: Object.assign([...v.apriltagRigs], {
-                  [index]: Resource.fromPartial({
-                    path,
-                    contentType:
-                      "application/json; type=type.googleapis.com/farm_ng.calibration.CalibrateMultiViewApriltagRigResult",
-                  }),
+                  [index]: updated,
                 }),
-              }));
-            }}
+              }))
+            }
           />
+
           <Form.ButtonGroup
             buttonText="X"
             onClick={() =>

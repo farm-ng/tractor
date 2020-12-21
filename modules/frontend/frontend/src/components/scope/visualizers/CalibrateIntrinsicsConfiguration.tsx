@@ -11,47 +11,94 @@ import {
 import { CalibrateIntrinsicsConfiguration } from "@farm-ng/genproto-calibration/farm_ng/calibration/calibrate_intrinsics";
 import { Card } from "./Card";
 import { KeyValueTable } from "./KeyValueTable";
-import { cameraModel_DistortionModelToJSON } from "@farm-ng/genproto-perception/farm_ng/perception/camera_model";
+import {
+  CameraModel_DistortionModel,
+  cameraModel_DistortionModelToJSON,
+} from "@farm-ng/genproto-perception/farm_ng/perception/camera_model";
 import { useFormState } from "../../../hooks/useFormState";
 import Form from "./Form";
 import { Resource } from "@farm-ng/genproto-core/farm_ng/core/resource";
+import { ResourceVisualizer } from "./Resource";
+import { useFetchResource } from "../../../hooks/useFetchResource";
+import { CreateVideoDatasetResult } from "@farm-ng/genproto-perception/farm_ng/perception/create_video_dataset";
+import { useStores } from "../../../hooks/useStores";
+import { enumNumericKeys } from "../../../utils/enum";
 
 const CalibrateIntrinsicsConfigurationForm: React.FC<FormProps<
   CalibrateIntrinsicsConfiguration
 >> = (props) => {
   const [value, setValue] = useFormState(props);
 
-  const { videoDataset, cameraName, filterStableTags } = value;
+  const { cameraName, filterStableTags } = value;
+  const { httpResourceArchive } = useStores();
+
+  const loadedVideoDataset = useFetchResource<CreateVideoDatasetResult>(
+    value.videoDataset,
+    httpResourceArchive
+  );
 
   return (
     <>
-      <Form.Group
-        // TODO: Replace with resource browser
-        label="Video Dataset"
-        value={videoDataset?.path}
-        type="text"
-        onChange={(e) => {
-          const path = e.target.value;
+      <ResourceVisualizer.Form
+        initialValue={Resource.fromPartial({
+          path: value.videoDataset?.path,
+          contentType:
+            "application/json; type=type.googleapis.com/farm_ng.perception.CreateVideoDatasetResult",
+        })}
+        onChange={(updated) =>
           setValue((v) => ({
             ...v,
-            videoDataset: Resource.fromPartial({
-              path,
-              contentType:
-                "application/json; type=type.googleapis.com/farm_ng.perception.CreateVideoDatasetResult",
-            }),
-          }));
-        }}
+            videoDataset: updated,
+          }))
+        }
       />
 
       <Form.Group
-        label="Camera Name"
-        value={cameraName}
-        type="text"
+        label="Distortion Model"
+        value={value.distortionModel}
+        as="select"
         onChange={(e) => {
-          const cameraName = e.target.value;
-          setValue((v) => ({ ...v, cameraName }));
+          const distortionModel = parseInt(e.target.value);
+          setValue((v) => ({ ...v, distortionModel }));
         }}
-      />
+      >
+        {enumNumericKeys(CameraModel_DistortionModel)
+          .filter((k) => k >= 0)
+          .map((k) => {
+            return (
+              <option key={k} value={k}>
+                {cameraModel_DistortionModelToJSON(k)}
+              </option>
+            );
+          })}
+      </Form.Group>
+
+      {loadedVideoDataset && (
+        <Form.Group
+          label="Camera Name"
+          value={cameraName}
+          as="select"
+          onChange={(e) => {
+            const cameraName = e.target.value;
+            setValue((v) => ({ ...v, cameraName }));
+          }}
+        >
+          {[
+            <option key={"SELECT"} value={""}>
+              {"SELECT"}
+            </option>,
+            ...loadedVideoDataset.perCameraNumFrames
+              .map((entry) => entry.cameraName)
+              .map((cameraName) => {
+                return (
+                  <option key={cameraName} value={cameraName}>
+                    {cameraName}
+                  </option>
+                );
+              }),
+          ]}
+        </Form.Group>
+      )}
 
       <Form.Group
         label="Filter Stable Tags?"

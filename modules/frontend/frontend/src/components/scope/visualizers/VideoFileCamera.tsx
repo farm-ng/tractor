@@ -8,6 +8,7 @@ import {
 } from "../../../registry/visualization";
 import Form from "./Form";
 import { KeyValueTable } from "./KeyValueTable";
+import { ResourceVisualizer } from "./Resource";
 import {
   StandardComponentOptions,
   StandardComponent,
@@ -27,21 +28,18 @@ const VideoFileCameraForm: React.FC<FormProps<VideoFileCamera>> = (props) => {
         }}
       />
 
-      <Form.Group
-        // TODO: Replace with resource browser
-        label="Video File Resource"
-        value={value.videoFileResource?.path}
-        type="text"
-        onChange={(e) => {
-          const path = e.target.value;
+      <ResourceVisualizer.Form
+        label="Video File"
+        initialValue={Resource.fromPartial({
+          path: value.videoFileResource?.path,
+          contentType: "video/mp4",
+        })}
+        onChange={(updated) =>
           setValue((v) => ({
             ...v,
-            videoFileResource: Resource.fromPartial({
-              path,
-              contentType: "video/mp4",
-            }),
-          }));
-        }}
+            videoFileResource: updated,
+          }))
+        }
       />
     </>
   );

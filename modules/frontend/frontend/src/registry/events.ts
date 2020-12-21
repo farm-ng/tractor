@@ -42,7 +42,7 @@ import {
   ProgramSupervisorStatus,
   StartProgramRequest,
   StopProgramRequest,
-} from "@farm-ng/genproto-frontend/farm_ng/frontend/program_supervisor";
+} from "@farm-ng/genproto-core/farm_ng/core/programd";
 import {
   CalibrateIntrinsicsConfiguration,
   CalibrateIntrinsicsResult,
@@ -79,7 +79,11 @@ import {
   CalibrateMultiViewApriltagRigResult,
   CalibrateMultiViewApriltagRigStatus,
 } from "@farm-ng/genproto-calibration/farm_ng/calibration/calibrate_multi_view_apriltag_rig";
-import { CameraModel } from "@farm-ng/genproto-perception/farm_ng/perception/camera_model";
+import {
+  CameraModel,
+  MultiViewCameraRig,
+} from "@farm-ng/genproto-perception/farm_ng/perception/camera_model";
+import { Resource } from "@farm-ng/genproto-core/farm_ng/core/resource";
 
 export type EventType =
   | Announce
@@ -95,6 +99,9 @@ export type EventType =
   | CalibrateBaseToCameraConfiguration
   | CalibrateBaseToCameraResult
   | CalibrateBaseToCameraStatus
+  | CalibrateIntrinsicsConfiguration
+  | CalibrateIntrinsicsResult
+  | CalibrateIntrinsicsStatus
   | CalibrateMultiViewApriltagRigConfiguration
   | CalibrateMultiViewApriltagRigResult
   | CalibrateMultiViewApriltagRigStatus
@@ -105,6 +112,9 @@ export type EventType =
   | CalibratorCommand
   | CalibratorStatus
   | CameraConfig
+  | CameraModel
+  | CameraPipelineCommand
+  | CameraPipelineConfig
   | CaptureVideoDatasetConfiguration
   | CaptureVideoDatasetResult
   | CaptureVideoDatasetStatus
@@ -120,8 +130,10 @@ export type EventType =
   | MonocularApriltagRigModel
   | MotorControllerState
   | MultiViewApriltagRigModel
+  | MultiViewCameraRig
   | NamedSE3Pose
   | ProgramSupervisorStatus
+  | Resource
   | SE3Pose
   | StartProgramRequest
   | SteeringCommand
@@ -169,13 +181,16 @@ export const eventRegistry = inferKeys({
   "type.googleapis.com/farm_ng.core.Event": BusEvent,
   "type.googleapis.com/farm_ng.core.LoggingCommand": LoggingCommand,
   "type.googleapis.com/farm_ng.core.LoggingStatus": LoggingStatus,
-  "type.googleapis.com/farm_ng.frontend.ProgramSupervisorStatus": ProgramSupervisorStatus,
-  "type.googleapis.com/farm_ng.frontend.StartProgramRequest": StartProgramRequest,
-  "type.googleapis.com/farm_ng.frontend.StopProgramRequest": StopProgramRequest,
+  "type.googleapis.com/farm_ng.core.Resource": Resource,
+  "type.googleapis.com/farm_ng.core.ProgramSupervisorStatus": ProgramSupervisorStatus,
+  "type.googleapis.com/farm_ng.core.StartProgramRequest": StartProgramRequest,
+  "type.googleapis.com/farm_ng.core.StopProgramRequest": StopProgramRequest,
   "type.googleapis.com/farm_ng.perception.ApriltagConfig": ApriltagConfig,
   "type.googleapis.com/farm_ng.perception.ApriltagDetections": ApriltagDetections,
   "type.googleapis.com/farm_ng.perception.ApriltagRig": ApriltagRig,
   "type.googleapis.com/farm_ng.perception.CameraConfig": CameraConfig,
+  "type.googleapis.com/farm_ng.perception.CameraPipelineCommand": CameraPipelineCommand,
+  "type.googleapis.com/farm_ng.perception.CameraPipelineConfig": CameraPipelineConfig,
   "type.googleapis.com/farm_ng.perception.CaptureVideoDatasetConfiguration": CaptureVideoDatasetConfiguration,
   "type.googleapis.com/farm_ng.perception.CaptureVideoDatasetResult": CaptureVideoDatasetResult,
   "type.googleapis.com/farm_ng.perception.CaptureVideoDatasetStatus": CaptureVideoDatasetStatus,
@@ -185,11 +200,10 @@ export const eventRegistry = inferKeys({
   "type.googleapis.com/farm_ng.perception.DetectApriltagsConfiguration": DetectApriltagsConfiguration,
   "type.googleapis.com/farm_ng.perception.DetectApriltagsStatus": DetectApriltagsStatus,
   "type.googleapis.com/farm_ng.perception.Image": Image,
+  "type.googleapis.com/farm_ng.perception.MultiViewCameraRig": MultiViewCameraRig,
   "type.googleapis.com/farm_ng.perception.NamedSE3Pose": NamedSE3Pose,
   "type.googleapis.com/farm_ng.perception.SE3Pose": SE3Pose,
   "type.googleapis.com/farm_ng.perception.TagConfig": TagConfig,
-  "type.googleapis.com/farm_ng.perception.CameraPipelineCommand": CameraPipelineCommand,
-  "type.googleapis.com/farm_ng.perception.CameraPipelineConfig": CameraPipelineConfig,
   "type.googleapis.com/farm_ng.perception.Vec2": Vec2,
   "type.googleapis.com/farm_ng.perception.VideoFileCamera": VideoFileCamera,
   "type.googleapis.com/farm_ng.tractor.MotorControllerState": MotorControllerState,
