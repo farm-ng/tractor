@@ -11,10 +11,6 @@ option go_package = "github.com/farm-ng/genproto/calibration";
 // Describes a workcell that may be driven (via the Robot HAL) to capture a
 // robot extrinsics dataset.
 //
-// The workcell contains a workspace volume. The capture program captures robot
-// pose and images at multiple poses within this workspace volume, according to
-// the following sampling algorithm:
-//
 // Poses in the config and the path between them are not guaranteed to avoid
 // self-collision, they should be validated by whomever populates the config
 // before running on a robot.

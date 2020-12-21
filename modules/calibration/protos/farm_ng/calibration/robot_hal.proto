@@ -14,8 +14,8 @@ message CapturePoseRequest {
   // poses as world_pose_base and arm_base_pose_tool
   repeated farm_ng.perception.NamedSE3Pose poses = 1;
   // Optionally, you may also provide the desired joint states, so that joint
-  // space control can be used.  Poses are expected equivalent to the forward
-  // kinematic model of join_states.
+  // space control can be used.  These should be equivalent, under the robot's
+  // forward kinematic model, to the poses above.
   repeated farm_ng.perception.JointState joint_states = 2;
 }
 
@@ -53,7 +53,7 @@ message CapturePoseResponse {
   // and return STATUS_WARNING_POSE_UNREACHABLE.
   repeated farm_ng.perception.NamedSE3Pose poses = 2;
 
-  // If the joints are measurable, please frovide the joint space values as
+  // If the joints are measurable, please provide the joint space values as
   // well. Useful for kinematic model identification, or joint space controlled
   // applications.
   repeated farm_ng.perception.JointState joint_states = 3;
