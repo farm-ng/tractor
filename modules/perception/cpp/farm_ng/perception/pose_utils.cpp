@@ -9,7 +9,7 @@ std::string FrameNameNumber(const std::string& name, int number,
                             std::string kind) {
   char buffer[1024];
   CHECK_LT(std::snprintf(buffer, sizeof(buffer), "%s/%05d%s", name.c_str(),
-                         number, kind),
+                         number, kind.c_str()),
            int(sizeof(buffer)));
   return std::string(buffer);
 }
