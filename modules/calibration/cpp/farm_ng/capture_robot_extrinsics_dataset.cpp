@@ -102,8 +102,8 @@ void ImageDataToResource(Image* image, int frame_number) {
   if (image->has_depthmap()) {
     ImageResourcePayloadToPath(
         image->mutable_depthmap()->mutable_resource(),
-        perception::FrameNameNumber(
-            image->camera_model().frame_name() + "_depth", frame_number));
+        perception::FrameNameNumber(image->camera_model().frame_name(),
+                                    frame_number, "_depthmap"));
   }
 }
 

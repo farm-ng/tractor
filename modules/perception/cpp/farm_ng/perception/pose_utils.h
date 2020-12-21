@@ -5,8 +5,10 @@
 namespace farm_ng {
 namespace perception {
 
-// Constructs a frame name, using the convention <name>/<number %05d>
-std::string FrameNameNumber(const std::string& name, int number);
+// Constructs a frame name, using the convention <name>/<number %05d><kind>
+// Kind can be used here for things like "_depthmap", or "_debug".
+std::string FrameNameNumber(const std::string& name, int number,
+                            std::string kind = "");
 
 // Constructs a frame name of a tag associated with a rig in the form
 // <rig_name>/tag/<tag_id %05d>
