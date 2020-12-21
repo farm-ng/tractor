@@ -53,7 +53,7 @@ message CapturePoseResponse {
   // and return STATUS_WARNING_POSE_UNREACHABLE.
   repeated farm_ng.perception.NamedSE3Pose poses = 2;
 
-  // If the joints are measurable, please frovide the joint space values as
+  // If the joints are measurable, please provide the joint space values as
   // well. Useful for kinematic model identification, or joint space controlled
   // applications.
   repeated farm_ng.perception.JointState joint_states = 3;
