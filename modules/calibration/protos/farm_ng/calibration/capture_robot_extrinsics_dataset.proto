@@ -9,19 +9,22 @@ import "farm_ng/perception/geometry.proto";
 package farm_ng.calibration;
 option go_package = "github.com/farm-ng/genproto/calibration";
 
-// Describes a workcell that may be driven (via the Robot HAL) to capture a robot extrinsics dataset.
+// Describes a workcell that may be driven (via the Robot HAL) to capture a
+// robot extrinsics dataset.
 //
-// The workcell contains a workspace volume. The capture program captures robot pose and images
-// at multiple poses within this workspace volume, according to the following sampling algorithm:
+// The workcell contains a workspace volume. The capture program captures robot
+// pose and images at multiple poses within this workspace volume, according to
+// the following sampling algorithm:
 //
-// Poses in the config and the path between them are not guaranteed to avoid self-collision, they
-// should be validated by whomever populates the config before running on a robot.
+// Poses in the config and the path between them are not guaranteed to avoid
+// self-collision, they should be validated by whomever populates the config
+// before running on a robot.
 message CaptureRobotExtrinsicsDatasetConfiguration {
   // The dataset name.
   string name = 1;
 
-  // A fixed set of base_poses_link to visit during calibration.
-  repeated farm_ng.perception.NamedSE3Pose base_poses_link = 2;
+  // A fixed set of pose requests to visit during calibration.
+  repeated CapturePoseRequest request_queue = 2;
 
   // The name of the workspace frame
   string workspace_frame_name = 3;
@@ -65,7 +68,7 @@ message CaptureRobotExtrinsicsDatasetStatus {
   // Configuration which initiated this program.
   CaptureRobotExtrinsicsDatasetConfiguration configuration = 3;
 
-  // The pending queue of requests, as determined by the sampling algorithm described above.
+  // The pending queue of requests
   repeated CapturePoseRequest request_queue = 4;
 
   // The index of the request that was most recently issued.
@@ -77,7 +80,7 @@ message CaptureRobotExtrinsicsDatasetStatus {
 
 message CaptureRobotExtrinsicsDatasetResult {
   // Configuration which initiated the computation of this result.
-  CaptureRobotExtrinsicsDatasetConfiguration configuration=1;
+  CaptureRobotExtrinsicsDatasetConfiguration configuration = 1;
 
   // The dataset result.
   farm_ng.core.Resource dataset = 2;

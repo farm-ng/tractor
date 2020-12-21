@@ -59,35 +59,52 @@ class RobotHalClient {
   std::unique_ptr<RobotHALService::Stub> stub_;
 };
 
-std::vector<CapturePoseRequest> GenerateCapturePoseRequests(
-    const CaptureRobotExtrinsicsDatasetConfiguration& configuration) {
-  std::vector<CapturePoseRequest> pose_requests;
-  for(auto base_pose_link: configuration.base_poses_link()) {
-      CapturePoseRequest pose_request;
-        NamedSE3Pose* pose = pose_request.add_poses();
-        pose->CopyFrom(base_pose_link);
-        pose_requests.push_back(pose_request);
+void ImageResourcePayloadToPath(core::Resource* resource,
+                                const std::string& name) {
+  if (resource->payload_case() != core::Resource::kData) {
+    CHECK_EQ(resource->payload_case(), core::Resource::kPath)
+        << resource->ShortDebugString();
+    return;
   }
-  return pose_requests;
+
+  std::string ext;
+  if (resource->content_type() == "image/png") {
+    ext = "png";
+  } else if (resource->content_type() == "image/jpeg") {
+    ext = "jpg";
+  }
+  CHECK(!ext.empty())
+      << "Could not determine image extension (jpg, png supported): "
+      << resource->content_type();
+
+  auto resource_path =
+      core::GetUniqueArchiveResource(name, ext, resource->content_type());
+  {
+    LOG(INFO) << "Writing to: " << resource_path.second.string();
+    std::ofstream outf(resource_path.second.string(), std::ofstream::binary);
+    CHECK(outf) << "Could not open : " << resource_path.second.string() << "\n"
+                << resource_path.first.ShortDebugString();
+    outf << resource->data();
+  }
+  CHECK(boost::filesystem::exists(resource_path.second.string()))
+      << "Did not write to: " << resource_path.second.string();
+  resource->CopyFrom(resource_path.first);
+  CHECK_EQ(resource->payload_case(), core::Resource::kPath)
+      << resource->ShortDebugString();
 }
 
 void ImageDataToResource(Image* image, int frame_number) {
-  core::Resource* resource = image->mutable_resource();
-  CHECK(resource->payload_case() == core::Resource::kData);
-  cv::Mat mat =
-      cv::imdecode(cv::Mat(1, resource->data().size(), CV_8UC1,
-                           const_cast<char*>(resource->data().data())),
-                   cv::IMREAD_UNCHANGED);
-
-  auto resource_path = core::GetUniqueArchiveResource(
+  ImageResourcePayloadToPath(
+      image->mutable_resource(),
       perception::FrameNameNumber(image->camera_model().frame_name(),
-                                  frame_number),
-      "png", "image/png");
-  resource->CopyFrom(resource_path.first);
-  CHECK(resource->payload_case() == core::Resource::kPath);
-  LOG(INFO) << resource_path.second.string();
-  CHECK(cv::imwrite(resource_path.second.string(), mat))
-      << "Could not write: " << resource_path.second;
+                                  frame_number));
+
+  if (image->has_depthmap()) {
+    ImageResourcePayloadToPath(
+        image->mutable_depthmap()->mutable_resource(),
+        perception::FrameNameNumber(
+            image->camera_model().frame_name() + "_depth", frame_number));
+  }
 }
 
 class CaptureRobotExtrinsicsDatasetProgram {
@@ -177,13 +194,10 @@ class CaptureRobotExtrinsicsDatasetProgram {
 
     core::EventLogWriter log_writer(resource_path.second);
 
-    auto requests = GenerateCapturePoseRequests(configuration_);
     status_.clear_request_queue();
-    for (auto& request : requests) {
-      status_.add_request_queue()->CopyFrom(request);
-    }
+    status_.mutable_request_queue()->CopyFrom(configuration_.request_queue());
     int frame_number = 0;
-    for (auto& request : requests) {
+    for (auto& request : configuration_.request_queue()) {
       bus_.get_io_service().poll();
 
       log_writer.Write(core::MakeEvent("capture/request", request));

@@ -1,6 +1,7 @@
 syntax = "proto3";
 
 import "farm_ng/core/resource.proto";
+import "google/protobuf/wrappers.proto";
 
 package farm_ng.perception;
 option go_package = "github.com/farm-ng/genproto/perception";
@@ -23,8 +24,8 @@ option go_package = "github.com/farm-ng/genproto/perception";
 message Depthmap {
   enum Range { RANGE_UNSPECIFIED = 0; RANGE_MM = 1; RANGE_LINEAR = 2; RANGE_INVERSE = 3; };
   Range range = 1;
-  double depth_near = 2;
-  double depth_far = 3;
+  google.protobuf.DoubleValue depth_near = 2;
+  google.protobuf.DoubleValue depth_far = 3;
   // depthmap data.  This is typically a jpg or png image.
   farm_ng.core.Resource resource = 4;
 }

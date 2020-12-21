@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package farm_ng.perception;
+option go_package = "github.com/farm-ng/genproto/perception";
+
+message JointState {
+  enum Units {
+    UNITS_UNSPECIFIED = 0;
+    UNITS_RADIANS = 2;
+    UNITS_METERS = 3;
+    UNITS_ENCODER_COUNT = 4;
+  }
+  // Joint name
+  string name = 1;
+  // Joint value, in units specified by enum.
+  double value = 2;
+  Units units = 3;
+};
