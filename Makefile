@@ -11,20 +11,24 @@ all:
 	make systemd
 	echo "\nSuccessful full system build.\n"
 
+clean:
+	rm -rf build env third_party/build-*
+
 bootstrap:
 	./bootstrap.sh
 
+
 cpp:
 	mkdir -p build
-	cd build && rm -rf ./* && cmake -DCMAKE_PREFIX_PATH=`pwd`/../env -DCMAKE_BUILD_TYPE=Release .. && make -j`nproc --ignore=1`
+	cd build && cmake -DCMAKE_PREFIX_PATH=`pwd`/../env -DCMAKE_BUILD_TYPE=Release .. && make -j`nproc --ignore=1`
 
 frontend:
-	cd app/frontend && yarn && yarn build
-	cp -rT app/frontend/dist build/frontend
+	cd modules/frontend/frontend && yarn && yarn build
+	cp -rT modules/frontend/frontend/dist build/frontend
 
 protos:
 	mkdir -p build
-	cd build && rm -rf ./* && cmake .. && make -j`nproc --ignore=1` farm_ng_all_protobuf_go farm_ng_all_protobuf_ts
+	cd build && cmake -DCMAKE_PREFIX_PATH=`pwd`/../env -DCMAKE_BUILD_TYPE=Release .. && make -j`nproc --ignore=1` farm_ng_all_protobuf_py farm_ng_all_protobuf_go farm_ng_all_protobuf_ts
 
 systemd:
 	cd jetson && sudo ./install.sh
@@ -34,14 +38,14 @@ third_party:
 
 test:
 	./env.sh pytest $(PY_TEST_FILTER)
-	cd app/frontend && yarn test$(JS_TEST_FILTER)
+	cd modules/frontend/frontend && yarn test $(JS_TEST_FILTER)
 
 webserver:
-	cd go/webrtc && ../../env.sh make
+	cd modules/frontend/go/webrtc && ../../../../env.sh make
 
 webservices:
 	make protos
 	make frontend
 	make webserver
 
-.PHONY: bootstrap cpp frontend protos systemd third_party test webserver webservices all
+.PHONY: clean bootstrap cpp frontend protos systemd third_party test webserver webservices all

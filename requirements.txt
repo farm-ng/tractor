@@ -1,7 +1,9 @@
+cmake
 cython
 # Rely on a fork until seveas/python-networkmanager merges fixes for Ubuntu 18.04
 git+https://github.com/alex-eri/python-networkmanager.git@ec5d10ef7e18f27b24b439d888cea89c1f802f5c
 git+https://github.com/utiasSTARS/liegroups.git@11e0203048def0345097cb42c664aa91435c3dd0
+grpcio
 linuxfd
 numpy
 prometheus_client

@@ -51,7 +51,7 @@ const Component: React.FC<ProgramProps<Configuration>> = ({
 };
 
 export const CalibrateApriltagRigProgram = {
-  programIds: [programId, `${programId}-playback`] as const,
+  programIds: [programId] as const,
   eventLogPredicate: (e: BusEvent) => e.name.startsWith(`${programId}/`),
   inputRequired: (e: BusEvent) => {
     if (!e.name.startsWith(`${programId}/status`)) {

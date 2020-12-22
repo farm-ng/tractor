@@ -9,3 +9,10 @@ export const toSentenceCase = (s: string): string =>
     .replace(/([A-Z])/g, (match) => ` ${match}`)
     .replace(/^./, (match) => match.toUpperCase())
     .trim();
+
+export const truncate = (s: string, len: number): string => {
+  if (s.length <= len || len <= 3) {
+    return s;
+  }
+  return s.substring(0, len - 3) + "...";
+};

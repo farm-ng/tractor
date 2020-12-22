@@ -4,9 +4,9 @@ import { useStores } from "../hooks/useStores";
 import {
   StartProgramRequest,
   StopProgramRequest,
-} from "@farm-ng/genproto-frontend/farm_ng/frontend/program_supervisor";
+} from "@farm-ng/genproto-core/farm_ng/core/programd";
 import { useObserver } from "mobx-react-lite";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { formatValue } from "../utils/formatValue";
 import styles from "./Programs.module.scss";
 import { EventVisualizer } from "./scope/visualizers/Event";
@@ -21,16 +21,16 @@ export const Programs: React.FC = () => {
 
   const handleStart = (id: string): void => {
     busClient.send(
-      "type.googleapis.com/farm_ng.frontend.StartProgramRequest",
-      "program_supervisor/request",
+      "type.googleapis.com/farm_ng.core.StartProgramRequest",
+      "programd/request",
       StartProgramRequest.encode(StartProgramRequest.fromJSON({ id })).finish()
     );
   };
 
   const handleStop = (id: string): void => {
     busClient.send(
-      "type.googleapis.com/farm_ng.frontend.StopProgramRequest",
-      "program_supervisor/request",
+      "type.googleapis.com/farm_ng.core.StopProgramRequest",
+      "programd/request",
       StopProgramRequest.encode(StopProgramRequest.fromJSON({ id })).finish()
     );
   };
@@ -89,6 +89,19 @@ export const Programs: React.FC = () => {
         </tr>
       )
     );
+
+    // Explicitly recreate inputRequiredElement when its inputs change,
+    // otherwise, `React.createElement` will be invoked on every re-render of this component.
+    const inputRequiredElement = useMemo(
+      () =>
+        store.program &&
+        store.inputRequired &&
+        React.createElement(store.program.Component, {
+          inputRequired: store.inputRequired,
+        }),
+      [store.program, store.inputRequired]
+    );
+
     return (
       <div className={styles.programs}>
         <Table striped bordered size="sm" responsive="md">
@@ -112,11 +125,7 @@ export const Programs: React.FC = () => {
             <div>
               <div className={styles.programForm}>
                 <Alert variant="warning">User Input Requested</Alert>
-                {store.program &&
-                  store.inputRequired &&
-                  React.createElement(store.program.Component, {
-                    inputRequired: store.inputRequired,
-                  })}
+                {inputRequiredElement}
               </div>
             </div>
           </Collapse>

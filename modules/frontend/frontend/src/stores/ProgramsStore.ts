@@ -10,12 +10,13 @@ import { EventType } from "../registry/events";
 import {
   ProgramExecution,
   ProgramSupervisorStatus,
-} from "@farm-ng/genproto-frontend/farm_ng/frontend/program_supervisor";
+} from "@farm-ng/genproto-core/farm_ng/core/programd";
 import { Program, programForProgramId } from "../registry/programs";
 import { TimestampedEventVector } from "../types/common";
 
 export class ProgramsStore {
   private busHandle: BusEventEmitterHandle | null = null;
+  private lastInputRequired: EventType | null = null;
 
   // The latest supervisor status
   @observable supervisorStatus: ProgramSupervisorStatus | null = null;
@@ -57,12 +58,21 @@ export class ProgramsStore {
   }
 
   @computed get inputRequired(): EventType | null {
-    return (
-      this.runningProgram &&
-      this.latestEvent &&
-      this.program &&
-      this.program.inputRequired(this.latestEvent)
-    );
+    // Somewhat gross. Avoid triggering a mobx update if we're just receiving
+    // the same inputRequired request periodically.
+    // TODO(isherman): Rethink this whole area.
+    if (this.runningProgram && this.latestEvent && this.program) {
+      const inputRequired = this.program.inputRequired(this.latestEvent);
+      if (
+        JSON.stringify(inputRequired) === JSON.stringify(this.lastInputRequired)
+      ) {
+        return this.lastInputRequired;
+      }
+      this.lastInputRequired = inputRequired;
+      return inputRequired;
+    }
+    this.lastInputRequired = null;
+    return null;
   }
 
   public startStreaming(): void {
@@ -73,7 +83,7 @@ export class ProgramsStore {
       }
       if (
         busEvent.data.typeUrl ===
-        "type.googleapis.com/farm_ng.frontend.ProgramSupervisorStatus"
+        "type.googleapis.com/farm_ng.core.ProgramSupervisorStatus"
       ) {
         this.supervisorStatus = decodeAnyEvent(busEvent);
       }

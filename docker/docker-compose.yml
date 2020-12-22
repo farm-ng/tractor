@@ -17,12 +17,12 @@ services:
     volumes:
       - "${BLOBSTORE_ROOT:?err}:/farm_ng_data"
     network_mode: host
-  tracking_camera:
+  camera_pipeline:
     image: farmng/base:n_cameras
     build:
       context: ..
       dockerfile: docker/base.Dockerfile
-    entrypoint: build/modules/perception/cpp/farm_ng/tracking_camera
+    entrypoint: build/modules/perception/cpp/farm_ng/camera_pipeline
     restart: always
     environment:
       - BLOBSTORE_ROOT=/farm_ng_data
@@ -32,7 +32,7 @@ services:
     privileged: true
     network_mode: host
   programd:
-    entrypoint: ./env.sh python -m farm_ng.frontend.program_supervisor
+    entrypoint: ./env.sh python -m farm_ng.core.programd
     image: farmng/base:n_cameras
     build:
       context: ..

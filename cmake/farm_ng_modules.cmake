@@ -1,5 +1,3 @@
-find_package(Protobuf REQUIRED)
-
 macro(farm_ng_add_protobufs target)
   set(multi_value_args PROTO_FILES DEPENDENCIES)
   cmake_parse_arguments(FARM_NG_ADD_PROTOBUFS "" "" "${multi_value_args}" ${ARGN})
@@ -24,12 +22,18 @@ macro(farm_ng_add_protobufs target)
     get_filename_component(_file_dir ${_proto_path} DIRECTORY)
 
     # cpp
-    set("_protoc_args_cpp" "--cpp_out=${_proto_output_dir_cpp}")
+    set("_protoc_args_cpp"
+      "--cpp_out=${_proto_output_dir_cpp}"
+      "--grpc_out=${_proto_output_dir_cpp}"
+      "--plugin=protoc-gen-grpc=${_GRPC_CPP_PLUGIN_EXECUTABLE}")
     SET(_cpp_out_src ${_proto_output_dir_cpp}/${_file_dir}/${_file_we}.pb.cc)
     SET(_cpp_out_hdr ${_proto_output_dir_cpp}/${_file_dir}/${_file_we}.pb.h)
+    SET(_cpp_grpc_out_src ${_proto_output_dir_cpp}/${_file_dir}/${_file_we}.grpc.pb.cc)
+    SET(_cpp_grpc_out_hdr ${_proto_output_dir_cpp}/${_file_dir}/${_file_we}.grpc.pb.h)
     list(APPEND _cpp_out_all ${_cpp_out_src} ${_cpp_out_hdr})
+    list(APPEND _cpp_grpc_out_all ${_cpp_grpc_out_src} ${_cpp_grpc_out_hdr})
     add_custom_command(
-      OUTPUT ${_cpp_out_src} ${_cpp_out_hdr}
+      OUTPUT ${_cpp_out_src} ${_cpp_out_hdr} ${_cpp_grpc_out_src} ${_cpp_grpc_out_hdr}
       COMMAND ${PROTOBUF_PROTOC_EXECUTABLE}
       ARGS ${_protoc_args_cpp} -I ${CMAKE_CURRENT_SOURCE_DIR} ${DEP_PROTO_INCLUDES} ${_full_proto_path}
       DEPENDS ${_full_proto_path} ${PROTOBUF_PROTOC_EXECUTABLE}
@@ -37,11 +41,16 @@ macro(farm_ng_add_protobufs target)
       VERBATIM)
 
     # python
-    set("_protoc_args_python" "--python_out=${_proto_output_dir_python}")
+    set("_protoc_args_python"
+      "--python_out=${_proto_output_dir_python}"
+      "--grpc_python_out=${_proto_output_dir_python}"
+      "--plugin=protoc-gen-grpc_python=${_GRPC_PYTHON_PLUGIN_EXECUTABLE}")
     SET(_python_out ${_proto_output_dir_python}/${_file_dir}/${_file_we}_pb2.py)
+    SET(_python_grpc_out ${_proto_output_dir_python}/${_file_dir}/${_file_we}_pb2_grpc.py)
     list(APPEND _python_out_all ${_python_out})
+    list(APPEND _python_grpc_out_all  ${_python_grpc_out})
     add_custom_command(
-      OUTPUT ${_python_out}
+      OUTPUT ${_python_out} ${_python_grpc_out}
       COMMAND ${PROTOBUF_PROTOC_EXECUTABLE}
       ARGS ${_protoc_args_python} -I ${CMAKE_CURRENT_SOURCE_DIR} ${DEP_PROTO_INCLUDES} ${_full_proto_path}
       DEPENDS ${_full_proto_path} ${PROTOBUF_PROTOC_EXECUTABLE}
@@ -80,14 +89,22 @@ macro(farm_ng_add_protobufs target)
       VERBATIM)
   endforeach()
 
+  # Build grpc libraries in separate targets
+  string(REGEX REPLACE "protobuf" "grpc" _grpc_target ${target})
+
   if(NOT DISABLE_PROTOC_cpp)
     add_library(${target} SHARED ${_cpp_out_all})
-    target_include_directories(${target} PUBLIC ${_proto_output_dir_cpp})
+    target_include_directories(${target} PUBLIC ${_proto_output_dir_cpp} ${Protobuf_INCLUDE_DIRS})
     target_link_libraries(${target} ${Protobuf_LIBRARIES} ${FARM_NG_ADD_PROTOBUFS_DEPENDENCIES})
-  endif()
+
+    add_library(${_grpc_target} SHARED ${_cpp_grpc_out_all})
+    target_include_directories(${target} PUBLIC ${_proto_output_dir_cpp})
+    target_link_libraries(${_grpc_target} ${target} gRPC::grpc++)
+endif()
 
   if(NOT DISABLE_PROTOC_python)
     add_custom_target(${target}_py ALL DEPENDS ${_python_out_all})
+    add_custom_target(${_grpc_target}_py ALL DEPENDS ${_python_grpc_out_all})
   endif()
 
   if(NOT DISABLE_PROTOC_go)

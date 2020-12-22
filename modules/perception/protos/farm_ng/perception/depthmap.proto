@@ -1,0 +1,31 @@
+syntax = "proto3";
+
+import "farm_ng/core/resource.proto";
+import "google/protobuf/wrappers.proto";
+
+package farm_ng.perception;
+option go_package = "github.com/farm-ng/genproto/perception";
+
+// Depthmap encoded as an 8bit/16bit image (jpg,png). See
+// https://developers.google.com/depthmap-metadata/encoding Depth (d) is
+// Depth (d) is assumed in mm for rage=RANGE_MM and assumed to be 16bit, not optimal for serialization
+// normalized (d_n) to [0,1], for range=RANGE_LINEAR
+//    d_n = (d-depth_near)/(depth_far-depth_near)
+//    d = d_n *(depth_far-depth_near) + depth_near
+// for range=RANGE_INVERSE
+//    d_n =  (depth_far * (d- depth_near))/(d*(depth_far - depth_near))
+//    d = depth_far*depth_near / ( depth_far - d_n*(depth_far-depth_near))
+// Normalized depth (d_n) is quantized (d_q) to 8 or 16 bit (jpeg is 8 bit, png
+// is 8 or 16 bit).
+//    d_q = d_n * 255 # 8 bits
+//    d_q = d_n * 65535 # 16 bits
+// The bit depth can be recovered using opencv's imdecode, imread with the flag
+// cv::IMREAD_UNCHANGED
+message Depthmap {
+  enum Range { RANGE_UNSPECIFIED = 0; RANGE_MM = 1; RANGE_LINEAR = 2; RANGE_INVERSE = 3; };
+  Range range = 1;
+  google.protobuf.DoubleValue depth_near = 2;
+  google.protobuf.DoubleValue depth_far = 3;
+  // depthmap data.  This is typically a jpg or png image.
+  farm_ng.core.Resource resource = 4;
+}

@@ -1,0 +1,82 @@
+syntax = "proto3";
+
+import "farm_ng/calibration/robot_hal.proto";
+import "farm_ng/core/resource.proto";
+import "farm_ng/perception/apriltag.proto";
+import "farm_ng/perception/camera_model.proto";
+
+package farm_ng.calibration;
+option go_package = "github.com/farm-ng/genproto/calibration";
+
+// Describes a workcell that may be driven (via the Robot HAL) to capture a
+// robot extrinsics dataset.
+//
+// Poses in the config and the path between them are not guaranteed to avoid
+// self-collision, they should be validated by whomever populates the config
+// before running on a robot.
+message CaptureRobotExtrinsicsDatasetConfiguration {
+  // The dataset name.
+  string name = 1;
+
+  // A fixed set of pose requests to visit during calibration.
+  repeated CapturePoseRequest request_queue = 2;
+
+  // The name of the workspace frame
+  string workspace_frame_name = 3;
+
+  // The name of the base frame
+  string base_frame_name = 4;
+
+  // The name of the link frame
+  string link_frame_name = 5;
+
+  // A collection of cameras, rigidly connected to the robot base.
+  farm_ng.perception.MultiViewCameraRig base_camera_rig = 6;
+
+  // A collection of cameras, rigidly connected to a robot link.
+  farm_ng.perception.MultiViewCameraRig link_camera_rig = 7;
+
+  // A collection of apriltags, rigidly connected to the robot's base.
+  farm_ng.perception.ApriltagRig base_tag_rig = 8;
+
+  // A collection of apriltags, rigidly connected to a robot link.
+  farm_ng.perception.ApriltagRig link_tag_rig = 9;
+
+  // the hostname and port of the RobotHALService server. e.g. "localhost:50051"
+  string hal_service_address = 10;
+}
+
+// TODO(isherman): visualization
+//   - all frames in the configuration
+//   - workspace volume
+//   - all poses in the request queue
+//   - the last request and response pose
+//   - the last response image
+//   - latest_request_index / request_queue.length
+message CaptureRobotExtrinsicsDatasetStatus {
+  oneof input_required {
+    CaptureRobotExtrinsicsDatasetConfiguration input_required_configuration = 1;
+  }
+  // Serialized CaptureRobotExtrinsicsDatasetResult.
+  farm_ng.core.Resource result = 2;
+
+  // Configuration which initiated this program.
+  CaptureRobotExtrinsicsDatasetConfiguration configuration = 3;
+
+  // The pending queue of requests
+  repeated CapturePoseRequest request_queue = 4;
+
+  // The index of the request that was most recently issued.
+  int32 latest_request_index = 5;
+
+  // The value of the response that was most recently returned.
+  CapturePoseResponse latest_response = 6;
+}
+
+message CaptureRobotExtrinsicsDatasetResult {
+  // Configuration which initiated the computation of this result.
+  CaptureRobotExtrinsicsDatasetConfiguration configuration = 1;
+
+  // The dataset result.
+  farm_ng.core.Resource dataset = 2;
+}

@@ -379,6 +379,9 @@ func serveContent(w http.ResponseWriter, r *http.Request, name string, modtime t
 		}
 	}
 
+	// For our purposes, individual files are meant to be downloaded
+	w.Header().Set("Content-Disposition", "attachment")
+
 	w.WriteHeader(code)
 
 	if r.Method != "HEAD" {

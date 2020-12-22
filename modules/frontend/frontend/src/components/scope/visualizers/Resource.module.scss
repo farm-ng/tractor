@@ -1,0 +1,11 @@
+.modal {
+  height: 80%;
+  display: flex;
+  width: 80% !important;
+  max-width: none !important;
+
+  :global(.modal-body) {
+    display: flex;
+    overflow-y: scroll;
+  }
+}

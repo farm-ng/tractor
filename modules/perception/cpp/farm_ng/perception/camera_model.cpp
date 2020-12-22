@@ -40,5 +40,23 @@ CameraModel Default1080HDCameraModel() {
   return model;
 }
 
+CameraModel DefaultCameraModel(const std::string& frame_name, int width,
+                               int height) {
+  CameraModel model;
+  model.set_image_width(width);
+  model.set_image_height(height);
+  model.set_cx((model.image_width() - 1) / 2.0);
+  model.set_cy((model.image_height() - 1) / 2.0);
+  model.set_fx(model.image_width() / 2);
+  model.set_fy(model.fx());
+  model.set_distortion_model(CameraModel::DISTORTION_MODEL_KANNALA_BRANDT4);
+  model.add_distortion_coefficients(0.0);
+  model.add_distortion_coefficients(0.0);
+  model.add_distortion_coefficients(0.0);
+  model.add_distortion_coefficients(0.0);
+  model.add_distortion_coefficients(0.0);
+  model.set_frame_name(frame_name);
+  return model;
+}
 }  // namespace perception
 }  // namespace farm_ng

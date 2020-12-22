@@ -10,7 +10,7 @@ export function useFetchDataUrl(
   const [value, setValue] = useState<string | null>(null);
   useEffect(() => {
     const fetchResult = async (): Promise<void> => {
-      if (!resource || !resourceArchive) {
+      if (!resource || !resourceArchive || !resource.path) {
         return;
       }
       try {

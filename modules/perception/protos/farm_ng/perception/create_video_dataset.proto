@@ -1,0 +1,57 @@
+syntax = "proto3";
+
+import "farm_ng/core/resource.proto";
+import "farm_ng/perception/capture_video_dataset.proto";
+
+import "google/protobuf/timestamp.proto";
+
+package farm_ng.perception;
+option go_package = "github.com/farm-ng/genproto/perception";
+
+message VideoFileCamera {
+  string camera_frame_name = 1;
+  farm_ng.core.Resource video_file_resource = 2;
+}
+
+message CreateVideoDatasetConfiguration {
+  string name = 1;
+  bool detect_apriltags = 2;
+  repeated VideoFileCamera video_file_cameras = 3;
+  repeated farm_ng.core.Resource apriltag_rigs = 4;
+}
+
+
+message CreateVideoDatasetStatus {
+  // Serialized CreateVideoDatasetResult
+  farm_ng.core.Resource result = 1;
+
+  oneof input_required {
+    CreateVideoDatasetConfiguration input_required_configuration = 2;
+  }
+
+  // Number of frames captured per camera
+  repeated PerCameraNumFrames per_camera_num_frames = 3;
+
+  // Number of frames captured per tag id
+  repeated PerTagIdNumFrames per_tag_id_num_frames = 4;
+}
+
+message CreateVideoDatasetResult {
+  // Configuration which initiated the capture
+  CreateVideoDatasetConfiguration configuration = 1;
+
+  // Number of frames captured per camera
+  repeated PerCameraNumFrames per_camera_num_frames = 2;
+
+  // Number of frames captured per tag id
+  repeated PerTagIdNumFrames per_tag_id_num_frames = 3;
+
+  // The time the capture began
+  google.protobuf.Timestamp stamp_begin = 4;
+
+  // The time the capture completed
+  google.protobuf.Timestamp stamp_end = 5;
+
+  // An IPC log of the capture, saved to disk in protobuf binary format.
+  farm_ng.core.Resource dataset = 6;
+}

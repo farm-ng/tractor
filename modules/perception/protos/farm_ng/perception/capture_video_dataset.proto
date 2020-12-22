@@ -25,18 +25,18 @@ message CaptureVideoDatasetStatus {
   // DEPRECATED
   int32 num_frames = 1 [deprecated = true];
 
-  // Number of frames captured per camera
-  repeated PerCameraNumFrames per_camera_num_frames = 4;
-
-  // Number of frames captured per tag id
-  repeated PerTagIdNumFrames per_tag_id_num_frames = 5;
-
   // Serialized CaptureVideoDatasetResult
   farm_ng.core.Resource result = 2;
 
   oneof input_required {
     CaptureVideoDatasetConfiguration input_required_configuration = 3;
   }
+
+  // Number of frames captured per camera
+  repeated PerCameraNumFrames per_camera_num_frames = 4;
+
+  // Number of frames captured per tag id
+  repeated PerTagIdNumFrames per_tag_id_num_frames = 5;
 }
 
 message CaptureVideoDatasetResult {
@@ -52,6 +52,8 @@ message CaptureVideoDatasetResult {
   // Number of frames captured per tag id
   repeated PerTagIdNumFrames per_tag_id_num_frames = 6;
 
+  // The time the capture started
+  google.protobuf.Timestamp stamp_begin = 7;
   // The time the capture completed
   google.protobuf.Timestamp stamp_end = 3;
 

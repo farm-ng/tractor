@@ -12,19 +12,79 @@
 namespace farm_ng {
 namespace perception {
 
+template <typename T>
+class CameraModelJetMap {
+ public:
+  static int constexpr num_parameters = 9;
+
+  explicit CameraModelJetMap(const CameraModel& camera_model)
+      : storage_({0.}),
+        camera_model_(camera_model),
+        raw_model_(storage_.data()) {
+    storage_[0] = camera_model_.fx();
+    storage_[1] = camera_model_.fy();
+    storage_[2] = camera_model_.cx();
+    storage_[3] = camera_model_.cy();
+    CHECK_LE(camera_model_.distortion_coefficients_size(), 5);
+    for (int i = 0; i < camera_model_.distortion_coefficients_size(); ++i) {
+      storage_[4 + i] = camera_model_.distortion_coefficients(i);
+    }
+  }
+  explicit CameraModelJetMap(const T* raw_model,
+                             const CameraModel& camera_model)
+      : camera_model_(camera_model), raw_model_(raw_model) {}
+
+  CameraModel GetCameraModel() const {
+    CameraModel model;
+    model.CopyFrom(camera_model_);
+    model.set_fx(fx());
+    model.set_fy(fy());
+    model.set_cx(cx());
+    model.set_cy(cy());
+    for (int i = 0; i < camera_model_.distortion_coefficients_size(); ++i) {
+      model.set_distortion_coefficients(i, distortion_coefficients(i));
+    }
+    return model;
+  }
+
+  const T& fx() const { return raw_model_[0]; }
+  const T& fy() const { return raw_model_[1]; }
+  const T& cx() const { return raw_model_[2]; }
+  const T& cy() const { return raw_model_[3]; }
+  const T& distortion_coefficients(int idx) const {
+    return raw_model_[4 + idx];
+  }
+  CameraModel::DistortionModel distortion_model() const {
+    return camera_model_.distortion_model();
+  }
+
+  T* data() { return const_cast<T*>(raw_model_); }
+  size_t data_size() const { return storage_.size(); }
+
+  std::string ShortDebugString() const {
+    return camera_model_.ShortDebugString();
+  }
+
+ private:
+  std::array<T, num_parameters> storage_;
+  CameraModel camera_model_;
+  const T* raw_model_;  // fx, fy, cx, cy, d0, d1, d2,d3,d4
+};
+
 inline cv::Size GetCvSize(const CameraModel& model) {
   return cv::Size(model.image_width(), model.image_height());
 }
 
-// Given a point in 3D space, compute the corresponding pixel coordinates in an
-//  image with no distortion or forward distortion coefficients produced by the
-//  same camera
+// Given a point in 3D space, compute the corresponding pixel coordinates in
+// an
+//  image with no distortion or forward distortion coefficients produced by
+//  the same camera
 //
-//  This is compatable with autodiff using ceres jet types, except that it will
-//  not support solving for the camera model itself.
-template <class T>
+//  This is compatable with autodiff using ceres jet types, except that it
+//  will not support solving for the camera model itself.
+template <class T, class CameraModelT>
 Eigen::Matrix<T, 2, 1> ProjectPointToPixel(
-    const CameraModel& camera, const Eigen::Matrix<T, 3, 1>& point) {
+    const CameraModelT& camera, const Eigen::Matrix<T, 3, 1>& point) {
   using std::atan;
   using std::sqrt;
   const T eps(std::numeric_limits<float>::epsilon());
@@ -80,11 +140,11 @@ Eigen::Matrix<T, 2, 1> ProjectPointToPixel(
 // Given pixel coordinates in the distorted image, and a corresponding depth,
 // reproject to a 3d point in the camera's reference frame.
 //
-//  This is compatable with autodiff using ceres jet types, except that it will
-//  not support solving for the camera model itself.
-template <typename T>
+//  This is compatable with autodiff using ceres jet types, except that it
+//  will not support solving for the camera model itself.
+template <typename T, typename CameraModelT>
 Eigen::Matrix<T, 3, 1> ReprojectPixelToPoint(
-    const CameraModel& camera, const Eigen::Matrix<T, 2, 1>& pixel,
+    const CameraModelT& camera, const Eigen::Matrix<T, 2, 1>& pixel,
     const T& depth) {
   using std::abs;
   using std::sqrt;
@@ -153,6 +213,8 @@ Eigen::Matrix<T, 3, 1> ReprojectPixelToPoint(
 
 CameraModel DefaultFishEyeT265CameraModel();
 CameraModel Default1080HDCameraModel();
+CameraModel DefaultCameraModel(const std::string& frame_name, int width,
+                               int height);
 
 }  // namespace perception
 }  // namespace farm_ng

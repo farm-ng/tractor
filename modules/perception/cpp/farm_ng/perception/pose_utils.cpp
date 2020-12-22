@@ -5,11 +5,12 @@
 namespace farm_ng {
 namespace perception {
 
-std::string FrameNameNumber(const std::string& name, int number) {
+std::string FrameNameNumber(const std::string& name, int number,
+                            std::string kind) {
   char buffer[1024];
-  CHECK_LT(
-      std::snprintf(buffer, sizeof(buffer), "%s/%05d", name.c_str(), number),
-      int(sizeof(buffer)));
+  CHECK_LT(std::snprintf(buffer, sizeof(buffer), "%s/%05d%s", name.c_str(),
+                         number, kind.c_str()),
+           int(sizeof(buffer)));
   return std::string(buffer);
 }
 

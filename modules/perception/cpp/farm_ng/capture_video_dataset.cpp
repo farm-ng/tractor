@@ -8,7 +8,7 @@
 #include "farm_ng/core/blobstore.h"
 #include "farm_ng/core/init.h"
 #include "farm_ng/core/ipc.h"
-#include "farm_ng/perception/tracking_camera_utils.h"
+#include "farm_ng/perception/camera_pipeline_utils.h"
 
 #include "farm_ng/perception/apriltag.pb.h"
 #include "farm_ng/perception/camera_pipeline.pb.h"
@@ -53,8 +53,8 @@ class CaptureVideoDatasetProgram {
     } else {
       set_configuration(configuration);
     }
-    bus_.AddSubscriptions(
-        {bus_.GetName(), "/image$", "/apriltags$", "logger/status"});
+    bus_.AddSubscriptions({bus_.GetName(), "/image$", "/apriltags$",
+                           "logger/command", "logger/status"});
 
     bus_.GetEventSignal()->connect(std::bind(
         &CaptureVideoDatasetProgram::on_event, this, std::placeholders::_1));
@@ -66,22 +66,24 @@ class CaptureVideoDatasetProgram {
       bus_.get_io_service().run_one();
     }
 
-    WaitForServices(bus_, {"ipc_logger", "tracking_camera"});
+    WaitForServices(bus_, {"ipc_logger", "camera_pipeline"});
+
     LoggingStatus log = StartLogging(bus_, configuration_.name());
-    CameraPipelineCommand tracking_camera_command;
+    CaptureVideoDatasetResult result;
+    result.mutable_stamp_begin()->CopyFrom(MakeTimestampNow());
+    CameraPipelineCommand camera_pipeline_command;
     if (configuration_.detect_apriltags()) {
-      tracking_camera_command.mutable_record_start()->set_mode(
+      camera_pipeline_command.mutable_record_start()->set_mode(
           CameraPipelineCommand::RecordStart::MODE_EVERY_APRILTAG_FRAME);
     } else {
-      tracking_camera_command.mutable_record_start()->set_mode(
+      camera_pipeline_command.mutable_record_start()->set_mode(
           CameraPipelineCommand::RecordStart::MODE_EVERY_FRAME);
     }
-    RequestStartCapturing(bus_, tracking_camera_command);
+    RequestStartCapturing(bus_, camera_pipeline_command);
 
     try {
       bus_.get_io_service().run();
     } catch (std::exception& e) {
-      CaptureVideoDatasetResult result;
       result.mutable_configuration()->CopyFrom(configuration_);
       result.set_num_frames(status_.num_frames());
       result.mutable_stamp_end()->CopyFrom(MakeTimestampNow());
@@ -142,24 +144,25 @@ class CaptureVideoDatasetProgram {
   }
 
   bool on_apriltag_detection(const EventPb& event) {
-    ApriltagDetection detection;
-    if (!event.data().UnpackTo(&detection)) {
+    ApriltagDetections detections;
+    if (!event.data().UnpackTo(&detections)) {
       return false;
     }
 
-    bool first_time_seen = true;
-    for (auto& entry : *status_.mutable_per_tag_id_num_frames()) {
-      if (entry.tag_id() == detection.id()) {
-        entry.set_num_frames(entry.num_frames() + 1);
-        first_time_seen = false;
+    for (const auto& detection : detections.detections()) {
+      bool first_time_seen = true;
+      for (auto& entry : *status_.mutable_per_tag_id_num_frames()) {
+        if (entry.tag_id() == detection.id()) {
+          entry.set_num_frames(entry.num_frames() + 1);
+          first_time_seen = false;
+        }
+      }
+      if (first_time_seen) {
+        auto per_tag_id_num_frames = status_.add_per_tag_id_num_frames();
+        per_tag_id_num_frames->set_tag_id(detection.id());
+        per_tag_id_num_frames->set_num_frames(1);
       }
     }
-    if (first_time_seen) {
-      auto per_tag_id_num_frames = status_.add_per_tag_id_num_frames();
-      per_tag_id_num_frames->set_tag_id(detection.id());
-      per_tag_id_num_frames->set_num_frames(1);
-    }
-
     return true;
   }
 

@@ -123,6 +123,7 @@ class FrameGrabberIntel : public FrameGrabber {
       std::stringstream ss;
       ss << "RealSense error calling " << e.get_failed_function() << "("
          << e.get_failed_args() << "):\n    " << e.what();
+      LOG(ERROR) << ss.str();
       throw std::runtime_error(ss.str());
     }
   }
@@ -146,7 +147,7 @@ class FrameGrabberIntel : public FrameGrabber {
           video_frame->get_timestamp());
 
       std::lock_guard<std::mutex> lock(mtx_);
-      signal_(FrameData({config_, camera_model_, frame_0, stamp}));
+      signal_(FrameData({config_, camera_model_, frame_0, cv::Mat(), Depthmap::RANGE_UNSPECIFIED, stamp}));
     }
   }
   virtual ~FrameGrabberIntel() = default;

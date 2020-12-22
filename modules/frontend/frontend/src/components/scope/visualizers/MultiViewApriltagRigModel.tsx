@@ -17,41 +17,22 @@ import { Scene } from "./Scene";
 import { KeyValueTable } from "./KeyValueTable";
 import { PerspectiveCamera } from "./Camera";
 import {
+  cameraModelToThreeJSFOV,
   matrix4ToSE3Pose,
-  se3PoseToMatrix4,
+  openCVPoseToThreeJSPose,
   toQuaternion,
   toVector3,
 } from "../../../utils/protoConversions";
-import { Euler, Matrix4 } from "three";
+import { Matrix4 } from "three";
 import { ApriltagRigVisualizer } from "./ApriltagRig";
 import { useState } from "react";
 import RangeSlider from "react-bootstrap-range-slider";
-import { getInverse, rad2deg } from "../../../utils/geometry";
+import { getInverse } from "../../../utils/geometry";
 import { ImageVisualizer } from "./Image";
 import { ApriltagDetectionsVisualizer } from "./ApriltagDetections";
 import styles from "./MultiViewApriltagRigModel.module.scss";
 import { NamedSE3PoseVisualizer } from "./NamedSE3Pose";
-import { NamedSE3Pose } from "@farm-ng/genproto-perception/farm_ng/perception/geometry";
-import { CameraModel } from "@farm-ng/genproto-perception/farm_ng/perception/camera_model";
-
-function openCVPoseToThreeJSPose(pose: NamedSE3Pose): NamedSE3Pose {
-  if (!pose.aPoseB) {
-    console.warn("Could not convert openCV pose to threeJS pose: ", pose);
-    return pose;
-  }
-  const opencvTthreejs = new Matrix4().makeRotationFromEuler(
-    new Euler(Math.PI, 0, 0)
-  );
-  const cameraTransform = se3PoseToMatrix4(pose.aPoseB);
-  return {
-    ...pose,
-    aPoseB: matrix4ToSE3Pose(cameraTransform.multiply(opencvTthreejs)),
-  };
-}
-
-function cameraModelToThreeJSFOV(cameraModel: CameraModel): number {
-  return rad2deg(2 * Math.atan(cameraModel.imageHeight / (2 * cameraModel.fy)));
-}
+import { BoxWhiskerPlot } from "./BoxWhiskerPlot";
 
 const MultiViewApriltagRigModelElement: React.FC<SingleElementVisualizerProps<
   MultiViewApriltagRigModel
@@ -158,6 +139,30 @@ const MultiViewApriltagRigModelElement: React.FC<SingleElementVisualizerProps<
   // Reprojection Images
   const reprojectionImage = value.reprojectionImages[index];
 
+  // Tag RMSE statistics
+  type TagRmseByDimension = { [key: string]: number[] };
+  const tagRmsesByTag: TagRmseByDimension = {};
+  const tagRmsesByImage: TagRmseByDimension = {};
+  const tagRmsesByCamera: TagRmseByDimension = {};
+  for (const tagStat of tagStats) {
+    for (const perImageRmse of tagStat.perImageRmse) {
+      tagRmsesByTag[tagStat.tagId.toString()] = [
+        perImageRmse.rmse,
+        ...(tagRmsesByTag[tagStat.tagId.toString()] || []),
+      ];
+
+      tagRmsesByImage[perImageRmse.frameNumber.toString()] = [
+        perImageRmse.rmse,
+        ...(tagRmsesByImage[perImageRmse.frameNumber.toString()] || []),
+      ];
+
+      tagRmsesByCamera[perImageRmse.cameraName] = [
+        perImageRmse.rmse,
+        ...(tagRmsesByCamera[perImageRmse.cameraName] || []),
+      ];
+    }
+  }
+
   return (
     <Card json={value} timestamp={timestamp}>
       <Card title="Summary">
@@ -185,6 +190,27 @@ const MultiViewApriltagRigModelElement: React.FC<SingleElementVisualizerProps<
             ))}
           </tbody>
         </Table>
+        <div className={styles.boxWhisker}>
+          <BoxWhiskerPlot
+            data={tagRmsesByImage}
+            title="Tag RMSE by image"
+            xAxisLabel="Image Index"
+          />
+        </div>
+        <div className={styles.boxWhisker}>
+          <BoxWhiskerPlot
+            data={tagRmsesByTag}
+            title="Tag RMSE by tag"
+            xAxisLabel="Tag ID"
+          />
+        </div>
+        <div className={styles.boxWhisker}>
+          <BoxWhiskerPlot
+            data={tagRmsesByCamera}
+            title="Tag RMSE by camera"
+            xAxisLabel="Camera Name"
+          />
+        </div>
       </Card>
 
       <Card title="Details">

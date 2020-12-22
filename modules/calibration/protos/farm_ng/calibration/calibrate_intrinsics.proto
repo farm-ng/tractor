@@ -1,0 +1,45 @@
+syntax = "proto3";
+
+import "google/protobuf/timestamp.proto";
+import "farm_ng/core/resource.proto";
+import "farm_ng/calibration/calibrator.proto";
+import "farm_ng/perception/camera_model.proto";
+
+package farm_ng.calibration;
+option go_package = "github.com/farm-ng/genproto/calibration";
+
+message CalibrateIntrinsicsConfiguration {
+  // Serialized CreateVideoDatasetResult
+  // TODO support CreateVideoDatasetResult and CaptureVideoDatasetResult
+  farm_ng.core.Resource video_dataset = 1;
+
+  farm_ng.perception.CameraModel.DistortionModel distortion_model = 2;
+
+  string camera_name = 3;
+  bool filter_stable_tags = 4;
+}
+
+message CalibrateIntrinsicsStatus {
+  oneof input_required {
+    CalibrateIntrinsicsConfiguration input_required_configuration = 1;
+  }
+  // Serialized CalibrateIntrinsicsResult
+  farm_ng.core.Resource result = 2;
+
+  SolverIterationSummary iteration_summary = 3;
+}
+
+message CalibrateIntrinsicsResult {
+  // Configuration which initiated the computation of this result.
+  CalibrateIntrinsicsConfiguration configuration = 1;
+  // binary protobuf of the IntrinsicModel used by calibration
+  farm_ng.core.Resource intrinsics_solved = 2;
+  // json file of CameraModel, for downstream ease of consumption.
+  farm_ng.core.Resource camera_model = 3;
+
+  SolverStatus solver_status = 4;
+  double rmse = 5;
+
+  google.protobuf.Timestamp stamp_begin = 6;
+  google.protobuf.Timestamp stamp_end = 7;
+}

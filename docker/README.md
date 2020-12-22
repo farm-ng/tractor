@@ -9,6 +9,29 @@
 act --platform ubuntu-latest=nektos/act-environments-ubuntu:18.04 --secret GITHUB_TOKEN=`cat ~/.config/github/token` --secret DOCKERHUB_USERNAME=<username> --secret DOCKERHUB_TOKEN=`cat ~/.config/dockerhub/token`
 ```
 
+
+```
+# Build a devel docker image locally
+cd docker
+docker build -f devel.Dockerfile -t farmng/devel:`git rev-parse --short HEAD` ..
+# Push to Dockerhub
+docker login --username=<username>
+docker push farmng/devel:`git rev-parse --short HEAD`
+```
+
+When you push a new ``farmng/devel``, make sure to reference it in the ``base.Dockerfile`` ``FROM`` line.
+
+
+```
+# Build a docker image locally
+cd docker
+docker build -f base.Dockerfile -t farmng/base:`git rev-parse --short HEAD` ..
+
+# Push to Dockerhub
+docker login --username=<username>
+docker push farmng/base:`git rev-parse --short HEAD`
+```
+
 # Ideas
 
 - Release artifacts

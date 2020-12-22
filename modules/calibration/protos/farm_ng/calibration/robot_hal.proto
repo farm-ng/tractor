@@ -1,0 +1,80 @@
+syntax = "proto3";
+
+import "farm_ng/perception/geometry.proto";
+import "farm_ng/perception/image.proto";
+import "farm_ng/perception/kinematics.proto";
+
+package farm_ng.calibration;
+option go_package = "github.com/farm-ng/genproto/calibration";
+
+message CapturePoseRequest {
+  // The commanded pose(s).
+  // The interpretation of this set of poses is application-specific.
+  // For example, an application with a mobile manipulator might interpret two
+  // poses as world_pose_base and arm_base_pose_tool
+  repeated farm_ng.perception.NamedSE3Pose poses = 1;
+  // Optionally, you may also provide the desired joint states, so that joint
+  // space control can be used.  These should be equivalent, under the robot's
+  // forward kinematic model, to the poses above.
+  repeated farm_ng.perception.JointState joint_states = 2;
+}
+
+message CapturePoseResponse {
+  enum Status {
+    STATUS_UNSPECIFIED = 0;
+
+    // The requested pose was achieved and images successfully captured.
+    STATUS_SUCCESS = 1;
+
+    // The requested pose was unreachable, but the server may have commanded the
+    // robot to a nearby pose (see below)
+    STATUS_WARNING_POSE_UNREACHABLE = 2;
+
+    // The robot is in an error state.
+    // The client should probably exit.
+    STATUS_ERROR_STOPPED = 3;
+
+    // The robot is not ready to move.
+    // The client may choose to retry at some point in the future.
+    STATUS_ERROR_NOT_READY = 4;
+  }
+  Status status = 1;
+
+  // The achieved pose(s).
+  // The interpretation of this set of poses is application-specific (see
+  // CapturePoseRequest).
+  //
+  // If a requested pose is unreachable, and the server chooses to approximate
+  // the requested pose, it should return the achieved pose here, along with the
+  // status STATUS_WARNING_POSE_UNREACHABLE.
+  //
+  // If a requested pose is unreachable, and the server chooses not to
+  // approximate the requested pose, the server should not populate this field,
+  // and return STATUS_WARNING_POSE_UNREACHABLE.
+  repeated farm_ng.perception.NamedSE3Pose poses = 2;
+
+  // If the joints are measurable, please provide the joint space values as
+  // well. Useful for kinematic model identification, or joint space controlled
+  // applications.
+  repeated farm_ng.perception.JointState joint_states = 3;
+
+  // The captured image(s).
+  // Image metadata identifies the camera that captured it.
+  repeated farm_ng.perception.Image images = 4;
+}
+
+// This service API is implemented by a robot (or robot workcell), and allows
+// the calibration tool UI to interactively drive a calibration motion and
+// capture dance. The implementation of the service has access to camera frame
+// grabbers, robot controller, robot kinematics, and application-specific safety
+// and system state variables.
+service RobotHALService {
+  // The calibration tool calls CapturePose when initiated from the UI, with a
+  // sequence of robot pose goals, and expects the robot to move to each goal,
+  // pause for some amount of time, and return an image and the achieved pose.
+  // It is the server's responsibility to ensure it is safe to move to the
+  // goal.
+  rpc CapturePose(stream CapturePoseRequest)
+      returns (stream CapturePoseResponse) {
+  }
+}

@@ -10,16 +10,13 @@ message CameraModel {
   int32 image_width = 1;
   // Image height in pixels.
   int32 image_height = 2;
-
-  // Image projection center x coordinate in pixels, typically close to
-  // (image_width-1)/2.0
+  // Image projection center x coordinate in pixels, typically close to (image_width-1)/2.0
   double cx = 3;
-  // Image projection center y coordinate in pixels, typically close to
-  // (image_height-1)/2.0
+  // Image projection center y coordinate in pixels, typically close to (image_height-1)/2.0
   double cy = 4;
   // X focal length, in pixels.
   double fx = 5;
-  // Y focal length, in pixels.  Typically close to fx.
+  // Y focal length, in pixels. Typically close to fx.
   double fy = 6;
 
   enum DistortionModel {
@@ -27,21 +24,29 @@ message CameraModel {
     // Intel Realsense T265 - Four parameter Kannala Brandt distortion model
     DISTORTION_MODEL_KANNALA_BRANDT4 = 1;
     DISTORTION_MODEL_INVERSE_BROWN_CONRADY = 2;
+    // Azure Kinect uses BROWN_CONRADY, compatible with opencv
+    DISTORTION_MODEL_BROWN_CONRADY = 3;
   };
 
   // Specifies the distortion model.
   DistortionModel distortion_model = 7;
-  // Distortion model coefficients, typically has 5 values, some may be 0.0.
+
+  // Distortion model coefficients.
+  // Typically 5 values, some may be 0.0.
+  // Ordered according to the OpenCV convention: (k_1, k_2, p_1, p_2[, k_3[, k_4, k_5, k_6]])
   repeated double distortion_coefficients = 8;
 
   // Frame name
   string frame_name = 9;
 };
 
-
+// TODO(ethanrublee): Evaluate how this can express a camera rig with a root other than a camera
+// e.g. how root_camera_name is used in other calibration contexts.
 message MultiViewCameraRig {
   repeated CameraModel cameras = 1;
   repeated NamedSE3Pose camera_pose_rig = 2;
   string root_camera_name = 3;
-  string name = 4; // rig name.
+
+  // Name of the rig
+  string name = 4;
 };

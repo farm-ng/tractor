@@ -74,7 +74,7 @@ farm_ng::core::Resource ArchiveProtobufAsJsonResource(
       GetUniqueArchiveResource(prefix, "json",
                                "application/json; type=type.googleapis.com/" +
                                    ProtobufT::descriptor()->full_name());
-
+  LOG(INFO) << "Writing resource: " << resource_path.first.ShortDebugString();
   WriteProtobufToJsonFile(resource_path.second, message);
   return resource_path.first;
 }

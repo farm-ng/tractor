@@ -271,8 +271,12 @@ boost::optional<Sophus::SE3d> EstimateCameraPoseTag(
 }  // namespace
 class ApriltagDetector::Impl {
  public:
-  Impl(const CameraModel& camera_model, EventBus* event_bus)
+  Impl(const CameraModel& camera_model, EventBus* event_bus,
+       const ApriltagConfig* config)
       : event_bus_(event_bus), camera_model_(camera_model) {
+    if (config != nullptr) {
+      apriltag_config_ = *config;
+    }
     tag_family_ = std::shared_ptr<apriltag_family_t>(tag36h11_create(),
                                                      &tag36h11_destroy);
 
@@ -371,8 +375,9 @@ class ApriltagDetector::Impl {
 };
 
 ApriltagDetector::ApriltagDetector(const CameraModel& camera_model,
-                                   EventBus* event_bus)
-    : impl_(new Impl(camera_model, event_bus)) {}
+                                   EventBus* event_bus,
+                                   const ApriltagConfig* config)
+    : impl_(new Impl(camera_model, event_bus, config)) {}
 
 ApriltagDetector::~ApriltagDetector() {}
 
@@ -388,7 +393,8 @@ void ApriltagsFilter::Reset() {
   mask_ = cv::Mat();
   once_ = false;
 }
-bool ApriltagsFilter::AddApriltags(const ApriltagDetections& detections) {
+bool ApriltagsFilter::AddApriltags(const ApriltagDetections& detections,
+                                   int steady_count, int window_size) {
   const int n_tags = detections.detections_size();
   if (n_tags == 0) {
     Reset();
@@ -401,7 +407,6 @@ bool ApriltagsFilter::AddApriltags(const ApriltagDetections& detections) {
   }
   CHECK(!mask_.empty());
   cv::Mat new_mask = cv::Mat::zeros(mask_.size(), CV_8UC1);
-  const int window_size = 7;
   double mean_count = 0.0;
   cv::Rect mask_roi(0, 0, mask_.size().width, mask_.size().height);
   for (const ApriltagDetection& detection : detections.detections()) {
@@ -419,7 +424,7 @@ bool ApriltagsFilter::AddApriltags(const ApriltagDetections& detections) {
     }
   }
   mask_ = new_mask;
-  const int kThresh = 5;
+  const int kThresh = steady_count;
   if (mean_count > kThresh && !once_) {
     once_ = true;
     return true;

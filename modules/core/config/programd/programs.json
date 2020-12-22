@@ -1,0 +1,100 @@
+{
+  "programs": [
+    {
+      "id": "calibrate_apriltag_rig",
+      "name": "Apriltag Rig Calibration",
+      "description": "Solves an apriltag rig from data collected with capture_video_dataset",
+      "launchPath": {
+        "path": "build/modules/calibration/cpp/farm_ng/calibrate_apriltag_rig",
+        "rootEnvVar": "FARM_NG_ROOT"
+      },
+      "launchArgs": [
+        "-interactive"
+      ]
+    },
+    {
+      "id": "calibrate_base_to_camera",
+      "name": "Base-to-Camera Calibration",
+      "description": "Solves a base_pose_camera and other base calibration parameters from an apriltag rig and data collected with capture_video_dataset",
+      "launchPath": {
+        "path": "build/modules/tractor/cpp/farm_ng/calibrate_base_to_camera",
+        "rootEnvVar": "FARM_NG_ROOT"
+      },
+      "launchArgs": [
+        "-interactive"
+      ]
+    },
+    {
+      "id": "capture_video_dataset",
+      "name": "Capture Video Dataset",
+      "description": "Capture video segments, for use in other programs",
+      "launchPath": {
+        "path": "build/modules/perception/cpp/farm_ng/capture_video_dataset",
+        "rootEnvVar": "FARM_NG_ROOT"
+      },
+      "launchArgs": [
+        "-interactive"
+      ]
+    },
+    {
+      "id": "create_video_dataset",
+      "name": "Create Video Dataset",
+      "description": "Create video dataset from mp4s, for use in other programs",
+      "launchPath": {
+        "path": "build/modules/perception/cpp/farm_ng/create_video_dataset",
+        "rootEnvVar": "FARM_NG_ROOT"
+      },
+      "launchArgs": [
+        "-interactive"
+      ]
+    },
+    {
+      "id": "calibrate_intrinsics",
+      "name": "Intrinsics Calibration",
+      "description": "Calibrates camera intrinsics from data collected with create_video_dataset",
+      "launchPath": {
+        "path": "build/modules/calibration/cpp/farm_ng/calibrate_intrinsics",
+        "rootEnvVar": "FARM_NG_ROOT"
+      },
+      "launchArgs": [
+        "-interactive"
+      ]
+    },
+    {
+      "id": "detect_apriltags",
+      "name": "Detect Apriltags",
+      "description": "Given a video dataset, this runs apriltag detection on each image. Discards existing apriltag detections.",
+      "launchPath": {
+        "path": "build/modules/perception/cpp/farm_ng/detect_apriltags",
+        "rootEnvVar": "FARM_NG_ROOT"
+      },
+      "launchArgs": [
+        "-interactive"
+      ]
+    },
+    {
+      "id": "calibrate_multi_view_apriltag_rig",
+      "name": "Multi View Apriltag Rig Calibration",
+      "description": "Solves a multiview apriltag rig from data collected with capture_video_dataset",
+      "launchPath": {
+        "path": "build/modules/calibration/cpp/farm_ng/calibrate_multi_view_apriltag_rig",
+        "rootEnvVar": "FARM_NG_ROOT"
+      },
+      "launchArgs": [
+        "-interactive"
+      ]
+    },
+    {
+      "id": "sleep-5",
+      "name": "Sleep 5",
+      "description": "Take a nap",
+      "launchPath": {
+        "path": "sleep",
+        "rootEnvVar": ""
+      },
+      "launchArgs": [
+        "5"
+      ]
+    }
+  ]
+}
