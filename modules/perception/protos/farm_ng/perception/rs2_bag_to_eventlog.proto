@@ -1,0 +1,65 @@
+syntax = "proto3";
+
+import "farm_ng/core/resource.proto";
+//import "farm_ng/perception/capture_video_dataset.proto";
+
+import "google/protobuf/timestamp.proto";
+
+package farm_ng.perception;
+option go_package = "github.com/farm-ng/genproto/perception";
+
+message BagFileCamera {
+  string camera_frame_name = 1;
+  //farm_ng.core.Resource video_file_resource = 2;
+}
+
+message VideoFromBagConfiguration {
+  string name = 1; // Do we need a name for this configuration?
+
+  // Like video_file_cameras in create_video_dataset.proto
+  // Don't think it needs to be repeated, since we are creating
+  // a single video not a video dataset
+  BagFileCamera bag_file_camera = 2;
+}
+
+
+message VideoFromBagStatus {
+  // Serialized VideoFromBagResult
+  // What role does this play? How is it different
+  // than frames in VideoFromBag?
+  farm_ng.core.Resource result = 1;
+
+  /*
+  oneof input_required {
+    CreateVideoDatasetConfiguration input_required_configuration = 2;
+  }
+
+  // Number of frames captured per camera
+  repeated PerCameraNumFrames per_camera_num_frames = 3;
+
+  // Number of frames captured per tag id
+  repeated PerTagIdNumFrames per_tag_id_num_frames = 4;
+  */
+}
+
+message VideoFromBagResult {
+  // Configuration which initiated the video export
+  VideoFromBagConfiguration configuration = 1;
+
+  /*
+  // Number of frames captured per camera
+  repeated PerCameraNumFrames per_camera_num_frames = 2;
+
+  // Number of frames captured per tag id
+  repeated PerTagIdNumFrames per_tag_id_num_frames = 3;
+
+  // The time the capture began
+  google.protobuf.Timestamp stamp_begin = 4;
+
+  // The time the capture completed
+  google.protobuf.Timestamp stamp_end = 5;
+  */
+
+  // An IPC log of the video export, saved to disk in protobuf binary format.
+  farm_ng.core.Resource frames = 6;
+}
