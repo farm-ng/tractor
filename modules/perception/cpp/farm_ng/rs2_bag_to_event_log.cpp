@@ -12,7 +12,7 @@
 #include "farm_ng/perception/rs2_bag_to_eventlog.pb.h"
 #include "farm_ng/perception/image.pb.h"
 
-//DEFINE_bool(interactive, false, "receive program args via eventbus");
+DEFINE_bool(interactive, false, "receive program args via eventbus");
 
 typedef farm_ng::core::Event EventPb;
 using farm_ng::core::ArchiveProtobufAsJsonResource;
@@ -25,22 +25,24 @@ using farm_ng::core::Subscription;
 namespace farm_ng {
 namespace perception {
 
-class VideoFromBagProgram {
+class Rs2BagToEventLogProgram {
  public:
-  VideoFromBagProgram(EventBus& bus,
-                            VideoFromBagConfiguration configuration)
-                            //,bool interactive)
+  Rs2BagToEventLogProgram(EventBus& bus,
+                            Rs2BagToEventLogConfiguration configuration,)
+                            bool interactive)
       : bus_(bus), timer_(bus_.get_io_service()) {
-    if (interactive) {
+    if (interactive) { // The program doesn't use interactive mode at this point
       status_.mutable_input_required_configuration()->CopyFrom(configuration);
     } else {
       set_configuration(configuration);
     }
-    bus_.AddSubscriptions({bus_.GetName(), "logger/command", "logger/status"});
+    bus_.AddSubscriptions({bus_.GetName());
 
+    /*
     bus_.GetEventSignal()->connect(std::bind(
-        &VideoFromBagProgram::on_event, this, std::placeholders::_1));
+        &Rs2BagToEventLogProgram::on_event, this, std::placeholders::_1));
     on_timer(boost::system::error_code());
+    */
   }
 
   int run() {
@@ -49,8 +51,7 @@ class VideoFromBagProgram {
     rs2::pipeline pipe;
     rs2::config cfg;
 
-    // Do we need to go through this bag_file_camera object for this application?
-    cfg.enable_device_from_file(configuration_.bag_file_camera().camera //...);
+    cfg.enable_device_from_file(configuration_.bag_file_name());
     pipe.start(cfg);
 
     Image image_pb;
@@ -59,25 +60,26 @@ class VideoFromBagProgram {
     //image_pb.mutable_resource()->CopyFrom(
     //    configuration_.video_file_cameras(0).video_file_resource());
 
-    int frameCount = 0;
+    int frame_count = 0;
 
     while (true) {
 
       // Fetch the next frameset (block until it comes)
       rs2::frameset frames = pipe.wait_for_frames().as<rs2::frameset>();
-      ++frameCount;
+      ++frame_count;
 
       // Get the depth and color frames
-      rs2::depth_frame depthFrame = frames.get_depth_frame();
-      rs2::video_frame colorFrame = frames.get_color_frame();
+      rs2::depth_frame depth_frame = frames.get_depth_frame();
+      rs2::video_frame color_frame = frames.get_color_frame();
 
       // Query frame size (width and height)
-      const int wd = depthFrame.get_width();
-      const int hd = depthFrame.get_height();
-      const int wc = colorFrame.get_width();
-      const int hc = colorFrame.get_height();
+      const int wd = depth_frame.get_width();
+      const int hd = depth_frame.get_height();
+      const int wc = color_frame.get_width();
+      const int hc = color_frame.get_height();
 
       // Create OpenCV matrices of size (w,h) from the data
+      // Use
       cv::Mat color(cv::Size(w, h), CV_8UC3, (void *)colorFrame.get_data(),
                 cv::Mat::AUTO_STEP);
       cv::Mat depth(cv::Size(w, h), CV_8UC1, (void *)depthFrame.get_data(),
@@ -93,7 +95,7 @@ class VideoFromBagProgram {
          break;
       }
 
-      if (image.empty()) {
+      if (color.empty()) {
         break;
       }
 
@@ -120,6 +122,16 @@ class VideoFromBagProgram {
 
     LOG(INFO) << "Complete:\n" << status_.DebugString();
     return 0;
+  }
+
+  void send_status() {
+    bus_.Send(MakeEvent(bus_.GetName() + "/status", status_));
+  }
+
+  void set_configuration(CaptureVideoDatasetConfiguration configuration) {
+    configuration_ = configuration;
+    status_.clear_input_required_configuration();
+    send_status();
   }
 
  private:

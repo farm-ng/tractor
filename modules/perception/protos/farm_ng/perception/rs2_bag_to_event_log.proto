@@ -1,0 +1,42 @@
+syntax = "proto3";
+
+import "farm_ng/core/resource.proto";
+//import "farm_ng/perception/capture_video_dataset.proto";
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/wrappers.proto";
+
+package farm_ng.perception;
+option go_package = "github.com/farm-ng/genproto/perception";
+
+message Rs2BagToEventLogConfiguration {
+
+  // Name of the resulting resource
+  string name = 1;
+
+  // Name of the bag file the data will be pulled from
+  // Proposed to call this camera name, but switching to
+  // current identifier for clarity. Open to suggestions
+  string bag_file_name = 2;
+
+  // This resource will be populated from the bag file
+  farm_ng.core.Resource bag_file_resource = 3;
+}
+
+
+message Rs2BagToEventLogStatus {
+
+  // The number of bag file frames converted to event log
+  // use google uint32 type because that is what is used in
+  // other protos like image.proto
+  google.protobuf.UInt32Value num_frames = 1;
+}
+
+message Rs2BagToEventLogResult {
+  // Configuration which initiated the video export
+  Rs2BagToEventLogConfiguration configuration = 1;
+
+  // A log of the bag file data, saved to disk in protobuf binary format.
+  // rename to image_seq once that is implimented
+  farm_ng.core.Resource frames = 6;
+}
