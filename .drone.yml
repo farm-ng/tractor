@@ -5,6 +5,10 @@ platform:
   arch: arm64
 
 steps:
+- name: submodules
+  image: alpine/git
+  commands:
+  - git submodule update --recursive --remote
 - name: build_docker_l4t
   image: plugins/docker
   settings:
