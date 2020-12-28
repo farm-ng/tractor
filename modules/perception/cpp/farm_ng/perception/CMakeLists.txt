@@ -7,6 +7,7 @@ foreach(src_prefix
    apriltag
    camera_model
    camera_pipeline
+   intel_rs2_utils
    pose_utils
    time_series
    camera_pipeline_utils

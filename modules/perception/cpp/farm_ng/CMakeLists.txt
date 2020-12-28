@@ -6,9 +6,11 @@ target_link_libraries(capture_video_dataset farm_ng_perception)
 add_executable(create_video_dataset create_video_dataset.cpp)
 target_link_libraries(create_video_dataset farm_ng_perception)
 
-
 add_executable(detect_apriltags detect_apriltags.cpp)
 target_link_libraries(detect_apriltags farm_ng_perception)
 
 add_executable(camera_pipeline camera_pipeline.cpp)
 target_link_libraries(camera_pipeline farm_ng_perception)
+
+add_executable(rs2_bag_to_event_log rs2_bag_to_event_log.cpp)
+target_link_libraries(rs2_bag_to_event_log farm_ng_perception)
