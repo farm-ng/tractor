@@ -22,15 +22,12 @@ message Rs2BagToEventLogConfiguration {
 
 
 message Rs2BagToEventLogStatus {
-
-    // The number of bag file frames converted to event log
-  // use google uint32 type because that is what is used in
-  // other protos like image.proto
-  google.protobuf.UInt32Value num_frames = 1;
-
   oneof input_required {
-    Rs2BagToEventLogConfiguration input_required_configuration = 2;
+    Rs2BagToEventLogConfiguration input_required_configuration = 1;
   }
+
+  // The number of bag file frames converted
+  int32 num_frames = 2;
 }
 
 message Rs2BagToEventLogResult {

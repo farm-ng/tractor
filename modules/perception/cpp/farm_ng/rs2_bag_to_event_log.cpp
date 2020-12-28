@@ -10,6 +10,7 @@
 #include <optional>
 
 #include <librealsense2/rs.hpp>
+#include <opencv2/videoio.hpp>
 
 #include "farm_ng/core/blobstore.h"
 #include "farm_ng/core/init.h"
@@ -64,22 +65,26 @@ class Rs2BagToEventLogProgram {
     rs2::pipeline pipe;
     rs2::config cfg;
 
-    cfg.enable_device_from_file(configuration_.bag_file_name());
-    rs2::video_stream_profile profile = pipe.start(cfg);
+    cfg.enable_device_from_file((farm_ng::core::GetBlobstoreRoot() /
+                                 configuration_.rs2_bag_resource().path())
+                                    .string());
+    rs2::pipeline_profile selection = pipe.start(cfg);
+    auto color_stream =
+        selection.get_stream(RS2_STREAM_COLOR).as<rs2::video_stream_profile>();
 
     CameraModel camera_model;
     camera_model.set_frame_name(configuration_.camera_frame_name());
-    SetCameraModelFromRs(camera_model, profile.get_intrinsics());
+    SetCameraModelFromRs(&camera_model, color_stream.get_intrinsics());
 
     Image image_pb;
     image_pb.mutable_fps()->set_value(30);
-    image_pb.mutable_camera_model()->CopyFrom(*camera_model);
+    image_pb.mutable_camera_model()->CopyFrom(camera_model);
     image_pb.mutable_frame_number()->set_value(0);
 
-    encoder = " x264enc ! ";
-    auto resource_path = GetUniqueArchiveResource(
+    std::string encoder = " x264enc ! ";
+    auto resource_path = farm_ng::core::GetUniqueArchiveResource(
         image_pb.camera_model().frame_name(), "mp4", "video/mp4");
-    gst_pipeline =
+    std::string gst_pipeline =
         std::string("appsrc !") + " videoconvert ! " + encoder +
         " mp4mux ! filesink location=" + resource_path.second.string();
 
@@ -108,8 +113,8 @@ class Rs2BagToEventLogProgram {
       // const int wd = depth_frame.get_width();
       // const int hd = depth_frame.get_height();
 
-      CHECK_EQ(camera_model->image_width(), wc);
-      CHECK_EQ(camera_model->image_height(), hc);
+      CHECK_EQ(camera_model.image_width(), wc);
+      CHECK_EQ(camera_model.image_height(), hc);
 
       // Image matrices from rs2 frames
       cv::Mat color = RS2FrameToMat(color_frame);
@@ -136,7 +141,7 @@ class Rs2BagToEventLogProgram {
       // Send out the image Protobuf on the event bus
       auto stamp = core::MakeTimestampNow();
       bus_.Send(
-          MakeEvent(camera_model->frame_name() + "/image", image_pb, stamp));
+          MakeEvent(camera_model.frame_name() + "/image", image_pb, stamp));
 
       // zero index base for the frame_number, set after send.
       image_pb.mutable_frame_number()->set_value(
@@ -179,8 +184,8 @@ class Rs2BagToEventLogProgram {
 int Main(farm_ng::core::EventBus& bus) {
   farm_ng::perception::Rs2BagToEventLogConfiguration config;
   config.set_name(FLAGS_name);
-  config.mutable_rs2_bag_resource().set_path(FLAGS_rs2_bag_path);
-  config.mutable_rs2_bag_resource().set_content_type("rs2bag");
+  config.mutable_rs2_bag_resource()->set_path(FLAGS_rs2_bag_path);
+  config.mutable_rs2_bag_resource()->set_content_type("rs2bag");
 
   farm_ng::perception::Rs2BagToEventLogProgram program(bus, config,
                                                        FLAGS_interactive);
