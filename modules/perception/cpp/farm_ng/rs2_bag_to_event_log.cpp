@@ -1,5 +1,5 @@
 /* TODO:
- * factor out intel utils to another source file
+ * reuse VideoStreamer farm_ng class
  * decide whether to ouput video or jpegs
  * populate depthmap field of image resource
  * support interactive mode from the browser
@@ -52,10 +52,19 @@ class Rs2BagToEventLogProgram {
     } else {
       set_configuration(configuration);
     }
-    bus_.AddSubscriptions({bus_.GetName()});
+    bus_.GetEventSignal()->connect(std::bind(&Rs2BagToEventLogProgram::on_event,
+                                             this, std::placeholders::_1));
+    bus_.AddSubscriptions({bus_.GetName(), "logger/command", "logger/status"});
   }
 
   int run() {
+    // Get necessary config from event bus
+    while (status_.has_input_required_configuration()) {
+      bus_.get_io_service().run_one();
+    }
+
+    WaitForServices(bus_, {"ipc_logger"});
+
     Rs2BagToEventLogResult result;
 
     // We prly don't need begin/end timestamps
@@ -97,6 +106,8 @@ class Rs2BagToEventLogProgram {
                                  image_pb.camera_model().image_height()),
                         true);
 
+    std::cout << "Declared video writer\n";
+
     LoggingStatus log = StartLogging(bus_, configuration_.name());
 
     while (true) {
@@ -135,8 +146,14 @@ class Rs2BagToEventLogProgram {
          break;
       }
       */
+      std::cout << "Width of image: " << wc << std::endl;
 
       writer.write(color);
+
+      std::cout << "Wrote frame number: " << image_pb.frame_number().value()
+                << std::endl;
+
+      if (image_pb.frame_number().value() >= 1000) break;
 
       // Send out the image Protobuf on the event bus
       auto stamp = core::MakeTimestampNow();
@@ -165,10 +182,26 @@ class Rs2BagToEventLogProgram {
     bus_.Send(MakeEvent(bus_.GetName() + "/status", status_));
   }
 
+  bool on_configuration(const EventPb& event) {
+    Rs2BagToEventLogConfiguration configuration;
+    if (!event.data().UnpackTo(&configuration)) {
+      return false;
+    }
+    LOG(INFO) << configuration.ShortDebugString();
+    set_configuration(configuration);
+    return true;
+  }
+
   void set_configuration(Rs2BagToEventLogConfiguration configuration) {
     configuration_ = configuration;
     status_.clear_input_required_configuration();
     send_status();
+  }
+
+  void on_event(const EventPb& event) {
+    if (on_configuration(event)) {
+      return;
+    }
   }
 
  private:
