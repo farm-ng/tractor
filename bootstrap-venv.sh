@@ -22,5 +22,6 @@ pip3 install -r $FARM_NG_ROOT/requirements.txt
 FARM_NG_GOPATH=$FARM_NG_ROOT/env/go
 mkdir -p $FARM_NG_GOPATH
 export GOPATH=$FARM_NG_GOPATH:$GOPATH
+export PATH=$FARM_NG_GOPATH/bin:/usr/local/go/bin:$PATH
 go get -u github.com/golang/protobuf/protoc-gen-go
 go get -u github.com/twitchtv/twirp/protoc-gen-twirp

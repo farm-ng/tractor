@@ -9,9 +9,21 @@ while [ -h "$SOURCE" ]; do # resolve $SOURCE until the file is no longer a symli
 done
 export FARM_NG_ROOT=$( cd "$( dirname "${SOURCE}" )" >/dev/null 2>&1 && pwd )
 
+apt-get update --fix-missing
+apt-get install -y --no-install-recommends \
+	apt-transport-https \
+	apt-utils \
+	curl \
+	gnupg2 \
+	lsb-release \
+	software-properties-common \
+	wget
+
+	
+DISTRO=$(lsb_release -c -s)
+
 # Realsense apt sources
 if ! dpkg -s librealsense2-dev > /dev/null 2>&1; then
-  apt-get update && sudo apt-get install -y software-properties-common apt-utils gnupg2
   apt-key adv --keyserver keys.gnupg.net --recv-key F6E65AC044F831AC80A06380C8B3A55A6F3EFCDE || apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-key
   add-apt-repository "deb http://realsense-hw-public.s3.amazonaws.com/Debian/apt-repo bionic main" -u
 fi
@@ -22,18 +34,25 @@ if ! dpkg -s yarn > /dev/null 2>&1; then
   echo "deb https://dl.yarnpkg.com/debian/ stable main" | tee /etc/apt/sources.list.d/yarn.list
 fi
 
+
+
+
+# Node
+if ! nodejs --version | grep 12.18.3; then
+  NODEREPO="node_12.x"
+  curl -s https://deb.nodesource.com/gpgkey/nodesource.gpg.key | apt-key add -
+  echo "deb https://deb.nodesource.com/${NODEREPO} ${DISTRO} main" > /etc/apt/sources.list.d/nodesource.list
+  echo "deb-src https://deb.nodesource.com/${NODEREPO} ${DISTRO} main" >> /etc/apt/sources.list.d/nodesource.list
+fi
+
 apt-get update --fix-missing
 apt-get install -y --no-install-recommends \
-	apt-transport-https \
-	apt-utils \
 	build-essential \
 	ca-certificates \
 	clang \
-	curl \
 	dirmngr \
 	git \
 	git-lfs \
-	gnupg2 \
 	gstreamer1.0-libav \
 	gstreamer1.0-plugins-bad \
 	gstreamer1.0-plugins-base \
@@ -61,12 +80,11 @@ apt-get install -y --no-install-recommends \
 	libv4l-dev \
 	libx264-dev \
 	libxvidcore-dev \
-	lsb-release \
+	nodejs \
 	network-manager \
 	python3-dev \
 	python3-pip \
 	python3-venv \
-	software-properties-common \
 	yarn
 apt-get clean
 
@@ -83,12 +101,7 @@ if ! /usr/local/go/bin/go version | grep 1.15.1; then
   /usr/local/go/bin/go version
 fi
 
-# Node
-if ! nodejs --version | grep 12.18.3; then
-  curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
-  sudo apt -y install nodejs
-  nodejs --version
-fi
-
+nodejs --version
 # TS protobuf generator
 npm install -g long ts-proto@^1.37.0
+
