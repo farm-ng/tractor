@@ -55,7 +55,6 @@ ArchiveManager& get_archive() {
 
 enum { max_datagram_size = 65507 };
 const short multicast_port = 10000;
-const short subnet_broadcast_port = 10001;
 std::string g_multicast_address = "239.20.20.21";
 
 template <typename Duration>
@@ -72,30 +71,22 @@ google::protobuf::Timestamp MakeTimestamp(sys_time<Duration> const& tp) {
   return stamp;
 }
 
-struct AnnounceAddress {
-  std::optional<boost::asio::ip::address> multicast;
-  std::optional<boost::asio::ip::address> subnet_broadcast;
-};
-
 class receiver {
  public:
   receiver(boost::asio::io_service& io_service,
            const boost::asio::ip::address& listen_address,
-           const AnnounceAddress& announce_address)
+           const boost::asio::ip::address& multicast_address)
       : socket_(io_service) {
     // Create the socket so that multiple may be bound to the same address.
-    boost::asio::ip::udp::endpoint listen_endpoint(
-        listen_address,
-        announce_address.multicast ? multicast_port : subnet_broadcast_port);
+    boost::asio::ip::udp::endpoint listen_endpoint(listen_address,
+                                                   multicast_port);
     socket_.open(listen_endpoint.protocol());
     socket_.set_option(boost::asio::ip::udp::socket::reuse_address(true));
     socket_.bind(listen_endpoint);
 
     // Join the multicast group.
-    if (announce_address.multicast) {
-      socket_.set_option(boost::asio::ip::multicast::join_group(
-          announce_address.multicast.value()));
-    }
+    socket_.set_option(
+        boost::asio::ip::multicast::join_group(multicast_address));
 
     socket_.async_receive_from(
         boost::asio::buffer(data_, max_datagram_size), sender_endpoint_,
@@ -111,8 +102,7 @@ class receiver {
     }
 
     // Ignore self-announcements
-    if (sender_endpoint_.port() == multicast_port ||
-        sender_endpoint_.port() == subnet_broadcast_port) {
+    if (sender_endpoint_.port() == multicast_port) {
       return;
     }
 
@@ -199,26 +189,17 @@ class EventBusImpl {
  public:
   EventBusImpl(boost::asio::io_service& io_service,
                const boost::asio::ip::address& listen_address,
-               const AnnounceAddress& announce_address)
+               const boost::asio::ip::address& multicast_address)
       : io_service_(io_service),
-        recv_(io_service, listen_address, announce_address),
+        recv_(io_service, listen_address, multicast_address),
         socket_(io_service),
         announce_timer_(io_service),
-        announce_endpoint_(announce_address.subnet_broadcast
-                               ? announce_address.subnet_broadcast.value()
-                               : announce_address.multicast.value(),
-                           announce_address.subnet_broadcast
-                               ? subnet_broadcast_port
-                               : multicast_port),
+        announce_endpoint_(multicast_address, multicast_port),
         signal_(new EventSignal) {
     // Create the socket so that multiple may be bound to the same address.
     boost::asio::ip::udp::endpoint listen_endpoint(listen_address, 0);
     socket_.open(listen_endpoint.protocol());
     socket_.set_option(boost::asio::ip::udp::socket::reuse_address(true));
-
-    if (announce_address.subnet_broadcast) {
-      socket_.set_option(boost::asio::socket_base::broadcast{true});
-    }
     socket_.bind(listen_endpoint);
 
     socket_.async_receive_from(
@@ -348,20 +329,10 @@ boost::asio::io_service::id EventBus::id;
 void EventBus::shutdown_service() {}
 
 EventBus::EventBus(boost::asio::io_service& io_service)
-    : boost::asio::io_service::service(io_service) {
-  AnnounceAddress announce_address;
-  if (const char* subnet_broadcast_address =
-          std::getenv("SUBNET_BROADCAST_ADDRESS")) {
-    announce_address.subnet_broadcast =
-        boost::asio::ip::address::from_string(subnet_broadcast_address);
-  } else {
-    announce_address.multicast =
-        boost::asio::ip::address::from_string(g_multicast_address);
-  }
-  impl_ = std::make_unique<EventBusImpl>(
-      io_service, boost::asio::ip::address::from_string("0.0.0.0"),
-      announce_address);
-}
+    : boost::asio::io_service::service(io_service),
+      impl_(new EventBusImpl(
+          io_service, boost::asio::ip::address::from_string("0.0.0.0"),
+          boost::asio::ip::address::from_string(g_multicast_address))) {}
 
 EventBus::~EventBus() { impl_.reset(nullptr); }
 

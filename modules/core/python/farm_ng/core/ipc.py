@@ -1,18 +1,15 @@
 import asyncio
 import logging
-import os
 import re
 import socket
 import struct
 import sys
 import time
-import urllib.parse
 from typing import Dict
 from typing import List
 from typing import Optional
 from typing import Pattern
 from typing import Set
-from typing import Tuple
 
 from google.protobuf.text_format import MessageToString
 from google.protobuf.timestamp_pb2 import Timestamp
@@ -28,9 +25,7 @@ logger.setLevel(logging.INFO)
 
 # https://en.wikipedia.org/wiki/Multicast_address
 # adminstratively scoped: 239.0.0.0 to 239.255.255.255
-_g_multicast_address = '239.20.20.21'
-_g_multicast_port = 10000
-_g_subnet_broadcast_port = 10001
+_g_multicast_group = ('239.20.20.21', 10000)
 
 _g_datagram_size = 65507
 
@@ -97,11 +92,6 @@ def _compile_regex(s: str):
     return _compiled[s]
 
 
-def _parse_address(addr: str) -> Tuple[Optional[str], Optional[int]]:
-    result = urllib.parse.urlsplit(f'//{addr}')
-    return result.hostname, result.port
-
-
 class EventBus:
     """Intended to be accessed via get_event_bus, which ensures there is only one EventBus instance per process."""
 
@@ -110,15 +100,7 @@ class EventBus:
             name = 'python-ipc'
         # forward raw packets, don't track state
         self._recv_raw = recv_raw
-
-        subnet_broadcast_address = os.getenv('SUBNET_BROADCAST_ADDRESS', None)
-        if subnet_broadcast_address:
-            self._subnet_broadcast_address = (subnet_broadcast_address, _g_subnet_broadcast_port)
-            self._multicast_group = None
-        else:
-            self._subnet_broadcast_address = None
-            self._multicast_group = (_g_multicast_address, _g_multicast_port)
-
+        self._multicast_group = _g_multicast_group
         self._name = name
         self._quiet_count = 0
         self._mc_recv_sock: Optional[socket.SocketType] = None
@@ -151,8 +133,7 @@ class EventBus:
         announce.service = self._name
         announce.subscriptions.extend(self._subscriptions)
         msg = announce.SerializeToString()
-        addr = self._multicast_group if self._multicast_group else self._subnet_broadcast_address
-        self._mc_send_sock.sendto(msg, addr)
+        self._mc_send_sock.sendto(msg, self._multicast_group)
 
     def _queue(self):
         queue = asyncio.Queue()
@@ -283,28 +264,25 @@ class EventBus:
             q.put_nowait(announce)
 
     def _make_mc_recv_socket(self):
+        # Look up multicast group address in name server and find out IP version
+        addrinfo = socket.getaddrinfo(self._multicast_group[0], None)[0]
+
         # Create the socket
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
         # Bind to the server address
-        if self._multicast_group:
-            sock.bind(('', self._multicast_group[1]))
-        elif self._subnet_broadcast_address:
-            sock.bind(('', self._subnet_broadcast_address[1]))
+        sock.bind(('', self._multicast_group[1]))
+
+        group_bin = socket.inet_pton(addrinfo[0], addrinfo[4][0])
 
         # Join group
-        if self._multicast_group:
-            # Look up multicast group address in name server and find out IP version
-            addrinfo = socket.getaddrinfo(self._multicast_group[0], None)[0]
-
-            group_bin = socket.inet_pton(addrinfo[0], addrinfo[4][0])
-            if addrinfo[0] == socket.AF_INET:  # IPv4
-                mreq = group_bin + struct.pack('=I', socket.INADDR_ANY)
-                sock.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
-            else:
-                mreq = group_bin + struct.pack('@I', 0)
-                sock.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_JOIN_GROUP, mreq)
+        if addrinfo[0] == socket.AF_INET:  # IPv4
+            mreq = group_bin + struct.pack('=I', socket.INADDR_ANY)
+            sock.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
+        else:
+            mreq = group_bin + struct.pack('@I', 0)
+            sock.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_JOIN_GROUP, mreq)
 
         return sock
 
@@ -312,13 +290,10 @@ class EventBus:
         # Create the socket
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
-        if self._multicast_group:
-            # Set the time-to-live for messages to 0 so they do not leave localhost.
-            ttl = struct.pack('b', 0)
-            sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, ttl)
-        elif self._subnet_broadcast_address:
-            sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-
+        # Set the time-to-live for messages to 0 so they do not
+        # leave localhost.
+        ttl = struct.pack('b', 0)
+        sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, ttl)
         sock.bind(('', 0))
         return sock
 

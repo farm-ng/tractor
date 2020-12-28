@@ -9,11 +9,10 @@ TEST_DEPS="ipc_logger"
 OVERRIDE="${BASEDIR}/docker-compose.ipc_publisher_test.yml"
 
 TMPDIR=$(mktemp -d)
-NETWORK_NAME=`cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 8 | head -n 1`
 
-NETWORK_NAME=$NETWORK_NAME docker-compose -f $BASEDIR/docker-compose.yml -f $OVERRIDE pull
+docker-compose -f $BASEDIR/docker-compose.yml -f $OVERRIDE pull
 
-_UID=`id -u` _GID=`id -g` BLOBSTORE_ROOT=$TMPDIR NETWORK_NAME=$NETWORK_NAME \
+_UID=`id -u` _GID=`id -g` BLOBSTORE_ROOT=$TMPDIR \
 docker-compose -f $BASEDIR/docker-compose.yml -f $OVERRIDE up \
 --abort-on-container-exit $TEST_DEPS test_runner
 

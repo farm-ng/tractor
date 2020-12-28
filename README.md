@@ -1,7 +1,5 @@
 ![CI](https://github.com/farm-ng/tractor/workflows/CI/badge.svg)
 
-![Nightly](https://github.com/farm-ng/tractor/workflows/Nightly/badge.svg)
-
 ## Welcome to farm-ng/tractor documentation
 
 A low cost open source autonomous electric tractor.

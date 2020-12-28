@@ -8,27 +8,19 @@ services:
       dockerfile: docker/base.Dockerfile
     entrypoint: build/modules/core/cpp/farm_ng/ipc_logger
     user: "${_UID}:${_GID}"
+    network_mode: host
     environment:
       - BLOBSTORE_ROOT=/blobstore
-      - SUBNET_BROADCAST_ADDRESS=255.255.255.255
     volumes:
       - "${BLOBSTORE_ROOT:?err}:/blobstore"
-    networks:
-      - testnet
 
   test_runner:
     image: "farmng/base:${TAG:?err}"
     build:
       context: ../../..
       dockerfile: docker/base.Dockerfile
+    network_mode: host
     environment:
       - BLOBSTORE_ROOT=/blobstore
-      - SUBNET_BROADCAST_ADDRESS=255.255.255.255
     volumes:
       - "${BLOBSTORE_ROOT:?err}:/blobstore"
-    networks:
-      - testnet
-
-networks:
-  testnet:
-    name: "${NETWORK_NAME:?err}"

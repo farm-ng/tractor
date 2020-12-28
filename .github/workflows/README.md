@@ -12,10 +12,5 @@ sudo apt-get install git
 
 ```bash
 # Local development
-TAG=`git rev-parse --short HEAD` python -m unittest modules/core/tests/integration_test.py
-
-# CI
-docker-compose pull
-TAG=edge python -m unittest modules/core/tests/integration_test.py
-
+TAG=`git rev-parse --short HEAD` modules/core/tests/logger.sh
 ```
