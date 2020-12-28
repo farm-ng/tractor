@@ -14,6 +14,8 @@ message Rs2BagToEventLogConfiguration {
   // Name of the resulting resource
   string name = 1;
 
+  string camera_frame_name = 2;
+
   // This resource will be populated from the bag file
   farm_ng.core.Resource rs2_bag_resource = 3;
 }
@@ -31,7 +33,13 @@ message Rs2BagToEventLogResult {
   // Configuration which initiated the video export
   Rs2BagToEventLogConfiguration configuration = 1;
 
+  // The time the capture began
+  google.protobuf.Timestamp stamp_begin = 4;
+
+  // The time the capture completed
+  google.protobuf.Timestamp stamp_end = 5;
+
   // A log of the bag file data, saved to disk in protobuf binary format.
   // rename to image_seq once that is implimented
-  farm_ng.core.Resource frames = 6;
+  farm_ng.core.Resource dataset = 6;
 }
