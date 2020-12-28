@@ -14,13 +14,8 @@ message Rs2BagToEventLogConfiguration {
   // Name of the resulting resource
   string name = 1;
 
-  // Name of the bag file the data will be pulled from
-  // Proposed to call this camera name, but switching to
-  // current identifier for clarity. Open to suggestions
-  string bag_file_name = 2;
-
   // This resource will be populated from the bag file
-  farm_ng.core.Resource bag_file_resource = 3;
+  farm_ng.core.Resource rs2_bag_resource = 3;
 }
 
 
