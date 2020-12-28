@@ -19,7 +19,7 @@
 #include "farm_ng/perception/camera_pipeline.pb.h"
 #include "farm_ng/perception/image.pb.h"
 #include "farm_ng/perception/intel_rs2_utils.h"
-#include "farm_ng/perception/rs2_bag_to_eventlog.pb.h"
+#include "farm_ng/perception/rs2_bag_to_event_log.pb.h"
 
 DEFINE_bool(interactive, false, "receive program args via eventbus");
 DEFINE_string(name, "default",
@@ -42,8 +42,8 @@ namespace perception {
 class Rs2BagToEventLogProgram {
  public:
   Rs2BagToEventLogProgram(EventBus& bus,
-                            Rs2BagToEventLogConfiguration configuration,)
-                            bool interactive)
+                          Rs2BagToEventLogConfiguration configuration,
+                          bool interactive)
       : bus_(bus), timer_(bus_.get_io_service()) {
     if (interactive) {  // The program doesn't use interactive mode at this
                         // point
@@ -160,7 +160,7 @@ class Rs2BagToEventLogProgram {
     bus_.Send(MakeEvent(bus_.GetName() + "/status", status_));
   }
 
-  void set_configuration(CaptureVideoDatasetConfiguration configuration) {
+  void set_configuration(Rs2BagToEventLogConfiguration configuration) {
     configuration_ = configuration;
     status_.clear_input_required_configuration();
     send_status();
@@ -168,6 +168,7 @@ class Rs2BagToEventLogProgram {
 
  private:
   EventBus& bus_;
+  boost::asio::deadline_timer timer_;
   Rs2BagToEventLogConfiguration configuration_;
   Rs2BagToEventLogStatus status_;
 };

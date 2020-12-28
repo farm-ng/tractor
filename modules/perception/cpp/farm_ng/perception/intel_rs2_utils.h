@@ -4,9 +4,10 @@
 #include <librealsense2/rs.hpp>
 #include <opencv2/imgproc.hpp>
 
+#include "farm_ng/perception/camera_model.pb.h"
+
 namespace farm_ng {
 namespace perception {
-
 
 cv::Mat RS2FrameToMat(const rs2::frame& f);
 
