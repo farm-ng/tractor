@@ -1,4 +1,4 @@
-FROM ubuntu:18.04
+FROM nvcr.io/nvidia/l4t-base:r32.4.3
 
 WORKDIR /farm_ng
 RUN export FARM_NG_ROOT=/farm_ng
