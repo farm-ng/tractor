@@ -19,7 +19,7 @@ apt-get install -y --no-install-recommends \
 	software-properties-common \
 	wget
 
-	
+
 DISTRO=$(lsb_release -c -s)
 
 # Realsense apt sources
@@ -50,9 +50,12 @@ apt-get install -y --no-install-recommends \
 	build-essential \
 	ca-certificates \
 	clang \
+	cython \
 	dirmngr \
+	doxygen \
 	git \
 	git-lfs \
+	graphviz \
 	gstreamer1.0-libav \
 	gstreamer1.0-plugins-bad \
 	gstreamer1.0-plugins-base \
@@ -104,4 +107,3 @@ fi
 nodejs --version
 # TS protobuf generator
 npm install -g long ts-proto@^1.37.0
-

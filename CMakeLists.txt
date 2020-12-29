@@ -16,6 +16,13 @@ include(cmake/farm_ng_find_base_packages.cmake)
 
 list(APPEND _modules core perception calibration tractor frontend)
 
+set(BUILD_ONLY_DOCS FALSE CACHE BOOL "Build only the documentation")
+
+add_subdirectory(doc)
+if(BUILD_ONLY_DOCS)
+  return()
+endif()
+
 if(BUILD_ONLY_PROTO)
   message(STATUS "Build only proto.")
   farm_ng_find_base_packages()
@@ -44,5 +51,3 @@ foreach(_proto_language ${_proto_languages})
     endforeach()
   endif()
 endforeach()
-
-add_subdirectory(doc)
