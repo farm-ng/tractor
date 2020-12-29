@@ -1,4 +1,4 @@
-FROM farmng/devel@sha256:0ec40dd3761f54587e25da1eb8a5e6546cf8590e4cb4079d8de19a0e65b724fc
+FROM farmng/devel@sha256:83b7088e6a0245a5f72049bd4f01df91154f4130ea247a2018c2b5c2cc78f9de
 
 WORKDIR /farm_ng
 RUN export FARM_NG_ROOT=/farm_ng

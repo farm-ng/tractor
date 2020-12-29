@@ -1,7 +1,5 @@
 #!/bin/bash -ex
 
-. /farm_ng/setup.bash
-
 cd $FARM_NG_ROOT/third_party
 mkdir -p build-opencv
 cd build-opencv
@@ -17,8 +15,10 @@ cmake \
     -D PYTHON3_EXECUTABLE=$(which python) \
     -D WITH_GSTREAMER=ON \
     -D BUILD_EXAMPLES=OFF \
+    -D BUILD_PROTOBUF=OFF \
     -D BUILD_TESTS=OFF \
+    -DBUILD_LIST=calib3d,videoio,imgproc,highgui,video,python3 \
     ../opencv
 
 make -j$(nproc --ignore=1)
-make install
+sudo make install
