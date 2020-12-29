@@ -1,5 +1,20 @@
 /* Project docs and todo list:
  *   https://docs.google.com/document/d/1cvZWOBCO7R57tfYvI6r97d-aeuYCi-Os10OqYn9Duqo/edit?usp=sharing
+ *
+ * This program takes the path of a ROS bag file, relative to the blobstore
+ * root, and outputs an mp4 file and an event log with the following folder
+ * structure:
+ * <Blobstore root>
+ *   - logs/<name>
+ *     - <camera_frame_name>-<timestamp>.mp4
+ *       - The program outputs mp4 files in 300-frame
+ *          chunks, so there may be multiple of these
+ *          files for each program run.
+ *     - events-<timestamp>.log
+ *       - not human-readable, binary serialization of
+ *         data from bag file.
+ *     - <name>-<timestamp>.json
+ *       - human-readable outline of input config
  */
 
 #include <iostream>
