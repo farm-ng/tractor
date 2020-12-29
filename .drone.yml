@@ -8,8 +8,7 @@ steps:
   - name: submodules
     image: alpine/git
     commands:
-      - git submodule update --init
-      - cd third_party/grpc && git submodule update --init
+    - git submodule update --init --depth=1 --recursive --remote
   - name: build_docker_l4t
     image: plugins/docker
     settings:

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-. ../setup.bash
+. /farm_ng/setup.bash
 
 ./install-opencv.sh
 

@@ -14,4 +14,5 @@ COPY setup.bash env.sh ./
 
 # Build third-party c++
 COPY third_party third_party
-RUN cd third_party && ./install.sh
+
+#RUN cd third_party && ./install.sh
