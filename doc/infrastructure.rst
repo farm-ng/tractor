@@ -3,7 +3,7 @@
 Infrastructure
 ==============
 
-Farm-ng provides a set of common infrastructure for the development of autonomous applications.
+Farm-ng provides a set of common infrastructure for developing autonomous applications.
 
 Serialization
 -------------
@@ -21,18 +21,18 @@ Interprocess Communication
 
 Farm-ng uses a lightweight, decentralized UDP-based protocol called the **Event Bus** for interprocess communication.
 
-UDP packets contain a single binary-serialized protobuf that is either an ``Event`` or an ``Announce``.
+UDP packets contain a single binary-serialized ``Event`` message.
 
 Processes announce their presence to the bus periodically via UDP multicast, and publish events to their peers via UDP unicast.
 
 The event bus supports the concept of `subscriptions` to limit the traffic received by a peer.
 
-While UDP datagrams are limited to 65535 bytes, messages may include references (``Resources``) to larger chunks of persistent data (see below).
+While UDP datagrams are limited to 65535 bytes, messages may include references (``Resource`` fields) to larger chunks of persistent data (see below).
 
 Persistent Data
 ---------------
 
-Farm-ng persists data such as configuration and logs to the filesystem.
+Farm-ng persists data such as configuration files and logs to the filesystem.
 
 The directory containing this data, along with a set of conventions that describe its structure, are referred to collectively as the **Blobstore**.
 
@@ -46,7 +46,7 @@ The result is a datastore that's somewhat heterogeneous, but highly browsable, s
 Logging / Playback
 ------------------
 
-Farm-ng supports logging and replaying eventbus traffic via a simple binary log format.
+Farm-ng supports logging and replay of eventbus traffic via a simple binary log format.
 
 A log consists of binary-serialized ``Event`` messages delimited by a ``uint32`` message length prefix.
 
