@@ -68,19 +68,11 @@
     },
     "git.ignoreLimitWarning": true,
     "cmake.configureOnOpen": true,
-    "cmake.configureArgs": [
-      "-DCMAKE_PREFIX_PATH=${workspaceRoot}/env"
-    ],
-    "cmake.cmakePath": "${workspaceRoot}/env/bin/cmake",
-    "cmake.environment": {
-      "PATH": "${workspaceRoot}/env/go/bin:/usr/local/go/bin:${workspaceRoot}/env/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
-    },
-    "cmake.buildEnvironment": {
-      "PATH": "${workspaceRoot}/env/go/bin:/usr/local/go/bin:${workspaceRoot}/env/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
-    },
-    "cmake.configureEnvironment": {
-      "PATH": "${workspaceRoot}/env/go/bin:/usr/local/go/bin:${workspaceRoot}/env/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
-    },
+    "cmake.configureArgs": ["-DCMAKE_PREFIX_PATH=/farm_ng/env"],
+    "cmake.cmakePath": "/farm_ng/env/bin/cmake",
+    "cmake.environment": {"PATH": "/farm_ng/env/go/bin:/usr/local/go/bin:/farm_ng/env/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"},
+    "cmake.buildEnvironment": {"PATH": "/farm_ng/env/go/bin:/usr/local/go/bin:/farm_ng/env/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"},
+    "cmake.configureEnvironment": {"PATH": "/farm_ng/env/go/bin:/usr/local/go/bin:/farm_ng/env/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"},
     "C_Cpp.formatting": "clangFormat",
     "files.associations": {
       "cctype": "cpp",
@@ -159,6 +151,6 @@
       "*.ipp": "cpp",
       "core": "cpp"
     },
-    "python.pythonPath": "env/bin/python"
+    "python.pythonPath": "/farm_ng/env/bin/python"
   }
 }
