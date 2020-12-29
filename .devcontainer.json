@@ -1,3 +1,13 @@
 {
-    "image": "farmng/devel@sha256:d152a1c90f8d52e218653b8f8f82ea13b80621a27a17c733794ad070fb3dd809"
+    "image": "farmng/devel@sha256:d152a1c90f8d52e218653b8f8f82ea13b80621a27a17c733794ad070fb3dd809",
+    "extensions": [
+        "esbenp.prettier-vscode",
+        "dbaeumer.vscode-eslint",
+        "lextudio.restructuredtext",
+        "ms-python.python",
+        "zxh404.vscode-proto3",
+        "ms-vscode.cmake-tools",
+        "ms-vscode.cpptools",
+        "twxs.cmake"
+    ]
 }
