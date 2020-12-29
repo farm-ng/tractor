@@ -1,5 +1,5 @@
-#ifndef FARM_NG_INTEL_BAG_UTILS_H_
-#define FARM_NG_INTEL_BAG_UTILS_H_
+#ifndef FARM_NG_PERCEPTION_INTEL_RS2_UTILS_H_
+#define FARM_NG_PERCEPTION_INTEL_RS2_UTILS_H_
 #include <librealsense2/rsutil.h>
 #include <librealsense2/rs.hpp>
 #include <opencv2/imgproc.hpp>

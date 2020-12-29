@@ -1,15 +1,13 @@
-/* TODO:
- * reuse VideoStreamer farm_ng class
- * decide whether to ouput video or jpegs
- * populate depthmap field of image resource
- * support interactive mode from the browser
- * chunk the video files as in video_streamer.cpp if we decide to
+/* Project docs and todo list:
+ *   https://docs.google.com/document/d/1cvZWOBCO7R57tfYvI6r97d-aeuYCi-Os10OqYn9Duqo/edit?usp=sharing
  */
 
 #include <iostream>
 #include <optional>
 
+#include <google/protobuf/util/time_util.h>
 #include <librealsense2/rs.hpp>
+#include <opencv2/highgui.hpp>
 #include <opencv2/videoio.hpp>
 
 #include "farm_ng/core/blobstore.h"
@@ -21,6 +19,7 @@
 #include "farm_ng/perception/image.pb.h"
 #include "farm_ng/perception/intel_rs2_utils.h"
 #include "farm_ng/perception/rs2_bag_to_event_log.pb.h"
+#include "farm_ng/perception/video_streamer.h"
 
 DEFINE_bool(interactive, false, "receive program args via eventbus");
 DEFINE_string(name, "default",
@@ -67,16 +66,18 @@ class Rs2BagToEventLogProgram {
 
     Rs2BagToEventLogResult result;
 
-    // We prly don't need begin/end timestamps
     result.mutable_stamp_begin()->CopyFrom(MakeTimestampNow());
 
     // Start a realsense pipeline from a recorded file to get the framesets
     rs2::pipeline pipe;
     rs2::config cfg;
 
+    // Set the optional repeat_playback arg to false
     cfg.enable_device_from_file((farm_ng::core::GetBlobstoreRoot() /
                                  configuration_.rs2_bag_resource().path())
-                                    .string());
+                                    .string(),
+                                false);
+
     rs2::pipeline_profile selection = pipe.start(cfg);
     auto color_stream =
         selection.get_stream(RS2_STREAM_COLOR).as<rs2::video_stream_profile>();
@@ -85,28 +86,15 @@ class Rs2BagToEventLogProgram {
     camera_model.set_frame_name(configuration_.camera_frame_name());
     SetCameraModelFromRs(&camera_model, color_stream.get_intrinsics());
 
+    // This variable will be populated by the video streamer. Declare
+    // outside of the while loop to access for use by result message.
     Image image_pb;
-    image_pb.mutable_fps()->set_value(30);
-    image_pb.mutable_camera_model()->CopyFrom(camera_model);
-    image_pb.mutable_frame_number()->set_value(0);
 
-    std::string encoder = " x264enc ! ";
-    auto resource_path = farm_ng::core::GetUniqueArchiveResource(
-        image_pb.camera_model().frame_name(), "mp4", "video/mp4");
-    std::string gst_pipeline =
-        std::string("appsrc !") + " videoconvert ! " + encoder +
-        " mp4mux ! filesink location=" + resource_path.second.string();
-
-    image_pb.mutable_resource()->CopyFrom(resource_path.first);
-    cv::VideoWriter writer =
-        cv::VideoWriter(gst_pipeline,
-                        0,                       // fourcc
-                        image_pb.fps().value(),  // fps
-                        cv::Size(image_pb.camera_model().image_width(),
-                                 image_pb.camera_model().image_height()),
-                        true);
-
-    std::cout << "Declared video writer\n";
+    std::unique_ptr<VideoStreamer> streamer = std::make_unique<VideoStreamer>(
+        bus_, camera_model,
+        // later we will replace MODE_MP4_FILE with MODE_JPG_SEQUENCE
+        // but that's not implemented yet
+        VideoStreamer::MODE_MP4_FILE);
 
     LoggingStatus log = StartLogging(bus_, configuration_.name());
 
@@ -137,23 +125,21 @@ class Rs2BagToEventLogProgram {
 
       // Display the current video frame, using case insensitive q as quit
       // signal.
-      /*
       cv::imshow("Color", color);
       char c = static_cast<char>(cv::waitKey(1));
-      if (tolower(c) == 'q')
-      {
-         cout << "Quit signal recieved, stopping video.\n\n";
-         break;
+      if (tolower(c) == 'q') {
+        std::cout << "Quit signal recieved, stopping video.\n\n";
+        break;
       }
-      */
-      std::cout << "Width of image: " << wc << std::endl;
 
-      writer.write(color);
+      // Add timestamped frame with the video streamer
+      auto frame_stamp =
+          google::protobuf::util::TimeUtil::MillisecondsToTimestamp(
+              color_frame.get_timestamp());
+      image_pb = streamer->AddFrame(color, frame_stamp);
 
-      std::cout << "Wrote frame number: " << image_pb.frame_number().value()
-                << std::endl;
-
-      if (image_pb.frame_number().value() >= 1000) break;
+      // std::cout << "Wrote frame number: " << image_pb.frame_number().value()
+      //          << std::endl;
 
       // Send out the image Protobuf on the event bus
       auto stamp = core::MakeTimestampNow();
@@ -217,8 +203,9 @@ class Rs2BagToEventLogProgram {
 int Main(farm_ng::core::EventBus& bus) {
   farm_ng::perception::Rs2BagToEventLogConfiguration config;
   config.set_name(FLAGS_name);
+  config.set_camera_frame_name(FLAGS_camera_frame_name);
   config.mutable_rs2_bag_resource()->set_path(FLAGS_rs2_bag_path);
-  config.mutable_rs2_bag_resource()->set_content_type("rs2bag");
+  config.mutable_rs2_bag_resource()->set_content_type("rosBag/rs2");
 
   farm_ng::perception::Rs2BagToEventLogProgram program(bus, config,
                                                        FLAGS_interactive);
