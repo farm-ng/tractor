@@ -10,9 +10,6 @@ cmake -DCMAKE_INSTALL_PREFIX=$FARM_NG_ROOT/env -DCMAKE_PREFIX_PATH=$FARM_NG_ROOT
 make -j$(nproc --ignore=1)
 make install
 
-
-./install-opencv.sh
-
 cd $FARM_NG_ROOT/third_party
 mkdir -p build-ceres
 cd build-ceres
