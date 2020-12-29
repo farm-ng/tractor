@@ -44,3 +44,5 @@ foreach(_proto_language ${_proto_languages})
     endforeach()
   endif()
 endforeach()
+
+add_subdirectory(doc)

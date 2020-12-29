@@ -23,6 +23,8 @@ typedef std::shared_ptr<EventSignal> EventSignalPtr;
 
 class EventBusImpl;
 
+/*! EventBus provides a bus level abstraction for participating in the farm_ng ipc system.
+*/
 class EventBus : public boost::asio::io_service::service {
  public:
   EventBus(boost::asio::io_service& io_service);

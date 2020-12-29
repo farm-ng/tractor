@@ -1,6 +1,6 @@
-#!/bin/bash
+#!/bin/bash -ex
 
-. ../setup.bash
+. /farm_ng/setup.bash
 
 cd $FARM_NG_ROOT/third_party
 mkdir -p build-opencv
@@ -12,7 +12,7 @@ cmake \
     -DCMAKE_BUILD_TYPE=Release \
     -D INSTALL_PYTHON_EXAMPLES=OFF \
     -D INSTALL_C_EXAMPLES=OFF \
-    -D PYTHON_EXECUTABLE=$(which python) \
+    -D PYTHON_EXECUTABLE=/usr/bin/python2.7 \
     -D BUILD_opencv_python2=OFF \
     -D PYTHON3_EXECUTABLE=$(which python) \
     -D WITH_GSTREAMER=ON \
