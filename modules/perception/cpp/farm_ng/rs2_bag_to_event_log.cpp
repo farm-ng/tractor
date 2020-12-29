@@ -1,7 +1,7 @@
 /* Project docs and todo list:
  *   https://docs.google.com/document/d/1cvZWOBCO7R57tfYvI6r97d-aeuYCi-Os10OqYn9Duqo/edit?usp=sharing
  *
- * This program takes the path of a ROS bag file, relative to the blobstore
+ * This program takes the path of an RS2 rosbag file, relative to the blobstore
  * root, and outputs an mp4 file and an event log with the following folder
  * structure:
  * <Blobstore root>
@@ -11,10 +11,9 @@
  *          chunks, so there may be multiple of these
  *          files for each program run.
  *     - events-<timestamp>.log
- *       - not human-readable, binary serialization of
- *         data from bag file.
+ *       - binary log of image metadata
  *     - <name>-<timestamp>.json
- *       - human-readable outline of input config
+ *       - human-readable summary of the program execution
  */
 
 #include <iostream>
