@@ -35,11 +35,13 @@ class MultiCameraSync {
   void OnFrame(const FrameData& frame_data);
 
   EventBus& event_bus_;
-  boost::asio::steady_timer timer_;
+  boost::asio::steady_timer timer_;XS
   std::vector<std::unique_ptr<FrameGrabber>> frame_grabbers_;
   std::mutex frame_series_mtx_;
   std::map<std::string, TimeSeries<FrameData>> frame_series_;
   google::protobuf::Timestamp latest_frame_stamp_;
+  CameraPipelineCommand latest_command_;
+
   Signal signal_;
 };
 

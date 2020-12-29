@@ -26,7 +26,7 @@ void VideoStreamer::ResetVideoStreamer(bool is_color) {
     // image_pb_.mutable_fps()->set_value(30);
     std::string encoder;
     if (FLAGS_jetson) {
-      encoder = std::string(" omxh264enc control-rate=1 bitrate=1000000 ! ") +
+      encoder = std::string(" omxh264enc control-rate=3 bitrate=400000 ! ") +
                 " video/x-h264, stream-format=byte-stream !";
 
     } else {

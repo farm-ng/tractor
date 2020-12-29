@@ -31,6 +31,7 @@ CameraModel MultiCameraSync::AddCameraConfig(
 Signal& MultiCameraSync::GetSynchronizedFrameDataSignal() { return signal_; }
 
 std::vector<FrameData> MultiCameraSync::CollectSynchronizedFrameData() {
+  LOG(INFO) << "collect synchronized frame data.";
   std::vector<FrameData> synced_frames;
   std::lock_guard<std::mutex> lock(frame_series_mtx_);
   auto time_window =
@@ -69,7 +70,7 @@ void MultiCameraSync::OnFrame(const FrameData& frame_data) {
   series.RemoveBefore(
       frame_data.stamp() -
       google::protobuf::util::TimeUtil::MillisecondsToDuration(500));
-  VLOG(2) << frame_data.camera_model.frame_name()
+  LOG(INFO) << frame_data.camera_model.frame_name()
           << " n frames: " << series.size();
 
   if (frame_data.camera_model.frame_name() ==
@@ -78,7 +79,8 @@ void MultiCameraSync::OnFrame(const FrameData& frame_data) {
     // schedule a bit into the future to give opportunity for other streams
     // that are slightly offset to be grabbed.
     // TODO base this on frame frate from frame grabber.
-    timer_.expires_from_now(std::chrono::milliseconds(int(250.0 / 30.0)));
+    LOG(INFO) << "expire timer";
+    timer_.expires_from_now(std::chrono::milliseconds(1));
     timer_.async_wait(std::bind(&MultiCameraSync::GetSynchronizedFrameData,
                                 this, std::placeholders::_1));
   }
@@ -160,8 +162,8 @@ void SingleCameraPipeline::Compute(FrameData frame_data) {
 }
 
 CameraModel GridCameraModel() {
-  auto model = Default1080HDCameraModel();
-  model.set_image_height(model.image_height() * 1.5);
+  auto model = DefaultFishEyeT265CameraModel();
+  model.set_image_width(model.image_width()*2);
   return model;
 }
 
@@ -182,6 +184,7 @@ void MultiCameraPipeline::AddCamera(const CameraConfig& camera_config,
 }
 
 void MultiCameraPipeline::Post(CameraPipelineCommand command) {
+  latest_command_ = command;
   for (auto& pipeline : pipelines_) {
     pipeline.second.Post(command);
   }
@@ -208,12 +211,24 @@ void MultiCameraPipeline::OnFrame(
     }
     images.push_back(frame.image);
   }
-  auto grid_camera = GridCameraModel();
+  switch (latest_command_.record_start().mode()) {
+    case CameraPipelineCommand::RecordStart::MODE_EVERY_FRAME: {
+    break;
+    case CameraPipelineCommand::RecordStart::MODE_EVERY_APRILTAG_FRAME: {
+     break;
+    case CameraPipelineCommand::RecordStart::MODE_APRILTAG_STABLE:
+    default:
+      auto grid_camera = GridCameraModel();
   udp_streamer_.AddFrame(
       ConstructGridImage(
           images,
           cv::Size(grid_camera.image_width(), grid_camera.image_height()), 2),
       synced_frame_data.front().stamp());
+      break;
+  }
+
+  
+
 }
 
 CameraPipelineClient::CameraPipelineClient(EventBus& bus)

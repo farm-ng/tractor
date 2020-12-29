@@ -31,6 +31,7 @@ cp $SERVICE_DIR/tractor-webservices.* /etc/systemd/system/
 cp $SERVICE_DIR/tractor-logger.* /etc/systemd/system/
 cp $SERVICE_DIR/tractor.* /etc/systemd/system/
 cp $SERVICE_DIR/tractor-programd.* /etc/systemd/system
+cp $SERVICE_DIR/tractor-camera.* /etc/systemd/system
 #cp $SERVICE_DIR/*.path /etc/systemd/system/
 
 # add udev rule so we can have services wait on the usb bus
@@ -46,8 +47,8 @@ systemctl enable tractor.service
 systemctl enable tractor.path
 systemctl enable tractor-steering.service
 systemctl enable tractor-steering.path
-# systemctl enable tractor-camera.service
-# systemctl enable tractor-camera.path
+systemctl enable tractor-camera.service
+systemctl enable tractor-camera.path
 systemctl enable tractor-webservices.service
 systemctl enable tractor-webservices.path
 systemctl enable tractor-logger.service

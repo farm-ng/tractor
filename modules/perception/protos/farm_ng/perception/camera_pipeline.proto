@@ -13,6 +13,7 @@ message CameraPipelineCommand {
       MODE_APRILTAG_STABLE = 3;
     }
     Mode mode = 1;
+    google.protobuf.Int32Value rate = 2; // Saves frames where count % rate == 0
   }
 
   oneof command {
