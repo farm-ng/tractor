@@ -32,8 +32,7 @@ if(BUILD_ONLY_PROTO)
   return()
 endif()
 
-add_subdirectory(third_party)
-add_subdirectory(third_party/googletest)
+add_subdirectory(/farm_ng/third_party/googletest third_party/googletest)
 
 farm_ng_find_base_packages()
 

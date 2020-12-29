@@ -1,26 +1,31 @@
-.. farm_ng_calibration documentation master file, created by
-   sphinx-quickstart on Sun Sep  6 00:29:29 2020.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
-
-Welcome to farm_ng's documentation!
+Overview
 ===============================================
 
+farm-ng is <TODO>.
+
+<TODO> is the place for discussions and questions about farm-ng.
+
+We use the `GitHub Issue Tracker <https://github.com/farm-ng/tractor/issues>`_ to manage bug
+reports and feature requests.
+
 .. toctree::
-   :maxdepth: 2
-   :caption: Contents:
+   :maxdepth: 1
+   :hidden:
+
+   applications
+   infrastructure
+   installation
+   tutorials
+   cpp_api
+   faqs
+   users
+   contributing
+   version_history
+   bibliography
+   license
 
 
-
-Docs
-====
-
-.. doxygenclass:: farm_ng::core::EventBus
-   :members:
-   :undoc-members:
-
-
-Indices and tables
+Reference
 ==================
 
 * :ref:`genindex`

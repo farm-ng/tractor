@@ -68,11 +68,19 @@
     },
     "git.ignoreLimitWarning": true,
     "cmake.configureOnOpen": true,
-    "cmake.configureArgs": ["-DCMAKE_PREFIX_PATH=${workspaceRoot}/env"],
+    "cmake.configureArgs": [
+      "-DCMAKE_PREFIX_PATH=${workspaceRoot}/env"
+    ],
     "cmake.cmakePath": "${workspaceRoot}/env/bin/cmake",
-    "cmake.environment": {"PATH": "${workspaceRoot}/env/go/bin:/usr/local/go/bin:${workspaceRoot}/env/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"},
-    "cmake.buildEnvironment": {"PATH": "${workspaceRoot}/env/go/bin:/usr/local/go/bin:${workspaceRoot}/env/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"},
-    "cmake.configureEnvironment": {"PATH": "${workspaceRoot}/env/go/bin:/usr/local/go/bin:${workspaceRoot}/env/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"},
+    "cmake.environment": {
+      "PATH": "${workspaceRoot}/env/go/bin:/usr/local/go/bin:${workspaceRoot}/env/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+    },
+    "cmake.buildEnvironment": {
+      "PATH": "${workspaceRoot}/env/go/bin:/usr/local/go/bin:${workspaceRoot}/env/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+    },
+    "cmake.configureEnvironment": {
+      "PATH": "${workspaceRoot}/env/go/bin:/usr/local/go/bin:${workspaceRoot}/env/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+    },
     "C_Cpp.formatting": "clangFormat",
     "files.associations": {
       "cctype": "cpp",
