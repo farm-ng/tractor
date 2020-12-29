@@ -10,6 +10,7 @@ WORKDIR /farm_ng
 COPY CMakeLists.txt .
 COPY cmake cmake
 COPY modules modules
+COPY doc doc
 COPY third_party/api-common-protos/google third_party/api-common-protos/google
 
 # Build protos
