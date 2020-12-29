@@ -1,8 +1,8 @@
 #!/bin/bash -ex
+. /farm_ng/setup.bash
 
-cd $FARM_NG_ROOT/third_party
-mkdir -p build-opencv
-cd build-opencv
+mkdir -p $FARM_NG_ROOT/third_party/build-opencv
+cd $FARM_NG_ROOT/third_party/build-opencv
 
 cmake \
     -DCMAKE_INSTALL_PREFIX=$FARM_NG_ROOT/env \
@@ -21,4 +21,4 @@ cmake \
     ../opencv
 
 make -j$(nproc --ignore=1)
-sudo make install
+make install

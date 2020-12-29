@@ -15,4 +15,4 @@ COPY setup.bash env.sh ./
 # Build third-party c++
 COPY third_party third_party
 RUN cd third_party && ./install.sh && rm -rf build-*
-RUN cd third_party && ./install-opencv.sh && rm -rf build-*
+RUN pwd && ls && cd /farm_ng/third_party && ./install-opencv.sh && rm -rf build-*
