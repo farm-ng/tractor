@@ -1,5 +1,5 @@
 {
-  "name": "frontend",
+  "name": "@farm-ng/frontend",
   "version": "0.0.1",
   "description": "The farm-ng web application",
   "main": "index.tsx",
@@ -75,19 +75,11 @@
     "ts-proto": "^1.35.1",
     "uplot": "1.3.0"
   },
-  "jest": {
-    "preset": "ts-jest",
-    "setupFiles": [
-      "./jest.setup.js"
-    ]
-  },
   "scripts": {
     "dev-start": "webpack-dev-server --progress",
     "dev-start-remote": "webpack-dev-server --progress --host 0.0.0.0 --disable-host-check",
     "dev-build": "webpack --progress",
-    "build": "./link-protos.sh && webpack --mode production --progress",
-    "dev-watch": "webpack --progress --watch",
-    "test": "jest",
-    "test:integration": "jest .*\\.int\\.test\\.ts$"
+    "build": "./build-deps.sh && webpack --mode production --progress",
+    "dev-watch": "webpack --progress --watch"
   }
 }

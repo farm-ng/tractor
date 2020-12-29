@@ -1,0 +1,39 @@
+{
+  "name": "@farm-ng/calibration",
+  "version": "0.0.1",
+  "description": "The farm-ng calibration web application",
+  "main": "index.tsx",
+  "license": "All Rights Reserved",
+  "private": true,
+  "devDependencies": {
+    "@types/react-dom": "^16.9.8",
+    "@types/react-router-dom": "^5.1.5",
+    "browserslist": "^4.14.1",
+    "clean-webpack-plugin": "^3.0.0",
+    "css-loader": "^3.5.3",
+    "file-loader": "^6.1.0",
+    "html-webpack-plugin": "^4.4.1",
+    "mini-css-extract-plugin": "^0.11.0",
+    "node-sass": "^4.14.1",
+    "postcss-loader": "^4.0.0",
+    "postcss-normalize": "^9.0.0",
+    "react-dev-utils": "^10.2.1",
+    "resolve-url-loader": "^3.1.1",
+    "sass-loader": "^10.0.2",
+    "style-loader": "^1.2.1",
+    "ts-loader": "^7.0.4",
+    "typescript": "^3.9.3",
+    "url-loader": "^4.1.0",
+    "webpack": "^4.43.0",
+    "webpack-cli": "^3.3.11",
+    "webpack-dev-server": "^3.11.0"
+  },
+  "dependencies": {
+    "@farm-ng/frontend": "link:../../frontend/frontend"
+  },
+  "scripts": {
+    "dev-start": "webpack-dev-server --progress",
+    "dev-start-remote": "webpack-dev-server --progress --host 0.0.0.0 --disable-host-check",
+    "build": "./build-deps.sh && webpack --mode production --progress"
+  }
+}

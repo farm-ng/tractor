@@ -43,3 +43,8 @@ build/
 
 # virtual env
 env/
+
+# frontend
+node_modules
+dist
+yarn-error.log
