@@ -39,7 +39,6 @@ RUN pip3 install \
 
 ARG PREFIX=/farm_ng/env
 ARG PARALLEL=1
-COPY --from=farmng/build-grpc:latest $PREFIX $PREFIX
 RUN set -ex && \
     mkdir -p build && cd build && \
     cmake \

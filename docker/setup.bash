@@ -10,7 +10,7 @@ done
 export FARM_NG_PREFIX=$( cd "$( dirname "${SOURCE}" )" >/dev/null 2>&1 && pwd )/env
 
 export PYTHONPATH=$FARM_NG_PREFIX/lib/python3.6/site-packages:$FARM_NG_PREFIX/lib/python3.6/dist-packages
-export LD_LIBRARY_PATH=$FARM_NG_PREFIX/env/lib
+export LD_LIBRARY_PATH=$FARM_NG_PREFIX/lib
 
 FARM_NG_GOPATH=$FARM_NG_PREFIX/go
 export GOPATH=$FARM_NG_GOPATH:$GOPATH

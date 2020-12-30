@@ -48,6 +48,7 @@ RUN apt-get update --fix-missing && \
     libgoogle-glog-dev \
     librealsense2-dev \
     librealsense2-utils \
+    libsuitesparse-dev \
     nodejs \
     network-manager \
     python3-dev \
@@ -57,16 +58,9 @@ RUN apt-get update --fix-missing && \
     && \
     apt-get clean
 
-RUN pip3 install --upgrade pip setuptools && pip3 install \
-cmake \
-breathe \
-git+https://github.com/alex-eri/python-networkmanager.git@ec5d10ef7e18f27b24b439d888cea89c1f802f5c \
-git+https://github.com/utiasSTARS/liegroups.git@11e0203048def0345097cb42c664aa91435c3dd0 \
-grpcio \
-linuxfd \
-protobuf \
-sphinx_rtd_theme
+RUN update-alternatives --install /usr/bin/python python /usr/bin/python3 10
 
+ARG PREFIX=/farm_ng/env
 RUN arch=`dpkg --print-architecture` && \
   wget https://golang.org/dl/go1.15.1.linux-${arch}.tar.gz -P /tmp/ && \
   tar -C /usr/local -xzf /tmp/go1.15.1.linux-${arch}.tar.gz && \
@@ -75,20 +69,26 @@ RUN arch=`dpkg --print-architecture` && \
 RUN nodejs --version && \
     npm install -g long ts-proto@^1.37.0
 
-ARG PREFIX=/farm_ng/env
-ARG PARALLEL=1
+RUN FARM_NG_GOPATH=$PREFIX/go && \
+    export GOPATH=$FARM_NG_GOPATH:$GOPATH && \
+    export PATH=$FARM_NG_GOPATH/bin:/usr/local/go/bin:/usr/bin:$PATH && \
+    go get -u github.com/golang/protobuf/protoc-gen-go && \
+    go get -u github.com/twitchtv/twirp/protoc-gen-twirp
+
+RUN python -m pip install --upgrade pip setuptools && python -m pip install \
+   git+https://github.com/alex-eri/python-networkmanager.git@ec5d10ef7e18f27b24b439d888cea89c1f802f5c \
+   git+https://github.com/utiasSTARS/liegroups.git@11e0203048def0345097cb42c664aa91435c3dd0 \
+   breathe==4.25.1 \
+   cmake==3.18.4.post1 \
+   grpcio==1.34.0 \
+   linuxfd==1.5 \
+   protobuf==3.14.0 \
+   sphinx-rtd-theme==0.5.0
+
 COPY --from=farmng/build-grpc:latest $PREFIX $PREFIX
 COPY --from=farmng/build-opencv:latest $PREFIX $PREFIX
 COPY --from=farmng/build-sophus:latest $PREFIX $PREFIX
 COPY --from=farmng/build-apriltag:latest $PREFIX $PREFIX
 COPY --from=farmng/build-ceres:latest $PREFIX $PREFIX
-
-RUN update-alternatives --install /usr/bin/python python /usr/bin/python3 10
-
-RUN FARM_NG_GOPATH=$PREFIX/go && \
-    export GOPATH=$FARM_NG_GOPATH:$GOPATH && \
-    export PATH=$FARM_NG_GOPATH/bin:/usr/local/go/bin:$PATH && \
-    go get -u github.com/golang/protobuf/protoc-gen-go && \
-    go get -u github.com/twitchtv/twirp/protoc-gen-twirp
 
 COPY setup.bash /farm_ng/setup.bash

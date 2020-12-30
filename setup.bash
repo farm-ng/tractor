@@ -7,7 +7,7 @@ while [ -h "$SOURCE" ]; do # resolve $SOURCE until the file is no longer a symli
   # relative to the path where the symlink file was located
   [[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE"
 done
-
+. /farm_ng/setup.bash
 export FARM_NG_ROOT=$( cd "$( dirname "${SOURCE}" )" >/dev/null 2>&1 && pwd )
 
 # Some pre-commit checks not supported on ARM

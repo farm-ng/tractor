@@ -15,19 +15,19 @@ RUN apt-get update --fix-missing && \
 RUN pip3 install --upgrade pip && pip3 install cmake
 RUN git clone --depth=1 --recurse-submodules -b v1.34.0 https://github.com/grpc/grpc
 
-ARG prefix=/farm_ng/env
-ARG parallel=1
+ARG PREFIX=/farm_ng/env
+ARG PARALLEL=1
 RUN set -ex && \
     mkdir -p build-grpc && cd build-grpc && \
     cmake \
-    -DCMAKE_INSTALL_PREFIX=$prefix \
-    -DCMAKE_PREFIX_PATH=$prefix \
+    -DCMAKE_INSTALL_PREFIX=/install_grpc \
+    -DCMAKE_PREFIX_PATH=$PREFIX \
     -DCMAKE_BUILD_TYPE=Release \
     -DBUILD_SHARED_LIBS=ON \
     ../grpc && \
-    cmake --build . --parallel $parallel --target install --config Release
+    cmake --build . --parallel $PARALLEL --target install --config Release
 
 
 FROM scratch
-ARG prefix=/farm_ng/env
-COPY --from=0 $prefix $prefix
+ARG PREFIX=/farm_ng/env
+COPY --from=0 /install_grpc $PREFIX
