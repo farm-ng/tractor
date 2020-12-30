@@ -1,8 +1,7 @@
 .. _chapter-tutorial:
 
-========
-Tutorial
-========
+Tutorials
+=========
 
 .. toctree::
    :maxdepth: 1
