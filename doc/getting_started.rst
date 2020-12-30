@@ -1,8 +1,8 @@
 .. _chapter-getting_started:
 
-============
+===============
 Getting Started
-============
+===============
 
 farm-ng uses a Docker-based workflow for development and release packaging.
 

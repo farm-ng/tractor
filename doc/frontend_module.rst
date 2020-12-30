@@ -14,7 +14,8 @@ The frontend aims to support an extensible approach to 2D and 3D visualization, 
 it is easy to build custom visualizations for application-specific data types, and
 build full application-specific web apps.
 
-TODO:
+TODO
+
 - "end-user GUI"
 - system diagram(s)
 - Example of visualization

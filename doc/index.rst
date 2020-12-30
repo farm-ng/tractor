@@ -8,7 +8,7 @@ See  :doc:`applications` for our open-source applications in agriculture and com
 
 See  :doc:`libraries` for our open-source software libraries.
 
-See :doc:`getting_started` for tutorials.
+See :doc:`getting_started` for development workflow and tutorials.
 
 Please find us on `Github <https://github.com/farm-ng/tractor>`_ to contribute, open issues, and review changes.
 

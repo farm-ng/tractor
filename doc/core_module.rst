@@ -3,7 +3,7 @@
 Core
 =====
 
-The `core` module provides infrastructure for all other modules.
+The `core` module provides software infrastructure for all other modules.
 
 Serialization
 -------------
@@ -156,23 +156,23 @@ Event (de)serialization
 
 .. code-block:: python
 
-  # Serialize a farm_ng.perception.Vec2 message
-  message = Vec2(x=1.0, y=-1.0)
+  # Serialize
+  message = farm_ng.perception.Vec2(x=1.0, y=-1.0)
   event = Event()
   event.name = "odom"
   event.stamp.GetCurrentTime()
   event.data.Pack(message)
   buff = event.SerializeToString()
 
-  # Deserialize a farm_ng.perception.Vec2 message
-  message = Vec2()
+  # Deserialize
+  message = farm_ng.perception.Vec2()
   event.data.Unpack(message)
 
 **Typescript**
 
 .. code-block:: typescript
 
-  // Serialize a farm_ng.perception.Vec2 message
+  // Serialize
   const event = Event.fromPartial({
     name: "odom",
     stamp: new Date(),
@@ -183,7 +183,7 @@ Event (de)serialization
   });
   const buff = Event.encode(event).finish()
 
-  // Deserialize a farm_ng.perception.Vec2 message
+  // Deserialize
   const { name, stamp, data } = event;
   const value = Vec2.decode(data.value);
 
