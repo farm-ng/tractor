@@ -106,7 +106,30 @@ sensor and actuator drivers, planners, loggers, etc.
 
 Services may be started manually from the command line, but are usually managed via ``docker-compose``, ``systemd`` or a similar service manager.
 
-TODO: docker-compose example
+.. code-block:: yaml
+
+  # docker-compose.yml
+
+  version: "3.3"
+
+  # A minimal set of services, using a mounted volume as the blobstore
+  services:
+    ipc_logger:
+      image: farmng/base:latest
+      entrypoint: ./env.sh build/modules/core/cpp/farm_ng/ipc_logger
+      environment:
+        - BLOBSTORE_ROOT=/blobstore
+      volumes:
+        - "${BLOBSTORE_ROOT:?err}:/blobstore"
+      network_mode: host
+    programd:
+      image: farmng/base:latest
+      entrypoint: ./env.sh python -m farm_ng.core.programd
+      environment:
+        - BLOBSTORE_ROOT=/blobstore
+      volumes:
+        - "${BLOBSTORE_ROOT:?err}:/blobstore"
+      network_mode: host
 
 Programs
 --------
@@ -117,20 +140,93 @@ Programs are typically intended for ad hoc use, such as an offline calibration r
 
 Programs may be invoked from the command line, or via the event bus, using the ``programd`` service.
 
-Programs adhere to a set of conventions.
-
-TODO: Documenting communication pattern for programd
+Please see :ref:`Writing a Program<chapter-program_tutorial>` for a guide to writing your first program.
 
 Examples
 --------
 
 Event (de)serialization
 #######################
-(in each language)
 
+.. NOTE ::
+
+  Higher-level APIs are also available; these are purely for illustration.
+
+**Python**
+
+.. code-block:: python
+
+  # Serialize a farm_ng.perception.Vec2 message
+  message = Vec2(x=1.0, y=-1.0)
+  event = Event()
+  event.name = "odom"
+  event.stamp.GetCurrentTime()
+  event.data.Pack(message)
+  buff = event.SerializeToString()
+
+  # Deserialize a farm_ng.perception.Vec2 message
+  message = Vec2()
+  event.data.Unpack(message)
+
+**Typescript**
+
+.. code-block:: typescript
+
+  // Serialize a farm_ng.perception.Vec2 message
+  const event = Event.fromPartial({
+    name: "odom",
+    stamp: new Date(),
+    data: {
+      typeUrl: "type.googleapis.com/farm_ng.perception.Vec2",
+      value: Vec2.encode(Vec2.fromPartial({x: 1.0, y: -1.0)).finish(),
+    },
+  });
+  const buff = Event.encode(event).finish()
+
+  // Deserialize a farm_ng.perception.Vec2 message
+  const { name, stamp, data } = event;
+  const value = Vec2.decode(data.value);
 
 Single process logging
 ######################
 
+**C++**
+
+.. code-block:: cpp
+
+  namespace farm_ng {
+  namespace core {
+
+  // Request a new resource to write to in the blobstore
+  std::pair<Resource, boost::filesystem::path> resource_path =
+    GetUniqueArchiveResource("events", "log", "application/farm_ng.eventlog.v1");
+
+  // Write a message to the event log
+  farm_ng::perception::Vec2 odom;
+  odom.set_x(1.0);
+  odom.set_y(-1.0);
+  EventLogWriter log_writer(resource_path.second);
+  log_writer.Write(MakeEvent("odom", odom));
+
+  } // namespace core
+  } // namespace farm_ng
+
 Multi-process logging
 ######################
+
+**C++**
+
+.. code-block:: cpp
+
+  namespace farm_ng {
+  namespace core {
+
+  // Preconditions:
+  // - An ipc-logger process is also running on `bus`
+  void LogOdom(const EventBus& bus, const farm_ng::perception::Vec2& odom) {
+    LoggingStatus log = StartLogging(bus_, configuration_.name());
+    bus.Send(MakeEvent(bus.GetName() + "/odom", odom));
+  }
+
+  } // namespace core
+  } // namespace farm_ng

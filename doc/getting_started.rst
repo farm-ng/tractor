@@ -106,3 +106,4 @@ Tutorials
    :maxdepth: 1
 
    helloworld_tutorial
+   program_tutorial
