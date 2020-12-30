@@ -150,17 +150,18 @@ class Rs2BagToEventLogProgram {
       // zero index base for the frame_number, set after send.
       image_pb.mutable_frame_number()->set_value(
           image_pb.frame_number().value() + 1);
+
+      status_.set_num_frames(image_pb.frame_number().value());
     }
 
     result.mutable_configuration()->CopyFrom(configuration_);
-    result.mutable_dataset()->CopyFrom(image_pb.resource());
+    result.mutable_dataset()->set_path(log.recording().archive_path());
     result.mutable_stamp_end()->CopyFrom(MakeTimestampNow());
 
     ArchiveProtobufAsJsonResource(configuration_.name(), result);
 
     LOG(INFO) << "Complete:\n" << status_.DebugString();
 
-    status_.set_num_frames(image_pb.frame_number().value());
     send_status();
     return 0;
   }
