@@ -8,18 +8,18 @@ The `core` module provides infrastructure for all other modules.
 Serialization
 -------------
 
-Farm-ng uses `protocol buffers <https://developers.google.com/protocol-buffers>`_
+farm-ng uses `protocol buffers <https://developers.google.com/protocol-buffers>`_
 (v3) for serialization.
 
 A standard approach to serialization allows us to define data structures, library APIs, and network APIs in a format that
 is language-neutral, and both forwards and backwards-compatible.
 
-For more about the the choice of protocol buffers, see TODO.
+For more about the choice of protocol buffers, see TODO.
 
 Interprocess Communication
 --------------------------
 
-Farm-ng uses a lightweight, decentralized UDP-based protocol called the **Event Bus** for interprocess communication.
+farm-ng uses a lightweight, decentralized UDP-based protocol called the **Event Bus** for interprocess communication.
 
 UDP packets contain a single binary-serialized ``Event`` message.
 
@@ -32,11 +32,11 @@ While UDP datagrams are limited to 65535 bytes, messages may include references 
 Persistent Data
 ---------------
 
-Farm-ng persists data such as configuration files and logs to the filesystem.
+farm-ng persists data such as configuration files and logs to the filesystem.
 
 The directory containing this data, along with a set of conventions that describe its structure, are referred to collectively as the **Blobstore**.
 
-Farm-ng provides libraries to facilitate safe, structured interaction with the blobstore.
+farm-ng provides libraries to facilitate safe, structured interaction with the blobstore.
 However, as a directory on disk, the blobstore is also always available for introspection and manipulation via standard command-line or desktop tools.
 
 Whenever possible, we prefer to persist data in standard file formats, rather than as opaque binary blobs.
@@ -46,7 +46,7 @@ The result is a datastore that's somewhat heterogeneous, but highly browsable, s
 Logging / Playback
 ------------------
 
-Farm-ng supports logging and replay of eventbus traffic via a simple binary log format.
+farm-ng supports logging and replay of eventbus traffic via a simple binary log format.
 
 A log consists of binary-serialized ``Event`` messages delimited by a ``uint32`` message length prefix.
 
@@ -68,10 +68,29 @@ Programs typically encapsulate ephemeral processes intended for ad hoc use, such
 
 Programs may be invoked from the command line, or via the eventbus, using the ``programd`` service.
 
-Hardware
+Examples
 --------
 
-Farm-ng aims to support a wide array of sensors, actuators, and compute platforms.
+TODO
 
-Supported hardware to date includes camera drivers (Intel Realsense, Azure Kinect), motor drivers (ODrive, Vesc),
-and NVIDIA Jetson compute.
+- Introduce event.proto in serialization
+
+- Introduce module convention for protos
+
+- Proto languages
+
+- Show UDP (de)serialization examples in each language.
+
+- Discuss Announce
+
+- Names and subscriptions
+
+- Link to perception docs when discussing persistent data (images)
+
+- Documenting communication pattern for programd
+
+- Add sections for integration examples
+
+  e.g. LoggingPlayback / frame-grabber / ipc-logger
+  e.g. How do I log from a single process
+  PhoneBook example from protos

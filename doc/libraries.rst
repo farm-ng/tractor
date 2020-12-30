@@ -12,9 +12,9 @@ These libraries are organized into the following `modules`:
    :maxdepth: 2
 
    core_module
+   perception_module
    frontend_module
+   calibration_module
+   tractor_module
 
-Currently modules may be consumed by downstream projects via source tarballs;
-we plan to support package managers such as ``apt``, ``pip``, and ``conda`` in the future.
-
-:ref:`Dockerfiles and images <installation-docker>` are also available on Dockerhub.
+Please see :doc:`getting_started` for more details on developer workflows.

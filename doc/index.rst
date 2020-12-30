@@ -1,18 +1,16 @@
 Overview
 ========
 
-Farm-ng is a robotics company based in Watsonville, CA whose mission is to scale sustainable
+farm-ng is a robotics company based in Watsonville, CA whose mission is to scale sustainable
 farming through the development of technology that supports farmers who practice it.
 
 See  :doc:`applications` for our open-source applications in agriculture and computer vision.
 
 See  :doc:`libraries` for our open-source software libraries.
 
-See :doc:`installation` and :doc:`tutorials` to give it a test drive.
+See :doc:`getting_started` for tutorials.
 
-See :doc:`contributing` to contribute to the effort.
-
-For further conversation, please find us on `Github <https://github.com/farm-ng/tractor>`_, or <TODO>.
+Please find us on `Github <https://github.com/farm-ng/tractor>`_ to contribute, open issues, and review changes.
 
 .. toctree::
    :maxdepth: 1
@@ -20,21 +18,9 @@ For further conversation, please find us on `Github <https://github.com/farm-ng/
 
    applications
    libraries
-   installation
-   tutorials
+   getting_started
    faqs
-   users
-   contributing
    version_history
    cpp_api
-   bibliography
+   references
    license
-
-
-
-Reference
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`

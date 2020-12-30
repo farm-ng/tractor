@@ -1,14 +1,12 @@
-.. _chapter-installation:
+.. _chapter-getting_started:
 
 ============
-Installation
+Getting Started
 ============
 
-Farm-ng libraries and applications may be installed with Docker, or built from source.
+farm-ng uses a Docker-based workflow for development and release packaging.
 
-Currently, building from source is only supported on Ubuntu 18.04.
-
-.. _installation-docker:
+.. _getting_started-docker:
 
 Docker
 ======
@@ -100,3 +98,11 @@ This runs ...
 .. code-block:: bash
 
   TODO
+
+Tutorials
+=========
+
+.. toctree::
+   :maxdepth: 1
+
+   helloworld_tutorial

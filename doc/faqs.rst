@@ -5,7 +5,7 @@
 .. cpp:namespace:: farm_ng
 
 ===================
-FAQS, Tips & Tricks
+FAQs, Tips & Tricks
 ===================
 
 Answers to frequently asked questions, tricks of the trade and general
