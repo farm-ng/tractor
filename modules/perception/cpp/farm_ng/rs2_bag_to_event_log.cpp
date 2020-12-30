@@ -1,18 +1,15 @@
-/* Project docs and todo list:
- *   https://docs.google.com/document/d/1cvZWOBCO7R57tfYvI6r97d-aeuYCi-Os10OqYn9Duqo/edit?usp=sharing
- *
- * This program takes the path of an RS2 rosbag file, relative to the blobstore
+/* This program takes the path of an RS2 rosbag file, relative to the blobstore
  * root, and outputs an mp4 file and an event log with the following folder
  * structure:
  * <Blobstore root>
  *   - logs/<name>
- *     - <camera_frame_name>-<timestamp>.mp4
+ *     - <camera_frame_name>-<process ID>-<counter>.mp4
  *       - The program outputs mp4 files in 300-frame
  *          chunks, so there may be multiple of these
  *          files for each program run.
- *     - events-<timestamp>.log
+ *     - events-<PID>-<counter>.log
  *       - binary log of image metadata
- *     - <name>-<timestamp>.json
+ *     - <name>-<PID>-<counter>.json
  *       - human-readable summary of the program execution
  */
 
@@ -59,8 +56,7 @@ class Rs2BagToEventLogProgram {
                           Rs2BagToEventLogConfiguration configuration,
                           bool interactive)
       : bus_(bus), timer_(bus_.get_io_service()) {
-    if (interactive) {  // The program doesn't use interactive mode at this
-                        // point
+    if (interactive) {
       status_.mutable_input_required_configuration()->CopyFrom(configuration);
     } else {
       set_configuration(configuration);
@@ -86,11 +82,11 @@ class Rs2BagToEventLogProgram {
     rs2::pipeline pipe;
     rs2::config cfg;
 
-    // Set the optional repeat_playback arg to false
-    cfg.enable_device_from_file((farm_ng::core::GetBlobstoreRoot() /
-                                 configuration_.rs2_bag_resource().path())
-                                    .string(),
-                                false);
+    bool repeat_playback = false;
+    cfg.enable_device_from_file(
+        (farm_ng::core::GetBlobstoreRoot() / configuration_.rs2_bag().path())
+            .string(),
+        repeat_playback);
 
     rs2::pipeline_profile selection = pipe.start(cfg);
     auto color_stream =
@@ -100,15 +96,13 @@ class Rs2BagToEventLogProgram {
     camera_model.set_frame_name(configuration_.camera_frame_name());
     SetCameraModelFromRs(&camera_model, color_stream.get_intrinsics());
 
-    // This variable will be populated by the video streamer. Declare
-    // outside of the while loop to access for use by result message.
-    Image image_pb;
+    Image image_pb;  // result must have access to this outside of the loop
 
-    std::unique_ptr<VideoStreamer> streamer = std::make_unique<VideoStreamer>(
-        bus_, camera_model,
-        // later we will replace MODE_MP4_FILE with MODE_JPG_SEQUENCE
-        // but that's not implemented yet
-        VideoStreamer::MODE_MP4_FILE);
+    VideoStreamer streamer =
+        VideoStreamer(bus_, camera_model,
+
+                      // TODO(collinbrake): Support MODE_JPG_SEQUENCE
+                      VideoStreamer::MODE_MP4_FILE);
 
     LoggingStatus log = StartLogging(bus_, configuration_.name());
 
@@ -137,23 +131,16 @@ class Rs2BagToEventLogProgram {
         break;
       }
 
-      // Display the current video frame, using case insensitive q as quit
-      // signal.
-      cv::imshow("Color", color);
       char c = static_cast<char>(cv::waitKey(1));
       if (tolower(c) == 'q') {
         std::cout << "Quit signal recieved, stopping video.\n\n";
         break;
       }
 
-      // Add timestamped frame with the video streamer
       auto frame_stamp =
           google::protobuf::util::TimeUtil::MillisecondsToTimestamp(
               color_frame.get_timestamp());
-      image_pb = streamer->AddFrame(color, frame_stamp);
-
-      // std::cout << "Wrote frame number: " << image_pb.frame_number().value()
-      //          << std::endl;
+      image_pb = streamer.AddFrame(color, frame_stamp);
 
       // Send out the image Protobuf on the event bus
       auto stamp = core::MakeTimestampNow();
@@ -219,7 +206,7 @@ int Main(farm_ng::core::EventBus& bus) {
   config.set_name(FLAGS_name);
   config.set_camera_frame_name(FLAGS_camera_frame_name);
   config.mutable_rs2_bag_resource()->set_path(FLAGS_rs2_bag_path);
-  config.mutable_rs2_bag_resource()->set_content_type("rosBag/rs2");
+  config.mutable_rs2_bag_resource()->set_content_type("application/x-rosbag");
 
   farm_ng::perception::Rs2BagToEventLogProgram program(bus, config,
                                                        FLAGS_interactive);

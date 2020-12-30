@@ -1,7 +1,6 @@
 syntax = "proto3";
 
 import "farm_ng/core/resource.proto";
-//import "farm_ng/perception/capture_video_dataset.proto";
 
 import "google/protobuf/timestamp.proto";
 import "google/protobuf/wrappers.proto";
@@ -18,7 +17,7 @@ message Rs2BagToEventLogConfiguration {
 
   // This resource will store the path to the input
   // bag file.
-  farm_ng.core.Resource rs2_bag_resource = 3;
+  farm_ng.core.Resource rs2_bag = 3;
 }
 
 
