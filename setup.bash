@@ -8,7 +8,9 @@ while [ -h "$SOURCE" ]; do # resolve $SOURCE until the file is no longer a symli
   [[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE"
 done
 export FARM_NG_ROOT=$( cd "$( dirname "${SOURCE}" )" >/dev/null 2>&1 && pwd )
-. /farm_ng/setup.bash
+if [ -e /farm_ng/setup.bash ]; then
+    . /farm_ng/setup.bash
+fi
 
 # Some pre-commit checks not supported on ARM
 if [ `dpkg --print-architecture` == "arm64" ]; then
