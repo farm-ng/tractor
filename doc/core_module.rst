@@ -17,20 +17,42 @@ is language-neutral, and both forwards and backwards-compatible.
 Protobuf's tooling makes it easy to generate serialization code and service stubs for a variety of languages and frameworks.
 Currently, we generate code for C++, Python, Go, and Typescript.
 
-For more about the choice of protocol buffers, see TODO.
 
 Interprocess Communication
 --------------------------
 
-farm-ng uses a lightweight, decentralized UDP-based protocol called the **Event Bus** for interprocess communication.
+farm-ng uses a lightweight, decentralized UDP-based **Event Bus** for interprocess communication.
 
-UDP packets contain a single binary-serialized ``Event`` message.
+Processes announce their presence to the bus periodically by sending a serialized ``Announce`` message to a predetermined UDP multicast group.
 
-Processes announce their presence to the bus periodically via UDP multicast, and publish events to their peers via UDP unicast.
+.. code-block:: proto
 
-The event bus supports the concept of `subscriptions` to limit the traffic received by a peer.
+  message Announce {
+    string host = 1;
+    int32 port = 2;
+    string service = 3;
+    google.protobuf.Timestamp stamp = 4;
+    google.protobuf.Timestamp recv_stamp = 5;
+    repeated Subscription subscriptions = 6;
+  }
 
-While UDP datagrams are limited to 65535 bytes, messages may include references (``Resource`` fields) to larger chunks of persistent data (see below).
+  message Subscription {
+    // A regular expression that acts as a filter on event names.
+    string name = 1;
+  }
+
+Processes publish ``Events`` to subscribers via UDP unicast.
+
+.. code-block:: proto
+
+  message Event {
+    google.protobuf.Timestamp stamp = 1;
+    string name = 2;
+    google.protobuf.Any data = 3;
+    google.protobuf.Timestamp recv_stamp = 4;
+  }
+
+``Events`` are limited to the size of a single UDP datagram. However, events may include ``Resource`` fields that reference larger chunks of `persistent data`_. Other transports are available for :ref:`image data <Image Data>`.
 
 Persistent Data
 ---------------
@@ -43,53 +65,72 @@ farm-ng provides libraries to facilitate safe, structured interaction with the b
 However, as a directory on disk, the blobstore is also always available for introspection and manipulation via standard command-line or desktop tools.
 
 Whenever possible, we prefer to persist data in standard file formats, rather than as opaque binary blobs.
-For example, image data is persisted as a ``.png`` or H264-encoded ``.mp4``.
-The result is a datastore that's somewhat heterogeneous, but highly browsable, space-efficient, and compatible with third-party tools.
+For example, :ref:`image data <Image Data>` is typically persisted as a ``.png`` or H264-encoded ``.mp4``.
+The result is a datastore that's somewhat heterogeneous, but browsable, space-efficient, and compatible with third-party tools.
 
 Logging / Playback
 ------------------
 
-farm-ng supports logging and replay of eventbus traffic via a simple binary log format.
+farm-ng supports logging and replay of event bus traffic via a simple binary log format.
 
-A log consists of binary-serialized ``Event`` messages delimited by a ``uint32`` message length prefix.
+A log consists of binary-serialized ``Event`` messages delimited by a ``uint16`` message length prefix.
 
-``Event`` messages encode events as a ``google.protobuf.Any``, so it's assumed that a log reader
-has access to a type registry, or the original message definitions, to properly interpret the contents of a log.
+.. code-block:: cpp
 
-A log replayer is available as a binary and a library in the ``core`` module.
+    void write(const farm_ng::core::Event& event, const std::ofstream& out) {
+      std::string packet;
+      event.SerializeToString(&packet);
+      if (packet.size() > std::numeric_limits<uint16_t>::max()) {
+        throw std::invalid_argument("Event is too large");
+      }
+      uint16_t n_bytes = packet.size();
+      out.write(reinterpret_cast<const char*>(&n_bytes), sizeof(n_bytes));
+      out << packet;
+      out.flush();
+    }
 
-Services and Programs
----------------------
-Services and programs are software processes that participate on the eventbus.
+It's assumed that a log reader has access to a type registry, or the original message definitions, to properly interpret the contents of a log.
+
+A log replayer is available as a binary and a library.
+
+.. code-block:: bash
+
+  build/modules/core/cpp/farm_ng/log_playback --log foo.log --loop --send --speed 2
+
+Services
+--------
+Services are long-lived processes that participate on the event bus.
 
 Services typically encapsulate the core, persistent processes of an application, such as
 sensor and actuator drivers, planners, loggers, etc.
 
-Services may be started manually from the command line, but are usually managed via ``systemd`` or a similar service manager.
+Services may be started manually from the command line, but are usually managed via ``docker-compose``, ``systemd`` or a similar service manager.
 
-Programs typically encapsulate ephemeral processes intended for ad hoc use, such as a calibration routine.
+TODO: docker-compose example
 
-Programs may be invoked from the command line, or via the eventbus, using the ``programd`` service.
+Programs
+--------
+
+Programs are ephemeral processes whose lifecycle can be managed by the rest of the system.
+
+Programs are typically intended for ad hoc use, such as an offline calibration routine.
+
+Programs may be invoked from the command line, or via the event bus, using the ``programd`` service.
+
+Programs adhere to a set of conventions.
+
+TODO: Documenting communication pattern for programd
 
 Examples
 --------
 
-TODO
+Event (de)serialization
+#######################
+(in each language)
 
-- Introduce event.proto in serialization
 
-- Show UDP (de)serialization examples in each language.
+Single process logging
+######################
 
-- Discuss Announce
-
-- Names and subscriptions
-
-- Link to perception docs when discussing persistent data (images)
-
-- Documenting communication pattern for programd
-
-- Add sections for integration examples
-
-  e.g. LoggingPlayback / frame-grabber / ipc-logger
-  e.g. How do I log from a single process
-  PhoneBook example from protos
+Multi-process logging
+######################
