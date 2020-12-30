@@ -27,9 +27,9 @@
 
 #include "farm_ng/perception/camera_model.h"
 #include "farm_ng/perception/camera_pipeline.pb.h"
+#include "farm_ng/perception/convert_rs2_bag.pb.h"
 #include "farm_ng/perception/image.pb.h"
 #include "farm_ng/perception/intel_rs2_utils.h"
-#include "farm_ng/perception/rs2_bag_to_event_log.pb.h"
 #include "farm_ng/perception/video_streamer.h"
 
 DEFINE_bool(interactive, false, "receive program args via eventbus");
@@ -50,18 +50,17 @@ using farm_ng::core::Subscription;
 namespace farm_ng {
 namespace perception {
 
-class Rs2BagToEventLogProgram {
+class ConvertRS2BagProgram {
  public:
-  Rs2BagToEventLogProgram(EventBus& bus,
-                          Rs2BagToEventLogConfiguration configuration,
-                          bool interactive)
+  ConvertRS2BagProgram(EventBus& bus, ConvertRS2BagConfiguration configuration,
+                       bool interactive)
       : bus_(bus), timer_(bus_.get_io_service()) {
     if (interactive) {
       status_.mutable_input_required_configuration()->CopyFrom(configuration);
     } else {
       set_configuration(configuration);
     }
-    bus_.GetEventSignal()->connect(std::bind(&Rs2BagToEventLogProgram::on_event,
+    bus_.GetEventSignal()->connect(std::bind(&ConvertRS2BagProgram::on_event,
                                              this, std::placeholders::_1));
     bus_.AddSubscriptions({bus_.GetName(), "logger/command", "logger/status"});
   }
@@ -74,7 +73,7 @@ class Rs2BagToEventLogProgram {
 
     WaitForServices(bus_, {"ipc_logger"});
 
-    Rs2BagToEventLogResult result;
+    ConvertRS2BagResult result;
 
     result.mutable_stamp_begin()->CopyFrom(MakeTimestampNow());
 
@@ -131,12 +130,6 @@ class Rs2BagToEventLogProgram {
         break;
       }
 
-      char c = static_cast<char>(cv::waitKey(1));
-      if (tolower(c) == 'q') {
-        std::cout << "Quit signal recieved, stopping video.\n\n";
-        break;
-      }
-
       auto frame_stamp =
           google::protobuf::util::TimeUtil::MillisecondsToTimestamp(
               color_frame.get_timestamp());
@@ -171,7 +164,7 @@ class Rs2BagToEventLogProgram {
   }
 
   bool on_configuration(const EventPb& event) {
-    Rs2BagToEventLogConfiguration configuration;
+    ConvertRS2BagConfiguration configuration;
     if (!event.data().UnpackTo(&configuration)) {
       return false;
     }
@@ -180,7 +173,7 @@ class Rs2BagToEventLogProgram {
     return true;
   }
 
-  void set_configuration(Rs2BagToEventLogConfiguration configuration) {
+  void set_configuration(ConvertRS2BagConfiguration configuration) {
     configuration_ = configuration;
     status_.clear_input_required_configuration();
     send_status();
@@ -195,22 +188,22 @@ class Rs2BagToEventLogProgram {
  private:
   EventBus& bus_;
   boost::asio::deadline_timer timer_;
-  Rs2BagToEventLogConfiguration configuration_;
-  Rs2BagToEventLogStatus status_;
+  ConvertRS2BagConfiguration configuration_;
+  ConvertRS2BagStatus status_;
 };
 
 }  // namespace perception
 }  // namespace farm_ng
 
 int Main(farm_ng::core::EventBus& bus) {
-  farm_ng::perception::Rs2BagToEventLogConfiguration config;
+  farm_ng::perception::ConvertRS2BagConfiguration config;
   config.set_name(FLAGS_name);
   config.set_camera_frame_name(FLAGS_camera_frame_name);
-  config.mutable_rs2_bag_resource()->set_path(FLAGS_rs2_bag_path);
-  config.mutable_rs2_bag_resource()->set_content_type("application/x-rosbag");
+  config.mutable_rs2_bag()->set_path(FLAGS_rs2_bag_path);
+  config.mutable_rs2_bag()->set_content_type("application/x-rosbag");
 
-  farm_ng::perception::Rs2BagToEventLogProgram program(bus, config,
-                                                       FLAGS_interactive);
+  farm_ng::perception::ConvertRS2BagProgram program(bus, config,
+                                                    FLAGS_interactive);
   return program.run();
 }
 

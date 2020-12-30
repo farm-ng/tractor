@@ -8,7 +8,7 @@ import "google/protobuf/wrappers.proto";
 package farm_ng.perception;
 option go_package = "github.com/farm-ng/genproto/perception";
 
-message Rs2BagToEventLogConfiguration {
+message ConvertRS2BagConfiguration {
 
   // Name of the resulting resource
   string name = 1;
@@ -21,18 +21,18 @@ message Rs2BagToEventLogConfiguration {
 }
 
 
-message Rs2BagToEventLogStatus {
+message ConvertRS2BagStatus {
   oneof input_required {
-    Rs2BagToEventLogConfiguration input_required_configuration = 1;
+    ConvertRS2BagConfiguration input_required_configuration = 1;
   }
 
-  // The number of bag file frames exported
+  // The number of bag file frames converted
   int32 num_frames = 2;
 }
 
-message Rs2BagToEventLogResult {
-  // Configuration which initiated the video/log export
-  Rs2BagToEventLogConfiguration configuration = 1;
+message ConvertRS2BagResult {
+  // Configuration which initiated the conversion
+  ConvertRS2BagConfiguration configuration = 1;
 
   // The time the capture began
   google.protobuf.Timestamp stamp_begin = 2;
