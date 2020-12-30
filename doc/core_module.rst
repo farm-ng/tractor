@@ -14,6 +14,9 @@ farm-ng uses `protocol buffers <https://developers.google.com/protocol-buffers>`
 A standard approach to serialization allows us to define data structures, library APIs, and network APIs in a format that
 is language-neutral, and both forwards and backwards-compatible.
 
+Protobuf's tooling makes it easy to generate serialization code and service stubs for a variety of languages and frameworks.
+Currently, we generate code for C++, Python, Go, and Typescript.
+
 For more about the choice of protocol buffers, see TODO.
 
 Interprocess Communication
@@ -74,10 +77,6 @@ Examples
 TODO
 
 - Introduce event.proto in serialization
-
-- Introduce module convention for protos
-
-- Proto languages
 
 - Show UDP (de)serialization examples in each language.
 
