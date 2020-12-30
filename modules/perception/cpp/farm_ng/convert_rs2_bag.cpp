@@ -106,49 +106,59 @@ class ConvertRS2BagProgram {
     LoggingStatus log = StartLogging(bus_, configuration_.name());
 
     while (true) {
-      // Fetch the next frameset (block until it comes)
-      rs2::frameset frames = pipe.wait_for_frames().as<rs2::frameset>();
+      try {
+        // Fetch the next frameset (block until it comes)
+        rs2::frameset frames = pipe.wait_for_frames().as<rs2::frameset>();
 
-      // Get the depth and color frames
-      rs2::video_frame color_frame = frames.get_color_frame();
-      // rs2::depth_frame depth_frame = frames.get_depth_frame();
+        // Get the depth and color frames
+        rs2::video_frame color_frame = frames.get_color_frame();
+        // rs2::depth_frame depth_frame = frames.get_depth_frame();
 
-      // Query frame size (width and height)
-      const int wc = color_frame.get_width();
-      const int hc = color_frame.get_height();
-      // const int wd = depth_frame.get_width();
-      // const int hd = depth_frame.get_height();
+        // Query frame size (width and height)
+        const int wc = color_frame.get_width();
+        const int hc = color_frame.get_height();
+        // const int wd = depth_frame.get_width();
+        // const int hd = depth_frame.get_height();
 
-      CHECK_EQ(camera_model.image_width(), wc);
-      CHECK_EQ(camera_model.image_height(), hc);
+        CHECK_EQ(camera_model.image_width(), wc);
+        CHECK_EQ(camera_model.image_height(), hc);
 
-      // Image matrices from rs2 frames
-      cv::Mat color = RS2FrameToMat(color_frame);
-      // cv::Mat depth = RS2FrameToMat(depth_frame),
+        // Image matrices from rs2 frames
+        cv::Mat color = RS2FrameToMat(color_frame);
+        // cv::Mat depth = RS2FrameToMat(depth_frame),
 
-      if (color.empty()) {
+        if (color.empty()) {
+          break;
+        }
+
+        auto frame_stamp =
+            google::protobuf::util::TimeUtil::MillisecondsToTimestamp(
+                color_frame.get_timestamp());
+        image_pb = streamer.AddFrame(color, frame_stamp);
+
+        // Send out the image Protobuf on the event bus
+        auto stamp = core::MakeTimestampNow();
+        bus_.Send(
+            MakeEvent(camera_model.frame_name() + "/image", image_pb, stamp));
+
+        // zero index base for the frame_number, set after send.
+        image_pb.mutable_frame_number()->set_value(
+            image_pb.frame_number().value() + 1);
+
+        status_.set_num_frames(image_pb.frame_number().value());
+
+      } catch (const rs2::error& e) {
+        std::stringstream ss;
+        ss << "RealSense error calling " << e.get_failed_function() << "("
+           << e.get_failed_args() << "):\n    " << e.what();
+        LOG(ERROR) << ss.str();
         break;
       }
-
-      auto frame_stamp =
-          google::protobuf::util::TimeUtil::MillisecondsToTimestamp(
-              color_frame.get_timestamp());
-      image_pb = streamer.AddFrame(color, frame_stamp);
-
-      // Send out the image Protobuf on the event bus
-      auto stamp = core::MakeTimestampNow();
-      bus_.Send(
-          MakeEvent(camera_model.frame_name() + "/image", image_pb, stamp));
-
-      // zero index base for the frame_number, set after send.
-      image_pb.mutable_frame_number()->set_value(
-          image_pb.frame_number().value() + 1);
-
-      status_.set_num_frames(image_pb.frame_number().value());
     }
 
     result.mutable_configuration()->CopyFrom(configuration_);
     result.mutable_dataset()->set_path(log.recording().archive_path());
+    result.mutable_dataset()->set_content_type("application/");
     result.mutable_stamp_end()->CopyFrom(MakeTimestampNow());
 
     ArchiveProtobufAsJsonResource(configuration_.name(), result);
