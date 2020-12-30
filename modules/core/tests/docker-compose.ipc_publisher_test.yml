@@ -1,0 +1,5 @@
+version: "3.3"
+
+services:
+  test_runner:
+    entrypoint: ./env.sh python modules/core/tests/ipc_publisher_test.py
