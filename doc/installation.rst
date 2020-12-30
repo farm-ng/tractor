@@ -4,8 +4,33 @@
 Installation
 ============
 
-Getting the source code
-=======================
+Farm-ng libraries and applications may be installed with Docker, or built from source.
+
+Currently, building from source is only supported on Ubuntu 18.04.
+
+Docker
+======
+
+The following images are available on Dockerhub:
+
+- `farmng/base <https://hub.docker.com/repository/docker/farmng/base>`_: All C++ and Python binaries and all source code.
+
+- `farmng/webservices <https://hub.docker.com/repository/docker/farmng/webservices>`_: The web server and web application, but no source code.
+
+- `farmng/devel <https://hub.docker.com/repository/docker/farmng/devel>`_: All source code and a base development environment with dependencies pre-installed.
+
+Docker tags are used as follows:
+
+- ``edge``: Built by CI for the latest commit on ``master``.
+
+- ``latest``: Built by CI for the latest `Github release <https://github.com/farm-ng/tractor/releases>`_
+
+- ``<x.y.z>``: Built by CI for the `Github release <https://github.com/farm-ng/tractor/releases>`_ ``x.y.z``
+
+- ``<sha>``: Built ad hoc for a specific git commit.
+
+Building from source
+====================
 .. _section-source:
 
 - Use a release
@@ -18,7 +43,7 @@ Getting the source code
 .. _section-dependencies:
 
 Dependencies
-============
+------------
 
 farm-ng requires a C++17-compliant compiler.
 
