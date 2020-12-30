@@ -18,14 +18,12 @@ to make a suggestion or three.
 
 We follow Google's `C++ Style Guide
 <https://google.github.io/styleguide/cppguide.html>`_ and
-use `git <http://git-scm.com/>`_ for version control. We use the
-`Github <https://github.com/farm_ng/tractor/>`_ to collaborate and
-review changes to farm-ng.
+use `git <http://git-scm.com/>`_ for version control.
 
-We now describe how to set up your development environment and submit
-a change list for review via Github.
+We use `Github <https://github.com/farm_ng/tractor/>`_ to collaborate, track issues, and
+review changes.
 
-Setting up your Environment
+Setting up a Development Environment
 ===========================
 
 1. Download and configure ``git``.
