@@ -8,6 +8,8 @@ Farm-ng libraries and applications may be installed with Docker, or built from s
 
 Currently, building from source is only supported on Ubuntu 18.04.
 
+.. _installation-docker:
+
 Docker
 ======
 
@@ -29,48 +31,51 @@ Docker tags are used as follows:
 
 - ``<sha>``: Built ad hoc for a specific git commit.
 
+Examples
+--------
+TODO
+
 Building from source
 ====================
-.. _section-source:
+The following instructions describe building the entire farm-ng source tree.
+The same principles apply to building individual modules, which are made available as tarballs on each
+`Github release <https://github.com/farm-ng/tractor/releases>`_.
 
-- Use a release
-- Clone the git repository
+a) Download a release **or**
+
+.. code-block:: bash
+
+       wget https://github.com/farm-ng/tractor/archive/v0.7.0.tar.gz
+
+
+b) Clone the farm-ng repository
 
 .. code-block:: bash
 
        git clone https://github.com/farm-ng/tractor.git
 
-.. _section-dependencies:
+C++
+---
 
-Dependencies
+farm-ng's C++ codebase requires a C++17-compliant compiler and depends on a
+number of open source libraries:
+
+- `CMake <http://www.cmake.org>`_ 3.?? or later **required**.
+
+- `glog <https://github.com/google/glog>`_ 0.3.?? or
+  later. **required**
+
+- TODO
+
+Step-by-step
 ------------
-
-farm-ng requires a C++17-compliant compiler.
-
-farm-ng relies on a number of open source libraries:
-
-- `CMake <http://www.cmake.org>`_ 3.5 or later **required**.
-
-- `glog <https://github.com/google/glog>`_ 0.3.1 or
-  later. **Recommended**
-
-  TODO notes on this dependency
-
-
-- `gflags <https://github.com/gflags/gflags>`_. Needed to build
-  examples and tests and usually a dependency for glog.
-
-.. _section-linux:
-
-Ubuntu 18.04
-============
 
 Start by installing all the dependencies.
 
 .. code-block:: bash
 
-     # CMake
-     sudo apt-get install cmake
+     # TODO
+     sudo apt-get install <TODO>
 
 We are now ready to build, test, and install farm-ng.
 

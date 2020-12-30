@@ -17,4 +17,4 @@ These libraries are organized into the following `modules`:
 Currently modules may be consumed by downstream projects via source tarballs;
 we plan to support package managers such as ``apt``, ``pip``, and ``conda`` in the future.
 
-farm-ng applications use Docker for software deployment. Dockerfiles and images are available on Dockerhub.
+:ref:`Dockerfiles and images <installation-docker>` are also available on Dockerhub.
