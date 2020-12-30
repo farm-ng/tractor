@@ -24,6 +24,3 @@ mkdir -p $FARM_NG_GOPATH
 export GOPATH=$FARM_NG_GOPATH:$GOPATH
 go get -u github.com/golang/protobuf/protoc-gen-go
 go get -u github.com/twitchtv/twirp/protoc-gen-twirp
-
-pip3 install wheel
-pip3 install -r $FARM_NG_ROOT/requirements.txt
