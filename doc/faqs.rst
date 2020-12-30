@@ -1,12 +1,5 @@
-.. _chapter-tricks:
-
-.. default-domain:: cpp
-
-.. cpp:namespace:: farm_ng
+.. _chapter-faqs:
 
 ===================
 FAQs, Tips & Tricks
 ===================
-
-Answers to frequently asked questions, tricks of the trade and general
-wisdom.
