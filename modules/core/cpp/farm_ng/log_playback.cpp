@@ -133,7 +133,10 @@ class IpcLogPlayback {
       stats.mutable_last_stamp()->CopyFrom(next_message_->stamp());
 
       if (configuration_.send()) {
-        bus_.Send(*next_message_);
+	if(!next_message_->data().Is<LoggingCommand>()){
+	  next_message_->set_name(std::string("playback/")+next_message_->name());
+	  bus_.Send(*next_message_);
+	}
       }
     }
     try {

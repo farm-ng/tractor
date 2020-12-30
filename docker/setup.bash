@@ -14,4 +14,4 @@ export LD_LIBRARY_PATH=$FARM_NG_PREFIX/lib
 
 FARM_NG_GOPATH=$FARM_NG_PREFIX/go
 export GOPATH=$FARM_NG_GOPATH:$GOPATH
-export PATH=$FARM_NG_GOPATH/bin:/usr/local/go/bin:$PATH
+export PATH=$FARM_NG_GOPATH/bin:$FARM_NG_PREFIX/bin:/usr/local/go/bin:$PATH
