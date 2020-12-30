@@ -1,0 +1,26 @@
+version: "3.3"
+
+services:
+  ipc_logger:
+    image: "farmng/base:${TAG:?err}"
+    build:
+      context: ../../..
+      dockerfile: docker/base.Dockerfile
+    entrypoint: build/modules/core/cpp/farm_ng/ipc_logger
+    user: "${_UID}:${_GID}"
+    network_mode: host
+    environment:
+      - BLOBSTORE_ROOT=/blobstore
+    volumes:
+      - "${BLOBSTORE_ROOT:?err}:/blobstore"
+
+  test_runner:
+    image: "farmng/base:${TAG:?err}"
+    build:
+      context: ../../..
+      dockerfile: docker/base.Dockerfile
+    network_mode: host
+    environment:
+      - BLOBSTORE_ROOT=/blobstore
+    volumes:
+      - "${BLOBSTORE_ROOT:?err}:/blobstore"

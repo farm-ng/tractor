@@ -1,5 +1,5 @@
 {
-    "image": "farmng/devel@sha256:d152a1c90f8d52e218653b8f8f82ea13b80621a27a17c733794ad070fb3dd809",
+    "image": "farmng/devel@sha256:880930a814388b9ab738fa56114f56ed8158be1e503abfff8ffaac09710df060",
     "extensions": [
         "esbenp.prettier-vscode",
         "dbaeumer.vscode-eslint",

@@ -1,0 +1,17 @@
+version: "3.3"
+
+services:
+  devel:
+    image: farmng/devel@sha256:880930a814388b9ab738fa56114f56ed8158be1e503abfff8ffaac09710df060
+    command: /workspace/tractor/docker/loop_forever.sh
+    environment:
+      - BLOBSTORE_ROOT=/blobstore
+    volumes:
+      - home:/root
+      - ../../tractor-data:/blobstore
+      - ..:/workspace/tractor
+
+    network_mode: host
+
+volumes:
+  home:
