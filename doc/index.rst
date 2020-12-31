@@ -22,5 +22,6 @@ Please find us on `Github <https://github.com/farm-ng/tractor>`_ to contribute, 
    faqs
    version_history
    cpp_api
+   ci
    references
    license

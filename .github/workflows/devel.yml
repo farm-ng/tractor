@@ -1,6 +1,6 @@
 name: Devel docker images CI
 
-# For all pushes to the master branch push the image to the container registry tagged as `edge`
+# For all pushes to the devel branch push devel related images to registry tagged as `edge`
 on:
   push:
     branches: devel
@@ -11,11 +11,10 @@ jobs:
     strategy:
       matrix:
         image: ["apriltag", "opencv", "grpc", "ceres", "sophus"]
+    # doc_third_party
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-        with:
-          submodules: "recursive"
 
       - name: Prepare
         id: prep
