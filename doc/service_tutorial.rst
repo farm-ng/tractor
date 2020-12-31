@@ -4,7 +4,7 @@
 Writing a Service
 =================
 
-This tutorial explains how to write a Hello World :ref:`service<section-services>` in C++.
+This tutorial explains how to write a Hello World :ref:`program<section-core_services>` in C++.
 
 Introduction
 ============
