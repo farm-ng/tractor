@@ -3,7 +3,7 @@
 Tractor
 =======
 
-The `tractor` module provides software for the :ref:`farm-ng microtractor<chapter-microtractor_application>`.
+The `tractor` module provides software components for the :ref:`farm-ng microtractor<chapter-microtractor_application>`.
 
 Kinematics
 ----------
