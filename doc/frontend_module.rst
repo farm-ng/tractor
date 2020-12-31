@@ -3,7 +3,7 @@
 Frontend
 ========
 
-The frontend module provides a webserver and frontend libraries for building GUIs and graphical debugging tools.
+The *frontend* module provides webserver and frontend libraries for building GUIs and graphical debugging tools.
 
 Client/Server Model
 -------------------
