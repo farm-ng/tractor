@@ -1,8 +1,8 @@
 .. _chapter-visualizer_tutorial:
 
-===================
+====================
 Writing a Visualizer
-===================
+====================
 
 This tutorial explains how to write a visualizer for a custom data type,
 or a custom visualizer for an existing data type, in Typescript.
@@ -12,7 +12,7 @@ Introduction
 
 A ``Visualizer`` is defined by the following interface:
 
-.. code-block:: ts
+.. code-block:: typescript
 
   export interface Visualizer<T extends EventType = EventType> {
     id: VisualizerId;
@@ -47,7 +47,7 @@ Define your visualizer
 
 In a new file, define your new visualizer.
 
-.. code-block:: ts
+.. code-block:: typescript
 
   // CustomVec2Visualizer.ts
 
@@ -59,7 +59,7 @@ In a new file, define your new visualizer.
 
 Add this visualizer to the visualization registry.
 
-.. code-block:: ts
+.. code-block:: typescript
 
   // registry/visualization.ts
 
@@ -81,7 +81,7 @@ Implement visualization
 
 Comments below explain how to implement 2D, 3D, and Form visualization.
 
-.. code-block:: ts
+.. code-block:: typescript
 
   // CustomVec2Visualizer.ts
 

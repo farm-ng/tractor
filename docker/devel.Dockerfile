@@ -83,7 +83,8 @@ RUN python -m pip install --upgrade pip setuptools && python -m pip install \
     grpcio==1.34.0 \
     linuxfd==1.5 \
     protobuf==3.14.0 \
-    sphinx-rtd-theme==0.5.0
+    sphinx-rtd-theme==0.5.0 \
+    sphinx-tabs==1.3.0
 
 # [docs] copy_third_party
 COPY --from=farmng/build-grpc:edge $PREFIX $PREFIX
