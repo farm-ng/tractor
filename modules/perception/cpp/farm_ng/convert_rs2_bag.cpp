@@ -3,7 +3,9 @@
  * structure:
  * <Blobstore root>
  *   - logs/<name>
- *     - <camera_frame_name>/color-<process ID>-<counter>.mp4
+ *     - <camera_frame_name>/
+ *       - Color images: color-<process ID>-<counter>.mp4
+ *       - Depth images: depth-<process ID>-<counter>.mp4
  *       - The program outputs mp4 files in 300-frame
  *          chunks, so there may be multiple of these
  *          files for each program run.
@@ -13,7 +15,6 @@
  *       - human-readable summary of the program execution
  *
  * TODO (collinbrake | ethanruble | isherman):
- *   - fix bug where num_frames resets with video streamer
  *   - output jpeg sequence
  *   - support interactive mode with the browser
  *   - check out h265 encoding as alternative to h264
@@ -155,7 +156,7 @@ class ConvertRS2BagProgram {
         image_pb.mutable_frame_number()->set_value(
             image_pb.frame_number().value() + 1);
 
-        status_.set_num_frames(image_pb.frame_number().value());
+        status_.set_num_frames(status_.num_frames() + 1);
 
       } catch (const rs2::error& e) {
         std::stringstream ss;
