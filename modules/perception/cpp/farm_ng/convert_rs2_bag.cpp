@@ -11,6 +11,12 @@
  *       - binary log of image metadata
  *     - <name>-<PID>-<counter>.json
  *       - human-readable summary of the program execution
+ *
+ * TODO (collinbrake | ethanruble | isherman):
+ *   - add depth data to event log
+ *   - output jpeg sequence
+ *   - support interactive mode with the browser
+ *   - check out h265 encoding as alternative to h264
  */
 
 #include <iostream>
@@ -77,7 +83,8 @@ class ConvertRS2BagProgram {
 
     result.mutable_stamp_begin()->CopyFrom(MakeTimestampNow());
 
-    // Start a realsense pipeline from a recorded file to get the framesets
+    // Start a realsense pipeline from a recorded file to get
+    // the framesets
     rs2::pipeline pipe;
     rs2::config cfg;
 
@@ -92,11 +99,13 @@ class ConvertRS2BagProgram {
         selection.get_stream(RS2_STREAM_COLOR).as<rs2::video_stream_profile>();
 
     CameraModel camera_model;
-    camera_model.set_frame_name(configuration_.camera_frame_name());
+    camera_model.set_frame_name(configuration_.camera_frame_name() + "/color");
     SetCameraModelFromRs(&camera_model, color_stream.get_intrinsics());
 
-    Image image_pb;  // result must have access to this outside of the loop
+    Image image_pb;  // result must have access to this
+                     // outside of the loop
 
+    // SingleCameraPipeline could be applicable here at some point
     VideoStreamer streamer =
         VideoStreamer(bus_, camera_model,
 
@@ -112,7 +121,8 @@ class ConvertRS2BagProgram {
 
         // Get the depth and color frames
         rs2::video_frame color_frame = frames.get_color_frame();
-        // rs2::depth_frame depth_frame = frames.get_depth_frame();
+        // rs2::depth_frame depth_frame =
+        // frames.get_depth_frame();
 
         // Query frame size (width and height)
         const int wc = color_frame.get_width();
@@ -125,7 +135,7 @@ class ConvertRS2BagProgram {
 
         // Image matrices from rs2 frames
         cv::Mat color = RS2FrameToMat(color_frame);
-        // cv::Mat depth = RS2FrameToMat(depth_frame),
+        // cv::Mat depth = RS2FrameToMat(depth_frame);
 
         if (color.empty()) {
           break;
@@ -141,7 +151,8 @@ class ConvertRS2BagProgram {
         bus_.Send(
             MakeEvent(camera_model.frame_name() + "/image", image_pb, stamp));
 
-        // zero index base for the frame_number, set after send.
+        // zero index base for the frame_number, set after
+        // send.
         image_pb.mutable_frame_number()->set_value(
             image_pb.frame_number().value() + 1);
 
@@ -158,7 +169,8 @@ class ConvertRS2BagProgram {
 
     result.mutable_configuration()->CopyFrom(configuration_);
     result.mutable_dataset()->set_path(log.recording().archive_path());
-    result.mutable_dataset()->set_content_type("application/");
+    result.mutable_dataset()->set_content_type(
+        "application/farm_ng.eventlog.v1");
     result.mutable_stamp_end()->CopyFrom(MakeTimestampNow());
 
     ArchiveProtobufAsJsonResource(configuration_.name(), result);
