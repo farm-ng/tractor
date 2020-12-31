@@ -107,3 +107,4 @@ Tutorials
 
    helloworld_tutorial
    program_tutorial
+   visualizer_tutorial

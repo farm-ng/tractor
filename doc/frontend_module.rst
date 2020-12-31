@@ -126,20 +126,25 @@ The scope is a visual debugger for :ref:`event bus<section-core_eventbus>` event
 
 Extensibility
 -------------
-The frontend aims to support an extensible approach to 2D and 3D visualization, such that
-it is easy to build custom visualizations for application-specific data types, and
-even fully custom web apps.
+The frontend aims to be extensible, such that it is easy to build custom 2D/3D visualizations
+for application-specific data types, and even fully custom web apps.
 
-TODO
+As designed, the architecture optimizes for extensibility of visualization *in the frontend*, rather than in the robotics application.
+There are tradeoffs, but we believe that this approach empowers developers to build frontends with
+the DOM, Javascript, React, HTTP, and all the features of the browser platform, as opposed to an approach
+that provides a generic visualization API for C++ and Python developers.
+
+You may wish to extend the frontend by addding visualizers for your custom data types,
+or adding alternative visualizers for existing data types. This process is explained in the :ref:`Adding a Visualizer<chapter-visualizer_tutorial>` tutorial.
+
+Alternatively, you may wish to build an entirely new React web application, using the frontend module as a JS/TS library from which to
+pull visualization components, React hooks, utilities, and so on.
+
 
 Examples
 --------
+**Run a development server**
+
 **Add support for a new data type**
 
-**Add a 2D visualization**
-
-**Add a 3D visualization**
-
-**Add a form**
-
-**Add a program**
+**Add support for a new program**

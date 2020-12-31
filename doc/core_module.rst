@@ -22,7 +22,7 @@ Currently, we generate code for C++, Python, Go, and Typescript.
 Interprocess Communication
 --------------------------
 
-farm-ng uses a lightweight, decentralized UDP-based **Event Bus** for interprocess communication.
+farm-ng uses a lightweight, decentralized, UDP-based **event bus** for interprocess communication.
 
 Processes announce their presence to the bus periodically by sending a serialized ``Announce`` message to a predetermined UDP multicast group.
 
@@ -62,7 +62,7 @@ Persistent Data
 
 farm-ng persists data such as configuration files and logs to the filesystem.
 
-The directory containing this data, along with a set of conventions that describe its structure, are referred to collectively as the **Blobstore**.
+The directory containing this data, along with a set of conventions that describe its structure, are referred to collectively as the **blobstore**.
 
 farm-ng provides libraries to facilitate safe, structured interaction with the blobstore.
 However, as a directory on disk, the blobstore is also always available for introspection and manipulation via standard command-line or desktop tools.
