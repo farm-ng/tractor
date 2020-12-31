@@ -85,12 +85,12 @@ RUN python -m pip install --upgrade pip setuptools && python -m pip install \
     protobuf==3.14.0 \
     sphinx-rtd-theme==0.5.0
 
-# sphinx: copy_third_party
+# [docs] copy_third_party
 COPY --from=farmng/build-grpc:edge $PREFIX $PREFIX
 COPY --from=farmng/build-opencv:edge $PREFIX $PREFIX
 COPY --from=farmng/build-sophus:edge $PREFIX $PREFIX
 COPY --from=farmng/build-apriltag:edge $PREFIX $PREFIX
 COPY --from=farmng/build-ceres:edge $PREFIX $PREFIX
-# sphinx: copy_third_party
+# [docs] copy_third_party
 
 COPY setup.bash /farm_ng/setup.bash

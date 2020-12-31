@@ -43,7 +43,7 @@ First, the ``devel.yml`` github action builds a docker image for each of the thi
 
 .. literalinclude:: ../.github/workflows/devel.yml
    :language: yaml
-   :end-before: doc_third_party
+   :end-before: [docs] third_party
 
 The resulting images only contain one layer, with headers and binaries
 compiled and installed under the `prefix FHS <https://en.wikipedia.org/wiki/Filesystem_Hierarchy_Standard>`_
@@ -62,8 +62,8 @@ which depends on the third party images described above:
 
 .. literalinclude:: ../docker/devel.Dockerfile
    :language: dockerfile
-   :start-after: copy_third_party
-   :end-before: copy_third_party
+   :start-after: [docs] copy_third_party
+   :end-before: [docs] copy_third_party
 
 .. note::
 

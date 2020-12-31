@@ -40,22 +40,10 @@ A ``GET`` request to ``/blobstore/<path>`` returns:
 - a ``File`` message describing the contents of ``<path>``, if ``<path>`` is a valid path to a directory in the blobstore
 - else a 404 status code
 
-.. code-block:: proto
-
-  message File {
-    message Ordinary {}
-    message Directory {
-      repeated File files = 2;
-    }
-
-    string name = 1;
-    oneof type {
-      Directory directory = 2;
-      Ordinary ordinary = 3;
-    }
-    int64 size = 4;
-    google.protobuf.Timestamp modification_time = 5;
-  }
+.. literalinclude:: ../modules/core/protos/farm_ng/core/resource.proto
+   :language: proto
+   :start-after: [docs] file
+   :end-before: [docs] file
 
 A ``POST`` request to ``/blobstore/<path>``:
 
@@ -93,32 +81,10 @@ The frontend provides a GUI for interacting with ``programd`` to start, stop, an
 
 The program listing is populated by ``ProgramSupervisorStatus`` events, published periodically by ``programd``.
 
-.. code-block:: proto
-
-  message ProgramExecution {
-    string id = 1;
-    int32 pid = 2;
-    int32 exit_code = 3;
-    google.protobuf.Timestamp stamp_start = 4;
-    google.protobuf.Timestamp stamp_end = 5;
-  }
-
-  message ProgramSupervisorStatus {
-    message ProgramRunning {
-      ProgramExecution program = 1;
-    }
-
-    message ProgramStopped {
-      ProgramExecution last_program = 1;
-    }
-
-    oneof status {
-      ProgramRunning running = 1;
-      ProgramStopped stopped = 2;
-    }
-
-    repeated Program library = 3;
-  }
+.. literalinclude:: ../modules/core/protos/farm_ng/core/programd.proto
+   :language: proto
+   :start-after: [docs] programd_status
+   :end-before: [docs] programd_status
 
 Events published with the name ``<program_name>/status``, where ``<program_name>`` corresponds to the running program, will be visualized.
 
@@ -169,23 +135,10 @@ Examples
 
 **Run a development server**
 
-.. code-block:: bash
-
-  # To launch the development server on a machine with the hostname tractor.local
-
-  # In one terminal, run the backend on port 8081
-  cd $FARM_NG_ROOT && . setup.bash
-  cd modules/frontend/go/webrtc
-  PORT=8081 go run cmd/proxy-server/main.go
-
-  # In another terminal, run a webpack-dev-server on port 8080
-  cd $FARM_NG_ROOT && . setup.bash
-  cd modules/frontend/frontend
-  BASE_URL="http://tractor.local:8081" yarn dev-start-remote --port 8080
-
-  # Wait for the initial webpack build to complete, then
-  # access the app at http://tractor.local:8080.
-  # Saved changes will automatically rebuild and refresh the page.
+.. literalinclude:: ../modules/frontend/frontend/README.md
+   :language: bash
+   :start-at: # To launch a development server
+   :end-at: # Saved changes will automatically rebuild
 
 .. _section-frontend_new_data_type:
 

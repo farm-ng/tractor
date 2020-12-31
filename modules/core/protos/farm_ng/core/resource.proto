@@ -53,6 +53,7 @@ enum Bucket {
   BUCKET_ROBOT_EXTRINSICS_DATASETS = 8;
 }
 
+// [docs] file
 message File {
   message Ordinary {}
   message Directory {
@@ -67,3 +68,4 @@ message File {
   int64 size = 4;
   google.protobuf.Timestamp modification_time = 5;
 }
+// [docs] file
