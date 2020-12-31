@@ -71,6 +71,8 @@ A ``GET`` request to ``/<path>`` will return
 - the contents of the file at ``<path>``, if ``<path>`` is a valid path to a file in the server's static directory
 - else ``index.html``, to bootstrap the single-page app
 
+.. _section-frontend_blobstore:
+
 Blobstore UI
 ------------
 .. image:: https://via.placeholder.com/1920x1080.png?text=Blobstore+Screenshot
@@ -80,6 +82,8 @@ The frontend provides a UI for browsing and updating the :ref:`blobstore<section
 - Known filetypes (currently determined by a heuristic based on the path) with a registered visualizer are visualized.
 - Known filetypes with a registered form visualization may be edited and saved.
 - All other filetypes are downloaded, or opened in a new tab in the browser.
+
+.. _section-frontend_programs:
 
 Programs UI
 -----------
@@ -117,6 +121,8 @@ The program listing is populated by ``ProgramSupervisorStatus`` events, publishe
   }
 
 Events published with the name ``<program_name>/status``, where ``<program_name>`` corresponds to the running program, will be visualized.
+
+.. _section-frontend_scope:
 
 Scope UI
 --------
@@ -158,6 +164,9 @@ pull React components, React hooks, utilities, and so on.
 
 Examples
 --------
+
+.. _section-frontend_development_server:
+
 **Run a development server**
 
 .. code-block:: bash
@@ -176,7 +185,9 @@ Examples
 
   # Wait for the initial webpack build to complete, then
   # access the app at http://tractor.local:8080.
-  # Saved changes will automatically refresh the page.
+  # Saved changes will automatically rebuild and refresh the page.
+
+.. _section-frontend_new_data_type:
 
 **Add support for a new data type**
 
