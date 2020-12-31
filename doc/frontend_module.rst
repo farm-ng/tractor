@@ -3,7 +3,7 @@
 Frontend
 ========
 
-The frontend module provides a browser-based frontend as a GUI for end-users and a graphical debugging tool for developers.
+The frontend module provides a webserver and browser-based frontend intended as a GUI for end-users and a graphical debugging tool for developers.
 
 Client/Server Model
 -------------------
@@ -71,8 +71,8 @@ A ``GET`` request to ``/<path>`` will return
 - the contents of the file at ``<path>``, if ``<path>`` is a valid path to a file in the server's static directory
 - else ``index.html``, to bootstrap the single-page app
 
-Blobstore
----------
+Blobstore UI
+------------
 .. image:: https://via.placeholder.com/1920x1080.png?text=Blobstore+Screenshot
 
 The frontend provides a UI for browsing and updating the :ref:`blobstore<section-core_blobstore>`.
@@ -81,8 +81,8 @@ The frontend provides a UI for browsing and updating the :ref:`blobstore<section
 - Known filetypes with a registered form visualization may be edited and saved.
 - All other filetypes are downloaded, or opened in a new tab in the browser.
 
-Programs
---------
+Programs UI
+-----------
 .. image:: https://via.placeholder.com/1920x1080.png?text=Programs+Screenshot
 
 The frontend provides a GUI for interacting with ``programd`` to start, stop, and monitor :ref:`programs<section-core_programs>`.
@@ -118,8 +118,8 @@ The frontend provides a GUI for interacting with ``programd`` to start, stop, an
 
 Events published with the name ``<program_name>/status``, where ``<program_name>`` corresponds to the running program, will be visualized.
 
-Scope
------
+Scope UI
+--------
 .. image:: https://via.placeholder.com/1920x1080.png?text=Scope+Screenshot
 
 The scope is a visual debugger for :ref:`event bus<section-core_eventbus>` events.
