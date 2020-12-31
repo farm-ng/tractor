@@ -51,3 +51,9 @@ Add visualization
 The final step of implementing a program is adding visualization.
 Follow the instructions in :ref:`chapter-visualizer_tutorial` to add visualizers for the
 configuration, status, and result messages defined above.
+
+Verify
+======
+
+- Launch your program from the command line.
+- Use the :ref:`programs UI<section-frontend_programs>` to start, stop, and monitor your program in the web application.
