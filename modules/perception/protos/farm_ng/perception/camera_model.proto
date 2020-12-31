@@ -10,14 +10,18 @@ message CameraModel {
   int32 image_width = 1;
   // Image height in pixels.
   int32 image_height = 2;
+  // Depthmap width in pixels.
+  int32 depthmap_width = 3;
+  // Depthmap height in pixels.
+  int32 depthmap_height= 4;
   // Image projection center x coordinate in pixels, typically close to (image_width-1)/2.0
-  double cx = 3;
+  double cx = 5;
   // Image projection center y coordinate in pixels, typically close to (image_height-1)/2.0
-  double cy = 4;
+  double cy = 6;
   // X focal length, in pixels.
-  double fx = 5;
+  double fx = 7;
   // Y focal length, in pixels. Typically close to fx.
-  double fy = 6;
+  double fy = 8;
 
   enum DistortionModel {
     DISTORTION_MODEL_UNSPECIFIED = 0;
@@ -29,15 +33,15 @@ message CameraModel {
   };
 
   // Specifies the distortion model.
-  DistortionModel distortion_model = 7;
+  DistortionModel distortion_model = 9;
 
   // Distortion model coefficients.
   // Typically 5 values, some may be 0.0.
   // Ordered according to the OpenCV convention: (k_1, k_2, p_1, p_2[, k_3[, k_4, k_5, k_6]])
-  repeated double distortion_coefficients = 8;
+  repeated double distortion_coefficients = 10;
 
   // Frame name
-  string frame_name = 9;
+  string frame_name = 11;
 };
 
 // TODO(ethanrublee): Evaluate how this can express a camera rig with a root other than a camera

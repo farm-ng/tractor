@@ -26,6 +26,8 @@ class VideoStreamer {
 
   Image AddFrame(const cv::Mat& image,
                  const google::protobuf::Timestamp& stamp);
+  Image AddFrameWithDepthmap(const cv::Mat& image, const cv::Mat& depthmap,
+                             const google::protobuf::Timestamp& stamp);
   void Close();
 
  private:
@@ -35,6 +37,7 @@ class VideoStreamer {
   Mode mode_;
   Image image_pb_;
   std::shared_ptr<cv::VideoWriter> writer_;
+  std::shared_ptr<cv::VideoWriter> writer_depthmap_;
   const uint k_max_frames_ = 300;
   uint64_t port_;
 };

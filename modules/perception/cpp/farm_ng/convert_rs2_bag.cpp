@@ -3,7 +3,7 @@
  * structure:
  * <Blobstore root>
  *   - logs/<name>
- *     - <camera_frame_name>-<process ID>-<counter>.mp4
+ *     - <camera_frame_name>/color-<process ID>-<counter>.mp4
  *       - The program outputs mp4 files in 300-frame
  *          chunks, so there may be multiple of these
  *          files for each program run.
@@ -13,7 +13,7 @@
  *       - human-readable summary of the program execution
  *
  * TODO (collinbrake | ethanruble | isherman):
- *   - add depth data to event log
+ *   - fix bug where num_frames resets with video streamer
  *   - output jpeg sequence
  *   - support interactive mode with the browser
  *   - check out h265 encoding as alternative to h264
@@ -98,14 +98,13 @@ class ConvertRS2BagProgram {
     auto color_stream =
         selection.get_stream(RS2_STREAM_COLOR).as<rs2::video_stream_profile>();
 
-    CameraModel camera_model;
-    camera_model.set_frame_name(configuration_.camera_frame_name() + "/color");
+    CameraModel camera_model = DefaultDepthD435Model();
+    camera_model.set_frame_name(configuration_.camera_frame_name());
     SetCameraModelFromRs(&camera_model, color_stream.get_intrinsics());
 
     Image image_pb;  // result must have access to this
                      // outside of the loop
 
-    // SingleCameraPipeline could be applicable here at some point
     VideoStreamer streamer =
         VideoStreamer(bus_, camera_model,
 
@@ -121,21 +120,21 @@ class ConvertRS2BagProgram {
 
         // Get the depth and color frames
         rs2::video_frame color_frame = frames.get_color_frame();
-        // rs2::depth_frame depth_frame =
-        // frames.get_depth_frame();
+        rs2::depth_frame depth_frame = frames.get_depth_frame();
 
         // Query frame size (width and height)
         const int wc = color_frame.get_width();
         const int hc = color_frame.get_height();
-        // const int wd = depth_frame.get_width();
-        // const int hd = depth_frame.get_height();
+        const int wd = depth_frame.get_width();
+        const int hd = depth_frame.get_height();
 
         CHECK_EQ(camera_model.image_width(), wc);
         CHECK_EQ(camera_model.image_height(), hc);
 
         // Image matrices from rs2 frames
         cv::Mat color = RS2FrameToMat(color_frame);
-        // cv::Mat depth = RS2FrameToMat(depth_frame);
+        cv::Mat depth;
+        RS2FrameToMat(depth_frame).convertTo(depth, CV_8UC1);
 
         if (color.empty()) {
           break;
@@ -144,7 +143,7 @@ class ConvertRS2BagProgram {
         auto frame_stamp =
             google::protobuf::util::TimeUtil::MillisecondsToTimestamp(
                 color_frame.get_timestamp());
-        image_pb = streamer.AddFrame(color, frame_stamp);
+        image_pb = streamer.AddFrameWithDepthmap(color, depth, frame_stamp);
 
         // Send out the image Protobuf on the event bus
         auto stamp = core::MakeTimestampNow();
