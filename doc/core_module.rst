@@ -17,6 +17,7 @@ is language-neutral, and both forwards and backwards-compatible.
 Protobuf's tooling makes it easy to generate serialization code and service stubs for a variety of languages and frameworks.
 Currently, we generate code for C++, Python, Go, and Typescript.
 
+.. _section-core_eventbus:
 
 Interprocess Communication
 --------------------------
@@ -53,6 +54,8 @@ Processes publish ``Events`` to subscribers via UDP unicast.
   }
 
 ``Events`` are limited to the size of a single UDP datagram. However, events may include ``Resource`` fields that reference larger chunks of `persistent data`_. Other transports are available for :ref:`image data <Image Data>`.
+
+.. _section-core_blobstore:
 
 Persistent Data
 ---------------
@@ -130,6 +133,8 @@ Services may be started manually from the command line, but are usually managed 
       volumes:
         - "${BLOBSTORE_ROOT:?err}:/blobstore"
       network_mode: host
+
+.. _section-core_programs:
 
 Programs
 --------

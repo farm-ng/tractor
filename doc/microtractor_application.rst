@@ -4,7 +4,6 @@ Microtractor
 ============
 
 .. image:: https://via.placeholder.com/1920x1080.png?text=Overview+Screenshot
-  :alt: my-picture1
 
 .. |external_link| raw:: html
 
