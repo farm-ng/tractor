@@ -150,7 +150,9 @@ You should see something similar to:
   $ docker-compose -f docker-compose.devel.yml up
   Creating docker_devel_1 ... done
   Attaching to docker_devel_1
-  devel_1  | Container is running, attach to me.
+  devel_1  | farm-ng's devel container is running.  Press Ctrl-C to stop it.
+  devel_1  | You can open up a shell inside the container:
+  devel_1  |   docker exec -it docker_devel_1 bash
 
 
 To stop the container, just press ``Ctrl-C``.
