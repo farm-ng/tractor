@@ -33,6 +33,53 @@ Examples
 --------
 TODO
 
+Setting up your Development Environment
+=======================================
+We have chosen to encapsulate the development environment in a docker container and to fully support
+development in Visual Studio Code, to ease on boarding of collaborators with various levels of
+experience, and simplify reproducibility.  Its also possible to build on bare metal, and the
+Dockerfiles serve as documentation for our system dependencies.
+
+We've tested this using development machines running Ubuntu 18.04 Desktop, NVidia's jetson nano and xavier platforms, and Mac OS.
+Windows support should also be possible easily, but hasn't been tested.
+
+To get started you'll need installed:
+
+- git
+- vscode
+- docker
+- docker-components
+
+For docker follow the instructions for your platform here: https://docs.docker.com/engine/install/
+
+On Ubuntu:
++++++++++++
+
+
+Docker instructions are here: https://docs.docker.com/engine/install/ubuntu/
+
+Please ensure that you have added yourself to the docker group, and log out and back in so that don't need root to run docker commands:
+
+```bash
+sudo usermod -aG docker $USER
+```
+
+Install git:
+```bash
+sudo apt install git
+```
+
+Install docker-compose using pip:
+```
+sudo apt install pip3
+sudo pip3 install docker-compose
+```
+
+
+
+
+
+
 Building from source
 ====================
 The following instructions describe building the entire farm-ng source tree.
