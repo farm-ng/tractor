@@ -15,9 +15,9 @@
  *       - human-readable summary of the program execution
  *
  * TODO (collinbrake | ethanruble | isherman):
- *   - output jpeg sequence
+ *   - normalize depth values with far/near, populate in Depthmap
+ *   - output jpeg sequence for color and png sequence for depth
  *   - support interactive mode with the browser
- *   - check out h265 encoding as alternative to h264
  */
 
 #include <iostream>
