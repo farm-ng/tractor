@@ -6,7 +6,7 @@ Libraries
 
 farm-ng provides open-source software libraries for developing autonomy applications.
 
-Libraries are organized into `modules`. Modules include source code (C++, Python, Go, Typescript), protobuf definitions, and integration tests.
+Libraries are organized into `modules`. Modules include source code (C++, Python, Go, Typescript), IDL definitions, and integration tests.
 
 .. toctree::
    :maxdepth: 2

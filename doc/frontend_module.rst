@@ -156,7 +156,7 @@ the DOM, Javascript, React, HTTP, and all the features of the browser platform, 
 that provides a generic visualization API for C++ and Python developers.
 
 You may wish to extend the frontend by addding visualizers for your custom data types,
-or adding alternative visualizers for existing data types. This process is explained in the :ref:`Adding a Visualizer<chapter-visualizer_tutorial>` tutorial.
+or adding alternative visualizers for existing data types. This process is explained in the :ref:`Writing a Visualizer<chapter-visualizer_tutorial>` tutorial.
 
 Alternatively, you may wish to build an entirely new React web application, using the frontend module as a JS/TS library from which to
 pull React components, React hooks, utilities, and so on.

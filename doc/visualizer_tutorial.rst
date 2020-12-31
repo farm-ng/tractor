@@ -1,16 +1,16 @@
 .. _chapter-visualizer_tutorial:
 
 ===================
-Adding a Visualizer
+Writing a Visualizer
 ===================
 
 This tutorial explains how to write a visualizer for a custom data type,
-or a custom visualizer for an existing data type, for the :ref:`frontend web application<chapter-frontend_module>`.
+or a custom visualizer for an existing data type, in Typescript.
 
 Introduction
 ============
 
-A Visualizer is defined by the following interface:
+A ``Visualizer`` is defined by the following interface:
 
 .. code-block:: ts
 
@@ -39,7 +39,8 @@ Prerequisites
 2. Ensure the data type you'd like to visualize is registered
 
   Follow the instructions for :ref:`registering a new data type<section-frontend_new_data_type>`,
-  or work with an existing data type. In this tutorial we'll work with ``farm_ng.perception.Vec2``.
+  or work with an existing data type. In this tutorial we'll work with the existing data type
+  ``farm_ng.perception.Vec2``.
 
 Define your visualizer
 ======================

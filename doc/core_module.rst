@@ -100,6 +100,8 @@ A log replayer is available as a binary and a library.
 
   build/modules/core/cpp/farm_ng/log_playback --log foo.log --loop --send --speed 2
 
+.. _section-core_services:
+
 Services
 --------
 Services are long-lived processes that participate on the event bus.

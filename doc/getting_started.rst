@@ -105,6 +105,6 @@ Tutorials
 .. toctree::
    :maxdepth: 1
 
-   helloworld_tutorial
+   service_tutorial
    program_tutorial
    visualizer_tutorial
