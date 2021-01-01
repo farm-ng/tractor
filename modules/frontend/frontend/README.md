@@ -21,20 +21,23 @@ In production, the API and SPA are served by the same server.
 
 In development it's helpful to run them separately.
 
-1. Start the API
-
 ```
-cd $FARM_NG_ROOT/modules/frontend/go/webrtc
-PORT=8081 go run cmd/proxy-server/main.go
-```
+  # To launch a development server on a machine with the hostname tractor.local
 
-2. Start the SPA (with `webpack-dev-server` in watch mode)
+  # In one terminal, run the backend on port 8081
+  cd $FARM_NG_ROOT && . setup.bash
+  cd modules/frontend/go/webrtc
+  PORT=8081 go run cmd/proxy-server/main.go
 
-```
-cd $FARM_NG_ROOT/modules/frontend/frontend
-BASE_URL="http://tractor.local:8081" yarn dev-start-remote --port 8080
-```
+  # In another terminal, run webpack-dev-server (in watch mode) on port 8080
+  cd $FARM_NG_ROOT && . setup.bash
+  cd modules/frontend/frontend
+  BASE_URL="http://tractor.local:8081" yarn dev-start-remote --port 8080
 
+  # Wait for the initial webpack build to complete, then
+  # access the app at http://tractor.local:8080.
+  # Saved changes will automatically rebuild and refresh the page.
+```
 
 ### Concepts
 
@@ -47,7 +50,6 @@ BASE_URL="http://tractor.local:8081" yarn dev-start-remote --port 8080
 - Visualizers may expose options.
 - The `Programs` view allows programs to define a filter on eventbus traffic by event _name_. It then uses the generic `Event` visualizer, which displays the preferred visualization for each event in the vector.
 - Note, `Visualizers` are distinct from the library of UI components we use to help us build visualizers. For example, the `Plot` is a UI component, while the `SteeringCommandVisualizer` is a visualizer that uses `Plots` to display velocities.
-
 
 ### Experimental
 

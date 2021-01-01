@@ -26,32 +26,18 @@ farm-ng uses a lightweight, decentralized, UDP-based **event bus** for interproc
 
 Processes announce their presence to the bus periodically by sending a serialized ``Announce`` message to a predetermined UDP multicast group.
 
-.. code-block:: proto
-
-  message Announce {
-    string host = 1;
-    int32 port = 2;
-    string service = 3;
-    google.protobuf.Timestamp stamp = 4;
-    google.protobuf.Timestamp recv_stamp = 5;
-    repeated Subscription subscriptions = 6;
-  }
-
-  message Subscription {
-    // A regular expression that acts as a filter on event names.
-    string name = 1;
-  }
+.. literalinclude:: ../modules/core/protos/farm_ng/core/io.proto
+   :language: proto
+   :start-after: [docs] announce
+   :end-before: [docs] announce
 
 Processes publish ``Events`` to subscribers via UDP unicast.
 
-.. code-block:: proto
+.. literalinclude:: ../modules/core/protos/farm_ng/core/io.proto
+   :language: proto
+   :start-after: [docs] event
+   :end-before: [docs] event
 
-  message Event {
-    google.protobuf.Timestamp stamp = 1;
-    string name = 2;
-    google.protobuf.Any data = 3;
-    google.protobuf.Timestamp recv_stamp = 4;
-  }
 
 ``Events`` are limited to the size of a single UDP datagram. However, events may include ``Resource`` fields that reference larger chunks of `persistent data`_. Other transports are available for :ref:`image data <Image Data>`.
 

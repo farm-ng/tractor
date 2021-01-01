@@ -4,35 +4,66 @@
 Writing a Program
 =================
 
-This tutorial explains how to write a Hello World :ref:`program<section-programs>` in C++.
+This tutorial explains how to write a :ref:`program<section-core_programs>` in C++.
 
-Introduction
-============
+Our program will count down from N to 0, outputting each value to a result file
+in the :ref:`blobstore<section-core_blobstore>`.
 
 Prerequisites
 =============
 
+This tutorial assumes a working C++ development environment (TODO link).
+
 Define the Interface
 ====================
+
+Programs, by convention, define a ``Configuration``, ``Status``, and ``Result`` message.
+
+Add a ``countdown.proto`` file with the following contents:
+
+.. literalinclude:: ../modules/core/protos/farm_ng/core/countdown.proto
+   :language: proto
+   :lines: 2-
+
+Add a build target:
+
+.. literalinclude:: ../modules/core/protos/CMakeLists.txt
+   :language: cmake
+   :emphasize-lines: 7
 
 Implement the Program
 =====================
 
-Add to programd
-===============
+Add the ``countdown.cpp`` file with the following contents:
 
-To make ``programd`` aware of our new program, add to
+.. literalinclude:: ../modules/core/cpp/farm_ng/countdown.cpp
+   :language: cpp
+   :lines: 2-
+
+Add a build target:
+
+.. literalinclude:: ../modules/core/cpp/farm_ng/CMakeLists.txt
+   :language: cmake
+   :start-after: [docs] countdown
+   :end-before: [docs] countdown
+
+Verify that your program runs successfully from the command line, with the expected output.
+
+Add Frontend Support
+====================
+
+To make ``programd`` aware of our new program, add the following to
 `core/config/programd/programs.json <https://github.com/farm-ng/tractor/blob/master/core/config/programd/programs.json>`_.
 
 .. code-block:: json
 
   "programs": [
     {
-      "id": "TODO",
-      "name": "TODO",
-      "description": "TODO",
+      "id": "countdown",
+      "name": "Countdown",
+      "description": "Counts down from N to 0, outputting to a file in the blobstore",
       "launchPath": {
-        "path": "TODO",
+        "path": "build/modules/core/cpp/farm_ng/countdown",
         "rootEnvVar": "FARM_NG_ROOT"
       },
       "launchArgs": ["-interactive"]
@@ -45,15 +76,7 @@ To make ``programd`` aware of our new program, add to
   Soon, ``programd`` will accept a search path for configuration files.
 
 
-Add visualization
-=================
+Then, follow the instructions in :ref:`chapter-visualizer_tutorial` to add visualizers for the
+``CountdownConfiguration``, ``CountdownStatus``, and ``CountdownResult`` messages defined above.
 
-The final step of implementing a program is adding visualization.
-Follow the instructions in :ref:`chapter-visualizer_tutorial` to add visualizers for the
-configuration, status, and result messages defined above.
-
-Verify
-======
-
-- Launch your program from the command line.
-- Use the :ref:`programs UI<section-frontend_programs>` to start, stop, and monitor your program in the web application.
+Verify that you can use the :ref:`programs UI<section-frontend_programs>` to start, stop, and monitor your program in the web application.
