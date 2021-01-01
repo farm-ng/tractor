@@ -198,6 +198,9 @@ Here is the docker-compose file, for reference.
 .. literalinclude:: ../docker/docker-compose.devel.yml
    :language: yaml
 
+We mount a volume at ``/root/``, as this is the root user's home directory in our docker,
+so that bash history and other cached variables are persisted.
+
 .. note::
 
    Currently the docker container user is root.  We want to fix that shortly, so it matches your user id on the host...
@@ -220,9 +223,13 @@ Now attach to the container ``docker_devel_1`` using **Remote-Containers: Attach
 For more information see https://code.visualstudio.com/docs/remote/attach-container
 
 
-Now that you're attached, open the workspace file ``/home//workspace.code-workspace`` and install the suggested plugins.
+Now that you're attached, open the workspace file ``/workspace/tractor/workspace.code-workspace`` and install the suggested plugins.
 
-Try building with cmake in vscode by pressing ``F7``
+Wait while vscode installs the extensions.
+
+Try building with cmake in vscode by pressing ``F7``.
+- Click Unspecified when prompted to Select a Kit.
+- You can see the build output by clicking around in the UI.
 
 vscode over ssh
 ---------------
@@ -230,8 +237,15 @@ vscode over ssh
 This same workflow should also work if you're connected to a remote vscode host.
 This is how we develop on remote machines such as robots.
 
-Connect to the remote host via the remote-ssh plugin, and then follow the above steps.
-https://code.visualstudio.com/docs/remote/ssh-tutorial
+To attach to a remote container over ssh just add the following to your settings.json file, and reopen vscode:
+
+.. code-block::
+
+   "docker.host":"ssh://your-remote-user@your-remote-machine-fqdn-or-ip-here"
+
+Now you can follow the steps above.
+
+For more details see: https://code.visualstudio.com/docs/remote/containers-advanced#_a-basic-remote-example
 
 
 Building the code
