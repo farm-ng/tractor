@@ -29,6 +29,7 @@
 #include <opencv2/videoio.hpp>
 
 #include "farm_ng/core/blobstore.h"
+#include "farm_ng/core/event_log.h"
 #include "farm_ng/core/init.h"
 #include "farm_ng/core/ipc.h"
 
@@ -37,6 +38,7 @@
 #include "farm_ng/perception/convert_rs2_bag.pb.h"
 #include "farm_ng/perception/image.pb.h"
 #include "farm_ng/perception/intel_rs2_utils.h"
+#include "farm_ng/perception/pose_utils.h"
 #include "farm_ng/perception/video_streamer.h"
 
 DEFINE_bool(interactive, false, "receive program args via eventbus");
@@ -57,6 +59,152 @@ using farm_ng::core::Subscription;
 namespace farm_ng {
 namespace perception {
 
+void QuantizeDepthMap(cv::Mat depthmap, Depthmap::Range range,
+                      cv::Mat* depthmap_out,
+                      int output_type,  // CV_8UC1, or CV_16UC1
+                      std::optional<double>* depth_near,
+                      std::optional<double>* depth_far) {
+  if (range == Depthmap::RANGE_MM) {
+    // for RANGE_MM we don't compute the near and far depth.
+    depth_near->reset();
+    depth_far->reset();
+    // if 16 bit, and mm, assume 16bit is already in mm.
+    if (depthmap.type() == CV_16UC1) {
+      *depthmap_out = depthmap;
+    } else if (depthmap.type() == CV_32FC1) {
+      CHECK_EQ(output_type, CV_16UC1) << "Only 16bit makes sense for mm";
+      // if 32 bit float, assume depth in meters, so convert to mm.
+      depthmap.convertTo(*depthmap_out, CV_16UC1, 1000);
+    } else {
+      CHECK(depthmap.type() == CV_32FC1 || depthmap.type() == CV_16UC1);
+    }
+    return;
+  }
+  double min_val, max_val;
+
+  cv::Mat depthmap_float;
+  depthmap.convertTo(depthmap_float, CV_32F);
+  cv::minMaxLoc(depthmap_float, &min_val, &max_val);
+  double depth_scale = 1.0;
+  if (depthmap.type() == CV_16UC1) {
+    depth_scale = 0.001;
+  }
+  // depth_far and depth_near are in meters.
+  *depth_far = max_val * depth_scale;
+  *depth_near = min_val * depth_scale;
+
+  // depth_normalized will be between [0,1].
+  // See depthmap.proto for details.
+  cv::Mat depth_normalized;
+  if (range == Depthmap::RANGE_INVERSE) {
+    depth_normalized = (max_val * (depthmap_float - min_val)) /
+                       (depthmap_float * (max_val - min_val));
+  } else if (range == Depthmap::RANGE_LINEAR) {
+    depth_normalized = (depthmap_float - min_val) / (max_val - min_val);
+  }
+  if (output_type == CV_8UC1) {
+    depth_normalized.convertTo(*depthmap_out, CV_8UC1,
+                               std::numeric_limits<uint8_t>::max());
+  } else if (output_type == CV_16UC1) {
+    depth_normalized.convertTo(*depthmap_out, CV_16UC1,
+                               std::numeric_limits<uint16_t>::max());
+  } else {
+    LOG(FATAL) << "output_type must be CV_8UC1 or CV_16UC1";
+  }
+}
+
+class ImageSequenceWriter {
+ public:
+  ImageSequenceWriter(const CameraModel& camera_model,
+                      VideoStreamer::Mode mode) {
+    image_pb_.mutable_camera_model()->CopyFrom(camera_model);
+    image_pb_.mutable_frame_number()->set_value(0);
+    CHECK(mode == VideoStreamer::MODE_JPG_SEQUENCE ||
+          mode == VideoStreamer::MODE_PNG_SEQUENCE);
+    if (mode == VideoStreamer::MODE_JPG_SEQUENCE) {
+      extension_ = "jpg";
+      content_type_ = "image/jpeg";
+    }
+    if (mode == VideoStreamer::MODE_PNG_SEQUENCE) {
+      extension_ = "png";
+      content_type_ = "image/png";
+    }
+  }
+  Image WriteImage(cv::Mat image) {
+    // copy image_pb_ field, because we're going
+    // to increment frame_number for the next image,
+    // but want to return the current frame_number.
+    Image image_pb(image_pb_);
+    image_pb_.mutable_frame_number()->set_value(
+        image_pb_.frame_number().value() + 1);
+
+    auto resource_path = core::GetUniqueArchiveResource(
+        FrameNameNumber(image_pb.camera_model().frame_name(),
+                        image_pb.frame_number().value()),
+        extension_, content_type_);
+
+    image_pb.mutable_resource()->CopyFrom(resource_path.first);
+    // LOG(INFO) << resource_path.second.string();
+    CHECK(cv::imwrite(resource_path.second.string(), image))
+        << "Could not write: " << resource_path.second;
+    return image_pb;
+  }
+
+  Image WriteImageWithDepth(cv::Mat image, cv::Mat depthmap,
+                            VideoStreamer::DepthMode mode) {
+    CHECK_EQ(image.size().width, depthmap.size().width);
+    CHECK_EQ(image.size().height, depthmap.size().height);
+    Image image_pb = WriteImage(image);
+    cv::Mat depthmap_q;
+    std::optional<double> depth_near, depth_far;
+    Depthmap::Range range;
+    int output_type;
+    std::string depth_extension;
+    std::string depth_content_type;
+    if (mode == VideoStreamer::DEPTH_MODE_LINEAR_16BIT_PNG) {
+      range = Depthmap::RANGE_LINEAR;
+      output_type = CV_16UC1;
+      depth_extension = "png";
+      depth_content_type = "image/png";
+    } else if (mode == VideoStreamer::DEPTH_MODE_INVERSE_16BIT_PNG) {
+      range = Depthmap::RANGE_INVERSE;
+      output_type = CV_16UC1;
+      depth_extension = "png";
+      depth_content_type = "image/png";
+
+    } else if (mode == VideoStreamer::DEPTH_MODE_INVERSE_8BIT_JPG) {
+      range = Depthmap::RANGE_INVERSE;
+      output_type = CV_8UC1;
+      depth_extension = "jpg";
+      depth_content_type = "image/jpeg";
+
+    } else {
+      LOG(FATAL) << "unsupported mode: " << mode;
+    }
+    QuantizeDepthMap(depthmap, range, &depthmap_q, output_type, &depth_near,
+                     &depth_far);
+    CHECK(depth_near);
+    CHECK(depth_far);
+    LOG(INFO) << "Depth near : " << *depth_near << " Depth far: " << *depth_far;
+    auto resource_path = core::GetUniqueArchiveResource(
+        FrameNameNumber(image_pb.camera_model().frame_name(),
+                        image_pb.frame_number().value(), "_depthmap"),
+        depth_extension, depth_content_type);
+
+    // LOG(INFO) << resource_path.second.string();
+    CHECK(cv::imwrite(resource_path.second.string(), depthmap_q))
+        << "Could not write depthmap: " << resource_path.second;
+    image_pb.mutable_depthmap()->set_range(range);
+
+    image_pb.mutable_depthmap()->mutable_depth_near()->set_value(*depth_near);
+    image_pb.mutable_depthmap()->mutable_depth_far()->set_value(*depth_far);
+    image_pb.mutable_resource()->CopyFrom(resource_path.first);
+    return image_pb;
+  }
+  Image image_pb_;
+  std::string extension_;
+  std::string content_type_;
+};
 class ConvertRS2BagProgram {
  public:
   ConvertRS2BagProgram(EventBus& bus, ConvertRS2BagConfiguration configuration,
@@ -69,7 +217,7 @@ class ConvertRS2BagProgram {
     }
     bus_.GetEventSignal()->connect(std::bind(&ConvertRS2BagProgram::on_event,
                                              this, std::placeholders::_1));
-    bus_.AddSubscriptions({bus_.GetName(), "logger/command", "logger/status"});
+    bus_.AddSubscriptions({bus_.GetName()});
   }
 
   int run() {
@@ -77,8 +225,6 @@ class ConvertRS2BagProgram {
     while (status_.has_input_required_configuration()) {
       bus_.get_io_service().run_one();
     }
-
-    WaitForServices(bus_, {"ipc_logger"});
 
     ConvertRS2BagResult result;
 
@@ -107,13 +253,18 @@ class ConvertRS2BagProgram {
     Image image_pb;  // result must have access to this
                      // outside of the loop
 
-    VideoStreamer streamer =
-        VideoStreamer(bus_, camera_model,
+    ImageSequenceWriter writer(camera_model, VideoStreamer::MODE_JPG_SEQUENCE);
 
-                      // TODO(collinbrake): Support MODE_JPG_SEQUENCE
-                      VideoStreamer::MODE_MP4_FILE);
+    std::string log_path = (core::GetBucketRelativePath(core::BUCKET_LOGS) /
+                            boost::filesystem::path(configuration_.name()))
+                               .string();
 
-    LoggingStatus log = StartLogging(bus_, configuration_.name());
+    core::SetArchivePath(log_path);
+
+    auto resource_path = farm_ng::core::GetUniqueArchiveResource(
+        "events", "log", "application/farm_ng.eventlog.v1");
+
+    core::EventLogWriter log_writer(resource_path.second);
 
     while (true) {
       try {
@@ -155,19 +306,14 @@ class ConvertRS2BagProgram {
             depthmap.type() == CV_16UC1 || depthmap.type() == CV_32FC1;
         CHECK(valid_depthmap_type);
 
-        image_pb = streamer.AddFrameWithDepthmap(color, depthmap, frame_stamp);
+        image_pb = writer.WriteImageWithDepth(
+            color, depthmap, VideoStreamer::DEPTH_MODE_LINEAR_16BIT_PNG);
 
-        // Send out the image Protobuf on the event bus
-        auto stamp = core::MakeTimestampNow();
-        bus_.Send(
-            MakeEvent(camera_model.frame_name() + "/image", image_pb, stamp));
+        // Write image_pb to the event log.
+        log_writer.Write(MakeEvent(camera_model.frame_name() + "/image",
+                                   image_pb, frame_stamp));
 
-        // zero index base for the frame_number, set after
-        // send.
-        image_pb.mutable_frame_number()->set_value(
-            image_pb.frame_number().value() + 1);
-
-        status_.set_num_frames(status_.num_frames() + 1);
+        status_.set_num_frames(image_pb.frame_number().value());
 
       } catch (const rs2::error& e) {
         std::stringstream ss;
@@ -179,9 +325,7 @@ class ConvertRS2BagProgram {
     }
 
     result.mutable_configuration()->CopyFrom(configuration_);
-    result.mutable_dataset()->set_path(log.recording().archive_path());
-    result.mutable_dataset()->set_content_type(
-        "application/farm_ng.eventlog.v1");
+    result.mutable_dataset()->CopyFrom(resource_path.first);
     result.mutable_stamp_end()->CopyFrom(MakeTimestampNow());
 
     ArchiveProtobufAsJsonResource(configuration_.name(), result);
@@ -240,10 +384,7 @@ int Main(farm_ng::core::EventBus& bus) {
   return program.run();
 }
 
-void Cleanup(farm_ng::core::EventBus& bus) {
-  farm_ng::core::RequestStopLogging(bus);
-  LOG(INFO) << "Requested Stop logging";
-}
+void Cleanup(farm_ng::core::EventBus& bus) {}
 
 int main(int argc, char* argv[]) {
   return farm_ng::core::Main(argc, argv, &Main, &Cleanup);

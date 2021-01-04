@@ -25,7 +25,8 @@ class VideoStreamer {
   enum DepthMode {
     DEPTH_MODE_UNDEFINED = 0,
     DEPTH_MODE_LINEAR_16BIT_PNG = 1,
-    DEPTH_MODE_LINEAR_8BIT_JPG = 2
+    DEPTH_MODE_INVERSE_16BIT_PNG = 2,
+    DEPTH_MODE_INVERSE_8BIT_JPG = 3
   };
 
   VideoStreamer(farm_ng::core::EventBus& bus, const CameraModel& camera_model,
@@ -43,6 +44,7 @@ class VideoStreamer {
 
   farm_ng::core::EventBus& bus_;
   Mode mode_;
+  DepthMode depth_mode_;
   Image image_pb_;
   std::shared_ptr<cv::VideoWriter> writer_;
   std::shared_ptr<cv::VideoWriter> writer_depthmap_;
