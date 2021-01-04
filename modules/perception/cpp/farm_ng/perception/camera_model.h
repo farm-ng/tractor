@@ -211,7 +211,6 @@ Eigen::Matrix<T, 3, 1> ReprojectPixelToPoint(
   return Eigen::Matrix<T, 3, 1>(depth * x, depth * y, depth);
 }
 
-CameraModel DefaultDepthD435Model();
 CameraModel DefaultFishEyeT265CameraModel();
 CameraModel Default1080HDCameraModel();
 CameraModel DefaultCameraModel(const std::string& frame_name, int width,

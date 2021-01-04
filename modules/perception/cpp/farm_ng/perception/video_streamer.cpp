@@ -88,8 +88,8 @@ void VideoStreamer::ResetVideoStreamer(bool is_color) {
       gst_pipeline_depthmap,
       0,                        // fourcc
       image_pb_.fps().value(),  // fps
-      cv::Size(image_pb_.camera_model().depthmap_width(),
-               image_pb_.camera_model().depthmap_height()),
+      cv::Size(image_pb_.camera_model().image_width(),
+               image_pb_.camera_model().image_height()),
       false);
 }
 Image VideoStreamer::AddFrame(const cv::Mat& image,
@@ -116,6 +116,9 @@ Image VideoStreamer::AddFrame(const cv::Mat& image,
   }
   return image_sent;
 }
+
+// AddFrameWithDepthmap() expects depthmap to be of type CV_16UC1
+// (millimeters) or CV_32FC1 (meters).
 Image VideoStreamer::AddFrameWithDepthmap(
     const cv::Mat& image, const cv::Mat& depthmap,
     const google::protobuf::Timestamp& stamp) {

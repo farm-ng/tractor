@@ -3,12 +3,6 @@
 namespace farm_ng {
 namespace perception {
 
-CameraModel DefaultDepthD435Model() {
-  CameraModel model;
-  model.set_depthmap_width(848);
-  model.set_depthmap_height(480);
-  return model;
-}
 CameraModel DefaultFishEyeT265CameraModel() {
   CameraModel model;
   model.set_image_width(848);
