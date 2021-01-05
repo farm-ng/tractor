@@ -85,6 +85,7 @@ void QuantizeDepthMap(cv::Mat depthmap, Depthmap::Range range,
   cv::Mat depthmap_float;
   depthmap.convertTo(depthmap_float, CV_32F);
   cv::minMaxLoc(depthmap_float, &min_val, &max_val);
+
   double depth_scale = 1.0;
   if (depthmap.type() == CV_16UC1) {
     depth_scale = 0.001;
@@ -97,8 +98,7 @@ void QuantizeDepthMap(cv::Mat depthmap, Depthmap::Range range,
   // See depthmap.proto for details.
   cv::Mat depth_normalized;
   if (range == Depthmap::RANGE_INVERSE) {
-    depth_normalized = (max_val * (depthmap_float - min_val)) /
-                       (depthmap_float * (max_val - min_val));
+    depth_normalized = ((max_val - min_val) /(depthmap_float - min_val + max_val - min_val) - 0.5)/0.5;
   } else if (range == Depthmap::RANGE_LINEAR) {
     depth_normalized = (depthmap_float - min_val) / (max_val - min_val);
   }
@@ -307,7 +307,7 @@ class ConvertRS2BagProgram {
         CHECK(valid_depthmap_type);
 
         image_pb = writer.WriteImageWithDepth(
-            color, depthmap, VideoStreamer::DEPTH_MODE_LINEAR_16BIT_PNG);
+            color, depthmap, VideoStreamer::DEPTH_MODE_INVERSE_16BIT_PNG);
 
         // Write image_pb to the event log.
         log_writer.Write(MakeEvent(camera_model.frame_name() + "/image",
