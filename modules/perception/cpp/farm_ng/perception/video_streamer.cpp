@@ -21,7 +21,7 @@ VideoStreamer::VideoStreamer(EventBus& bus, const CameraModel& camera_model,
 
 void VideoStreamer::ResetVideoStreamer(bool is_color) {
   // TODO(ethanrublee) look up image size from realsense profile.
-  std::string gst_pipeline, gst_pipeline_depthmap;
+  std::string gst_pipeline;
   if (mode_ == MODE_MP4_UDP) {
     // image_pb_.mutable_fps()->set_value(30);
     std::string encoder;
@@ -48,22 +48,12 @@ void VideoStreamer::ResetVideoStreamer(bool is_color) {
       encoder = " x264enc ! ";
     }
     auto resource_path = GetUniqueArchiveResource(
-        image_pb_.camera_model().frame_name() + "/color", "mp4", "video/mp4");
+        image_pb_.camera_model().frame_name(), "mp4", "video/mp4");
     gst_pipeline =
         std::string("appsrc !") + " videoconvert ! " + encoder +
         " mp4mux ! filesink location=" + resource_path.second.string();
     image_pb_.mutable_resource()->CopyFrom(resource_path.first);
     image_pb_.mutable_frame_number()->set_value(0);
-
-    // Populate the Depthmap field of Image here and create
-    // gstreamer pipeline for depth map writing
-    auto depthmap_path = GetUniqueArchiveResource(
-        image_pb_.camera_model().frame_name() + "/depth", "mp4", "video/mp4");
-    gst_pipeline_depthmap =
-        std::string("appsrc !") + " videoconvert ! " + encoder +
-        " mp4mux ! filesink location=" + depthmap_path.second.string();
-    image_pb_.mutable_depthmap()->mutable_resource()->CopyFrom(
-        depthmap_path.first);
 
   } else {
     LOG(FATAL) << "Unsupported mode: " << mode_;
@@ -84,13 +74,6 @@ void VideoStreamer::ResetVideoStreamer(bool is_color) {
       cv::Size(image_pb_.camera_model().image_width(),
                image_pb_.camera_model().image_height()),
       is_color);
-  writer_depthmap_ = std::make_shared<cv::VideoWriter>(
-      gst_pipeline_depthmap,
-      0,                        // fourcc
-      image_pb_.fps().value(),  // fps
-      cv::Size(image_pb_.camera_model().image_width(),
-               image_pb_.camera_model().image_height()),
-      false);
 }
 Image VideoStreamer::AddFrame(const cv::Mat& image,
                               const google::protobuf::Timestamp& stamp) {
@@ -117,39 +100,8 @@ Image VideoStreamer::AddFrame(const cv::Mat& image,
   return image_sent;
 }
 
-// AddFrameWithDepthmap() expects depthmap to be of type CV_16UC1
-// (millimeters) or CV_32FC1 (meters).
-Image VideoStreamer::AddFrameWithDepthmap(
-    const cv::Mat& image, const cv::Mat& depthmap,
-    const google::protobuf::Timestamp& stamp) {
-  if (!writer_ || !writer_depthmap_) {
-    bool is_color = image.channels() == 3;
-    ResetVideoStreamer(is_color);
-  }
-  writer_->write(image);
-  writer_depthmap_->write(depthmap);
-  Image image_sent = image_pb_;
-  if (mode_ == MODE_MP4_FILE) {
-    bus_.AsyncSend(MakeEvent(image_sent.camera_model().frame_name() + "/image",
-                             image_pb_, stamp));
-  }
-
-  // zero index base for the frame_number, set after send.
-  image_pb_.mutable_frame_number()->set_value(image_pb_.frame_number().value() +
-                                              1);
-
-  if (mode_ == MODE_MP4_FILE) {
-    if (image_pb_.frame_number().value() >= k_max_frames_) {
-      writer_.reset();
-      writer_depthmap_.reset();
-    }
-  }
-  return image_sent;
-}
-
 void VideoStreamer::Close() {
   writer_.reset();
-  writer_depthmap_.reset();
 }
 
 }  // namespace perception
