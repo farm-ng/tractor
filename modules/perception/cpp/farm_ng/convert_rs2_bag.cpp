@@ -15,8 +15,7 @@
  *       - human-readable summary of the program execution
  *
  * TODO (collinbrake | ethanruble | isherman):
- *   - normalize depth values with far/near, populate in Depthmap
- *   - output jpeg sequence for color and png sequence for depth
+ *   - check for invalid (0) depth values in depth quantization
  *   - support interactive mode with the browser
  */
 
@@ -374,7 +373,12 @@ class ConvertRS2BagProgram {
 
 int Main(farm_ng::core::EventBus& bus) {
   farm_ng::perception::ConvertRS2BagConfiguration config;
-  config.set_name(FLAGS_name);
+  std::string dataset_name = FLAGS_name;
+  CHECK(boost::filesystem::exists(farm_ng::core::GetBlobstoreRoot() / FLAGS_rs2_bag_path));
+  if (dataset_name == "default") {
+    dataset_name = boost::filesystem::change_extension(FLAGS_rs2_bag_path, "").string();
+  }
+  config.set_name(dataset_name);
   config.set_camera_frame_name(FLAGS_camera_frame_name);
   config.mutable_rs2_bag()->set_path(FLAGS_rs2_bag_path);
   config.mutable_rs2_bag()->set_content_type("application/x-rosbag");
