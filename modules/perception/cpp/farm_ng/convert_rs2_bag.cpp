@@ -4,11 +4,8 @@
  * <Blobstore root>
  *   - logs/<name>
  *     - <camera_frame_name>/
- *       - Color images: color-<process ID (PID)>-<counter>.mp4
- *       - Depth images: depth-<process ID>-<counter>.mp4
- *       - The program outputs mp4 files in 300-frame
- *          chunks, so there may be multiple of these
- *          files for each program run.
+ *       - Color images: <process ID (PID)>-<counter>.jpg
+ *       - Depth images: depth-<PID>-<counter>.png/jpg
  *     - events-<PID from IPC logger>-<counter>.log
  *       - binary log of image metadata
  *     - <name>-<PID>-<counter>.json
@@ -97,7 +94,10 @@ void QuantizeDepthMap(cv::Mat depthmap, Depthmap::Range range,
   // See depthmap.proto for details.
   cv::Mat depth_normalized;
   if (range == Depthmap::RANGE_INVERSE) {
-    depth_normalized = ((max_val - min_val) /(depthmap_float - min_val + max_val - min_val) - 0.5)/0.5;
+    depth_normalized =
+        ((max_val - min_val) / (depthmap_float - min_val + max_val - min_val) -
+         0.5) /
+        0.5;
   } else if (range == Depthmap::RANGE_LINEAR) {
     depth_normalized = (depthmap_float - min_val) / (max_val - min_val);
   }
@@ -184,7 +184,8 @@ class ImageSequenceWriter {
                      &depth_far);
     CHECK(depth_near);
     CHECK(depth_far);
-    LOG(INFO) << "Depth near : " << *depth_near << " Depth far: " << *depth_far;
+    LOG(INFO) << "Depth near : " << *depth_near
+              << " Depth far : " << *depth_far;
     auto resource_path = core::GetUniqueArchiveResource(
         FrameNameNumber(image_pb.camera_model().frame_name(),
                         image_pb.frame_number().value(), "_depthmap"),
@@ -240,10 +241,18 @@ class ConvertRS2BagProgram {
         (farm_ng::core::GetBlobstoreRoot() / configuration_.rs2_bag().path())
             .string(),
         repeat_playback);
+    rs2::pipeline_profile profile = pipe.start(cfg);
 
-    rs2::pipeline_profile selection = pipe.start(cfg);
+    // Get depth scale to convert to mm
+    float depth_scale = profile.get_device()
+                            .query_sensors()
+                            .front()
+                            .as<rs2::depth_sensor>()
+                            .get_depth_scale();
+
+    // Get intrinsics for camera model
     auto color_stream =
-        selection.get_stream(RS2_STREAM_COLOR).as<rs2::video_stream_profile>();
+        profile.get_stream(RS2_STREAM_COLOR).as<rs2::video_stream_profile>();
 
     CameraModel camera_model;
     camera_model.set_frame_name(configuration_.camera_frame_name());
@@ -278,6 +287,11 @@ class ConvertRS2BagProgram {
         rs2::video_frame color_frame = frames.get_color_frame();
         rs2::depth_frame depth_frame = frames.get_depth_frame();
 
+        std::cout << "Depth bits: " << depth_frame.get_bits_per_pixel()
+                  << std::endl
+                  << "Color bits: " << color_frame.get_bits_per_pixel()
+                  << std::endl;
+
         // Query frame size (width and height)
         const int wc = color_frame.get_width();
         const int hc = color_frame.get_height();
@@ -291,7 +305,7 @@ class ConvertRS2BagProgram {
 
         // Image matrices from rs2 frames
         cv::Mat color = RS2FrameToMat(color_frame);
-        cv::Mat depthmap = RS2FrameToMat(depth_frame);
+        cv::Mat depthmap_mm = RS2FrameToMat(depth_frame) * depth_scale * 1000;
 
         if (color.empty()) {
           break;
@@ -301,12 +315,8 @@ class ConvertRS2BagProgram {
             google::protobuf::util::TimeUtil::MillisecondsToTimestamp(
                 color_frame.get_timestamp());
 
-        bool valid_depthmap_type =
-            depthmap.type() == CV_16UC1 || depthmap.type() == CV_32FC1;
-        CHECK(valid_depthmap_type);
-
         image_pb = writer.WriteImageWithDepth(
-            color, depthmap, VideoStreamer::DEPTH_MODE_INVERSE_16BIT_PNG);
+            color, depthmap_mm, VideoStreamer::DEPTH_MODE_LINEAR_16BIT_PNG);
 
         // Write image_pb to the event log.
         log_writer.Write(MakeEvent(camera_model.frame_name() + "/image",
@@ -374,9 +384,12 @@ class ConvertRS2BagProgram {
 int Main(farm_ng::core::EventBus& bus) {
   farm_ng::perception::ConvertRS2BagConfiguration config;
   std::string dataset_name = FLAGS_name;
-  CHECK(boost::filesystem::exists(farm_ng::core::GetBlobstoreRoot() / FLAGS_rs2_bag_path));
+  CHECK(boost::filesystem::exists(farm_ng::core::GetBlobstoreRoot() /
+                                  FLAGS_rs2_bag_path))
+      << "Invalid file name.";
   if (dataset_name == "default") {
-    dataset_name = boost::filesystem::change_extension(FLAGS_rs2_bag_path, "").string();
+    dataset_name =
+        boost::filesystem::change_extension(FLAGS_rs2_bag_path, "").string();
   }
   config.set_name(dataset_name);
   config.set_camera_frame_name(FLAGS_camera_frame_name);
