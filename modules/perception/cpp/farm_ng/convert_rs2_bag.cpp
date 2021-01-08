@@ -33,6 +33,7 @@
 #include "farm_ng/perception/camera_pipeline.pb.h"
 #include "farm_ng/perception/convert_rs2_bag.pb.h"
 #include "farm_ng/perception/image.pb.h"
+#include "farm_ng/perception/image_sequence_writer.h"
 #include "farm_ng/perception/intel_rs2_utils.h"
 #include "farm_ng/perception/pose_utils.h"
 #include "farm_ng/perception/video_streamer.h"
@@ -111,99 +112,93 @@ void QuantizeDepthMap(cv::Mat depthmap, Depthmap::Range range,
   }
 }
 
-class ImageSequenceWriter {
- public:
-  ImageSequenceWriter(const CameraModel& camera_model,
-                      VideoStreamer::Mode mode) {
-    image_pb_.mutable_camera_model()->CopyFrom(camera_model);
-    image_pb_.mutable_frame_number()->set_value(0);
-    CHECK(mode == VideoStreamer::MODE_JPG_SEQUENCE ||
-          mode == VideoStreamer::MODE_PNG_SEQUENCE);
-    if (mode == VideoStreamer::MODE_JPG_SEQUENCE) {
-      extension_ = "jpg";
-      content_type_ = "image/jpeg";
-    }
-    if (mode == VideoStreamer::MODE_PNG_SEQUENCE) {
-      extension_ = "png";
-      content_type_ = "image/png";
-    }
+ImageSequenceWriter::ImageSequenceWriter(const CameraModel& camera_model,
+                                         VideoStreamer::Mode mode) {
+  image_pb_.mutable_camera_model()->CopyFrom(camera_model);
+  image_pb_.mutable_frame_number()->set_value(0);
+  CHECK(mode == VideoStreamer::MODE_JPG_SEQUENCE ||
+        mode == VideoStreamer::MODE_PNG_SEQUENCE);
+  if (mode == VideoStreamer::MODE_JPG_SEQUENCE) {
+    extension_ = "jpg";
+    content_type_ = "image/jpeg";
   }
-  Image WriteImage(cv::Mat image) {
-    // copy image_pb_ field, because we're going
-    // to increment frame_number for the next image,
-    // but want to return the current frame_number.
-    Image image_pb(image_pb_);
-    image_pb_.mutable_frame_number()->set_value(
-        image_pb_.frame_number().value() + 1);
-
-    auto resource_path = core::GetUniqueArchiveResource(
-        FrameNameNumber(image_pb.camera_model().frame_name(),
-                        image_pb.frame_number().value()),
-        extension_, content_type_);
-
-    image_pb.mutable_resource()->CopyFrom(resource_path.first);
-    // LOG(INFO) << resource_path.second.string();
-    CHECK(cv::imwrite(resource_path.second.string(), image))
-        << "Could not write: " << resource_path.second;
-    return image_pb;
+  if (mode == VideoStreamer::MODE_PNG_SEQUENCE) {
+    extension_ = "png";
+    content_type_ = "image/png";
   }
+}
+Image ImageSequenceWriter::WriteImage(cv::Mat image) {
+  // copy image_pb_ field, because we're going
+  // to increment frame_number for the next image,
+  // but want to return the current frame_number.
+  Image image_pb(image_pb_);
+  image_pb_.mutable_frame_number()->set_value(image_pb_.frame_number().value() +
+                                              1);
 
-  Image WriteImageWithDepth(cv::Mat image, cv::Mat depthmap,
-                            VideoStreamer::DepthMode mode) {
-    CHECK_EQ(image.size().width, depthmap.size().width);
-    CHECK_EQ(image.size().height, depthmap.size().height);
-    Image image_pb = WriteImage(image);
-    cv::Mat depthmap_q;
-    std::optional<double> depth_near, depth_far;
-    Depthmap::Range range;
-    int output_type;
-    std::string depth_extension;
-    std::string depth_content_type;
-    if (mode == VideoStreamer::DEPTH_MODE_LINEAR_16BIT_PNG) {
-      range = Depthmap::RANGE_LINEAR;
-      output_type = CV_16UC1;
-      depth_extension = "png";
-      depth_content_type = "image/png";
-    } else if (mode == VideoStreamer::DEPTH_MODE_INVERSE_16BIT_PNG) {
-      range = Depthmap::RANGE_INVERSE;
-      output_type = CV_16UC1;
-      depth_extension = "png";
-      depth_content_type = "image/png";
+  auto resource_path = core::GetUniqueArchiveResource(
+      FrameNameNumber(image_pb.camera_model().frame_name(),
+                      image_pb.frame_number().value()),
+      extension_, content_type_);
 
-    } else if (mode == VideoStreamer::DEPTH_MODE_INVERSE_8BIT_JPG) {
-      range = Depthmap::RANGE_INVERSE;
-      output_type = CV_8UC1;
-      depth_extension = "jpg";
-      depth_content_type = "image/jpeg";
+  image_pb.mutable_resource()->CopyFrom(resource_path.first);
+  // LOG(INFO) << resource_path.second.string();
+  CHECK(cv::imwrite(resource_path.second.string(), image))
+      << "Could not write: " << resource_path.second;
+  return image_pb;
+}
 
-    } else {
-      LOG(FATAL) << "unsupported mode: " << mode;
-    }
-    QuantizeDepthMap(depthmap, range, &depthmap_q, output_type, &depth_near,
-                     &depth_far);
-    CHECK(depth_near);
-    CHECK(depth_far);
-    LOG(INFO) << "Depth near : " << *depth_near
-              << " Depth far : " << *depth_far;
-    auto resource_path = core::GetUniqueArchiveResource(
-        FrameNameNumber(image_pb.camera_model().frame_name(),
-                        image_pb.frame_number().value(), "_depthmap"),
-        depth_extension, depth_content_type);
+Image ImageSequenceWriter::WriteImageWithDepth(cv::Mat image, cv::Mat depthmap,
+                                               VideoStreamer::DepthMode mode) {
+  CHECK_EQ(image.size().width, depthmap.size().width);
+  CHECK_EQ(image.size().height, depthmap.size().height);
+  Image image_pb = WriteImage(image);
+  cv::Mat depthmap_q;
+  std::optional<double> depth_near, depth_far;
+  Depthmap::Range range;
+  int output_type;
+  std::string depth_extension;
+  std::string depth_content_type;
+  if (mode == VideoStreamer::DEPTH_MODE_LINEAR_16BIT_PNG) {
+    range = Depthmap::RANGE_LINEAR;
+    output_type = CV_16UC1;
+    depth_extension = "png";
+    depth_content_type = "image/png";
+  } else if (mode == VideoStreamer::DEPTH_MODE_INVERSE_16BIT_PNG) {
+    range = Depthmap::RANGE_INVERSE;
+    output_type = CV_16UC1;
+    depth_extension = "png";
+    depth_content_type = "image/png";
 
-    // LOG(INFO) << resource_path.second.string();
-    CHECK(cv::imwrite(resource_path.second.string(), depthmap_q))
-        << "Could not write depthmap: " << resource_path.second;
-    image_pb.mutable_depthmap()->set_range(range);
+  } else if (mode == VideoStreamer::DEPTH_MODE_INVERSE_8BIT_JPG) {
+    range = Depthmap::RANGE_INVERSE;
+    output_type = CV_8UC1;
+    depth_extension = "jpg";
+    depth_content_type = "image/jpeg";
 
-    image_pb.mutable_depthmap()->mutable_depth_near()->set_value(*depth_near);
-    image_pb.mutable_depthmap()->mutable_depth_far()->set_value(*depth_far);
-    image_pb.mutable_resource()->CopyFrom(resource_path.first);
-    return image_pb;
+  } else {
+    LOG(FATAL) << "unsupported mode: " << mode;
   }
-  Image image_pb_;
-  std::string extension_;
-  std::string content_type_;
-};
+  QuantizeDepthMap(depthmap, range, &depthmap_q, output_type, &depth_near,
+                   &depth_far);
+  CHECK(depth_near);
+  CHECK(depth_far);
+  LOG(INFO) << "Depth near : " << *depth_near << " Depth far : " << *depth_far;
+  auto resource_path = core::GetUniqueArchiveResource(
+      FrameNameNumber(image_pb.camera_model().frame_name(),
+                      image_pb.frame_number().value(), "_depthmap"),
+      depth_extension, depth_content_type);
+
+  // LOG(INFO) << resource_path.second.string();
+  CHECK(cv::imwrite(resource_path.second.string(), depthmap_q))
+      << "Could not write depthmap: " << resource_path.second;
+  image_pb.mutable_depthmap()->set_range(range);
+
+  image_pb.mutable_depthmap()->mutable_depth_near()->set_value(*depth_near);
+  image_pb.mutable_depthmap()->mutable_depth_far()->set_value(*depth_far);
+  image_pb.mutable_resource()->CopyFrom(resource_path.first);
+  return image_pb;
+}
+
 class ConvertRS2BagProgram {
  public:
   ConvertRS2BagProgram(EventBus& bus, ConvertRS2BagConfiguration configuration,

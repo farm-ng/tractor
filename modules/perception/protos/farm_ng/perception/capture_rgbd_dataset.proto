@@ -1,0 +1,4 @@
+syntax = "proto3";
+
+package farm_ng.perception;
+option go_package = "github.com/farm-ng/genproto/perception";
