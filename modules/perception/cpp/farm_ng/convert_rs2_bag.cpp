@@ -287,11 +287,6 @@ class ConvertRS2BagProgram {
         rs2::video_frame color_frame = frames.get_color_frame();
         rs2::depth_frame depth_frame = frames.get_depth_frame();
 
-        std::cout << "Depth bits: " << depth_frame.get_bits_per_pixel()
-                  << std::endl
-                  << "Color bits: " << color_frame.get_bits_per_pixel()
-                  << std::endl;
-
         // Query frame size (width and height)
         const int wc = color_frame.get_width();
         const int hc = color_frame.get_height();
