@@ -38,8 +38,7 @@
 #include "farm_ng/perception/video_streamer.h"
 
 DEFINE_bool(interactive, false, "receive program args via eventbus");
-DEFINE_string(name, "default",
-              "a dataset name, used in the output archive name");
+DEFINE_string(name, "", "a dataset name, used in the output archive name");
 DEFINE_string(rs2_bag_path, "", "A RealSense bag file path.");
 DEFINE_string(camera_frame_name, "camera01",
               "Frame name to use for the camera model.");
@@ -258,8 +257,7 @@ class ConvertRS2BagProgram {
     camera_model.set_frame_name(configuration_.camera_frame_name());
     SetCameraModelFromRs(&camera_model, color_stream.get_intrinsics());
 
-    Image image_pb;  // result must have access to this
-                     // outside of the loop
+    Image image_pb;  // result must have access to this outside of the loop
 
     ImageSequenceWriter writer(camera_model, VideoStreamer::MODE_JPG_SEQUENCE);
 
@@ -279,7 +277,7 @@ class ConvertRS2BagProgram {
         // Fetch the next frameset (block until it comes)
         rs2::frameset frames = pipe.wait_for_frames().as<rs2::frameset>();
 
-        // align frameset to the color frame so that
+        // Align frameset to the color frame so that
         // depth map is same size as color frame
         frames = align_to_color.process(frames);
 
@@ -311,7 +309,7 @@ class ConvertRS2BagProgram {
                 color_frame.get_timestamp());
 
         image_pb = writer.WriteImageWithDepth(
-            color, depthmap_mm, VideoStreamer::DEPTH_MODE_LINEAR_16BIT_PNG);
+            color, depthmap_mm, VideoStreamer::DEPTH_MODE_INVERSE_8BIT_JPG);
 
         // Write image_pb to the event log.
         log_writer.Write(MakeEvent(camera_model.frame_name() + "/image",
@@ -382,7 +380,7 @@ int Main(farm_ng::core::EventBus& bus) {
   CHECK(boost::filesystem::exists(farm_ng::core::GetBlobstoreRoot() /
                                   FLAGS_rs2_bag_path))
       << "Invalid file name.";
-  if (dataset_name == "default") {
+  if (dataset_name == "") {
     dataset_name =
         boost::filesystem::change_extension(FLAGS_rs2_bag_path, "").string();
   }
