@@ -170,7 +170,7 @@ Now that the code is configured, you should see a ``build/`` directory on the ho
 
 Let's try building these docs::
 
-   docker exec docker_devel_1 /worskpace/tractor/env.sh make -C build docs
+   docker exec docker_devel_1 /workspace/tractor/env.sh make -C build docs
 
 
 And run a server to host them::
