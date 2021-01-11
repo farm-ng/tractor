@@ -9,6 +9,7 @@ This guide describes how to install and extend farm-ng software.
 If you're already familiar with the farm-ng codebase, and looking for packaged binaries, please see
 :ref:`Docker Releases<getting_started-docker-releases>`.
 
+.. _section-development_environment:
 
 Setting up your Development Environment
 =======================================

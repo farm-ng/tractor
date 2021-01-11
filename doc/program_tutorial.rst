@@ -12,7 +12,7 @@ in the :ref:`blobstore<section-core_blobstore>`.
 Prerequisites
 =============
 
-This tutorial assumes a working C++ development environment (TODO link).
+This tutorial assumes a working :ref:`C++ development environment<section-development_environment>`.
 
 Define the Interface
 ====================
@@ -55,7 +55,7 @@ Add Frontend Support
 To make ``programd`` aware of our new program, add the following to
 `core/config/programd/programs.json <https://github.com/farm-ng/tractor/blob/master/core/config/programd/programs.json>`_.
 
-.. code-block:: json
+.. code-block:: js
 
   "programs": [
     {
