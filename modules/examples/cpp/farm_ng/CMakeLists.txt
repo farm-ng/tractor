@@ -1,6 +1,6 @@
 # [docs] helloworld
-# add_executable(helloworld helloworld.cpp)
-# target_link_libraries(helloworld farm_ng_core)
+add_executable(helloworld helloworld.cpp)
+target_link_libraries(helloworld farm_ng_examples_protobuf farm_ng_core)
 # [docs] helloworld
 
 # [docs] countdown
