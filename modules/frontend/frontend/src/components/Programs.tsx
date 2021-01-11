@@ -88,7 +88,7 @@ export const Programs: React.FC = () => {
       () =>
         store.program &&
         store.inputRequired &&
-        React.createElement(store.program.Component, {
+        React.createElement(store.program.MultiElement, {
           inputRequired: store.inputRequired,
         }),
       [store.program, store.inputRequired]
@@ -121,7 +121,7 @@ export const Programs: React.FC = () => {
               </div>
             </div>
           </Collapse>
-          <EventVisualizer.Component
+          <EventVisualizer.MultiElement
             values={store.eventLog}
             options={[{ label: "", options: [], value: "overlay" }]}
             resources={httpResourceArchive}

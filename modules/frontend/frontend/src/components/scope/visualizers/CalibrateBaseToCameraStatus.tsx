@@ -8,9 +8,9 @@ import {
   CalibrateBaseToCameraStatus,
 } from "@farm-ng/genproto-calibration/farm_ng/calibration/calibrate_base_to_camera";
 import {
-  StandardComponentOptions,
-  StandardComponent,
-} from "./StandardComponent";
+  StandardMultiElementOptions,
+  StandardMultiElement,
+} from "./StandardMultiElement";
 import { CalibrateBaseToCameraResultVisualizer } from "./CalibrateBaseToCameraResult";
 
 const CalibrateBaseToCameraStatusElement: React.FC<SingleElementVisualizerProps<
@@ -42,8 +42,10 @@ const CalibrateBaseToCameraStatusElement: React.FC<SingleElementVisualizerProps<
 
 export const CalibrateBaseToCameraStatusVisualizer = {
   id: "CalibrateBaseToCameraStatus",
-  types: ["type.googleapis.com/farm_ng.calibration.CalibrateBaseToCameraStatus"],
-  options: StandardComponentOptions,
-  Component: StandardComponent(CalibrateBaseToCameraStatusElement),
+  types: [
+    "type.googleapis.com/farm_ng.calibration.CalibrateBaseToCameraStatus",
+  ],
+  options: StandardMultiElementOptions,
+  MultiElement: StandardMultiElement(CalibrateBaseToCameraStatusElement),
   Element: CalibrateBaseToCameraStatusElement,
 };

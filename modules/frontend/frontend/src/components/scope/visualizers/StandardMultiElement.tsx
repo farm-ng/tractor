@@ -2,14 +2,14 @@ import * as React from "react";
 import { EventType } from "../../../registry/events";
 import {
   SingleElementVisualizerProps,
-  VisualizerProps
+  VisualizerProps,
 } from "../../../registry/visualization";
 import { Card } from "./Card";
 import { Grid } from "./Grid";
 import { Overlay } from "./Overlay";
 import { Scene } from "./Scene";
 
-export const StandardComponent = <T extends EventType>(
+export const StandardMultiElement = <T extends EventType>(
   Element: React.FC<SingleElementVisualizerProps<T>>
 ): React.FC<VisualizerProps<T>> => (props) => {
   const view = props.options[0].value;
@@ -21,10 +21,10 @@ export const StandardComponent = <T extends EventType>(
   );
 };
 
-export const Standard3DElement = <T extends EventType>(
+export const StandardElement3D = <T extends EventType>(
   Element: React.FC<SingleElementVisualizerProps<T>>
 ): React.FC<SingleElementVisualizerProps<T>> => ({
-  value: [timestamp, value]
+  value: [timestamp, value],
 }) => {
   return (
     <Card timestamp={timestamp} json={value}>
@@ -35,14 +35,14 @@ export const Standard3DElement = <T extends EventType>(
   );
 };
 
-export const Standard3DComponent = <T extends EventType>(
+export const StandardMultiElement3D = <T extends EventType>(
   Element: React.FC<SingleElementVisualizerProps<T>>
 ): React.FC<VisualizerProps<T>> => (props) => {
   return <Overlay Element={Element} {...props} />;
 };
 
-export const Standard3DComponentOptions = [];
+export const StandardMultiElement3DOptions = [];
 
-export const StandardComponentOptions = [
-  { label: "view", options: ["overlay", "grid"] }
+export const StandardMultiElementOptions = [
+  { label: "view", options: ["overlay", "grid"] },
 ];

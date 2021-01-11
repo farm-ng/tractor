@@ -12,7 +12,7 @@ import { Resource } from "@farm-ng/genproto-core/farm_ng/core/resource";
 
 const programId = "capture_robot_extrinsics_dataset";
 
-const Component: React.FC<ProgramProps<Resource>> = ({ inputRequired }) => {
+const MultiElement: React.FC<ProgramProps<Resource>> = ({ inputRequired }) => {
   const { busClient } = useStores();
   const [resource, setResource] = useState<Resource>();
 
@@ -56,5 +56,5 @@ export const CaptureRobotExtrinsicsDatasetProgram = {
     }
     return (data as Status).inputRequiredResource || null;
   },
-  Component,
+  MultiElement,
 };

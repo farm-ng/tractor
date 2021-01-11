@@ -5,9 +5,9 @@ import {
   SingleElementVisualizerProps,
 } from "../../../registry/visualization";
 import {
-  StandardComponentOptions,
-  StandardComponent,
-} from "./StandardComponent";
+  StandardMultiElementOptions,
+  StandardMultiElement,
+} from "./StandardMultiElement";
 import { Card } from "./Card";
 import {
   ApriltagConfig,
@@ -101,8 +101,8 @@ const ApriltagConfigElement: React.FC<SingleElementVisualizerProps<
 export const ApriltagConfigVisualizer = {
   id: "ApriltagConfig",
   types: ["type.googleapis.com/farm_ng.perception.ApriltagConfig"],
-  options: StandardComponentOptions,
-  Component: StandardComponent(ApriltagConfigElement),
+  options: StandardMultiElementOptions,
+  MultiElement: StandardMultiElement(ApriltagConfigElement),
   Element: ApriltagConfigElement,
   Form: ApriltagConfigForm,
 };

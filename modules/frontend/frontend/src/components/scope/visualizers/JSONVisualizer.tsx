@@ -3,12 +3,12 @@ import { ListGroup } from "react-bootstrap";
 import { Card } from "./Card";
 import { SingleElementVisualizerProps } from "../../../registry/visualization";
 import {
-  StandardComponentOptions,
-  StandardComponent
-} from "./StandardComponent";
+  StandardMultiElementOptions,
+  StandardMultiElement,
+} from "./StandardMultiElement";
 
 const JSONElement: React.FC<SingleElementVisualizerProps> = ({
-  value: [timestamp, value]
+  value: [timestamp, value],
 }) => {
   return (
     <Card timestamp={timestamp}>
@@ -24,7 +24,7 @@ const JSONElement: React.FC<SingleElementVisualizerProps> = ({
 export const JSONVisualizer = {
   id: "JSON",
   types: "*" as const,
-  options: StandardComponentOptions,
-  Component: StandardComponent(JSONElement),
-  Element: JSONElement
+  options: StandardMultiElementOptions,
+  MultiElement: StandardMultiElement(JSONElement),
+  Element: JSONElement,
 };

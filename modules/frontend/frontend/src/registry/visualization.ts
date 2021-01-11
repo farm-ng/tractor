@@ -68,15 +68,30 @@ export interface FormProps<T extends EventType = EventType> {
   onChange: (updated: T) => void;
 }
 
+// [docs] Visualizer
 export interface Visualizer<T extends EventType = EventType> {
+  // An id, unique amongst visualizers
   id: VisualizerId;
-  Component: React.FC<VisualizerProps<T>>;
-  options: VisualizerOptionConfig[];
+
+  // Event types to visualize, or the wildcard for all types
   types: EventTypeId[] | "*";
+
+  // Options
+  options: VisualizerOptionConfig[];
+
+  // Visualization of a single event
   Element?: React.FC<SingleElementVisualizerProps<T>>;
+
+  // Visualization of a vector of events
+  MultiElement?: React.FC<VisualizerProps<T>>;
+
+  // A form visualization, for create/update.
   Form?: React.FC<FormProps<T>>;
-  Marker3D?: React.FC<SingleElementVisualizerProps<T>>;
+
+  // 3D visualization of a single event
+  Element3D?: React.FC<SingleElementVisualizerProps<T>>;
 }
+// [docs] Visualizer
 
 export const visualizerRegistry: { [k: string]: Visualizer } = [
   ApriltagConfigVisualizer,

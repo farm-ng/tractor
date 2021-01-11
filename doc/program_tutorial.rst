@@ -6,7 +6,7 @@ Writing a Program
 
 This tutorial explains how to write a :ref:`program<section-core_programs>` in C++.
 
-Our program will count down from N to 0, outputting each value to a result file
+Our program will count down from N to 0, outputting each value to a file
 in the :ref:`blobstore<section-core_blobstore>`.
 
 The full source code for this example is available in `modules/examples <https://github.com/farm-ng/tractor/blob/master/modules/examples>`_.
@@ -16,8 +16,8 @@ Prerequisites
 
 This tutorial assumes a working :ref:`C++ development environment<section-development_environment>`.
 
-Define the Interface
-====================
+Define data models
+==================
 
 Programs, by convention, define a ``Configuration``, ``Status``, and ``Result`` message.
 

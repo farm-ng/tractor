@@ -2,9 +2,9 @@
 import * as React from "react";
 import { SingleElementVisualizerProps } from "../../../registry/visualization";
 import {
-  StandardComponentOptions,
-  StandardComponent,
-} from "./StandardComponent";
+  StandardMultiElementOptions,
+  StandardMultiElement,
+} from "./StandardMultiElement";
 import { KeyValueTable } from "./KeyValueTable";
 import { Card } from "./Card";
 import { CalibrateBaseToCameraResult } from "@farm-ng/genproto-calibration/farm_ng/calibration/calibrate_base_to_camera";
@@ -76,8 +76,10 @@ const CalibrateBaseToCameraResultElement: React.FC<SingleElementVisualizerProps<
 
 export const CalibrateBaseToCameraResultVisualizer = {
   id: "CalibrateBaseToCameraResult",
-  types: ["type.googleapis.com/farm_ng.calibration.CalibrateBaseToCameraResult"],
-  options: StandardComponentOptions,
-  Component: StandardComponent(CalibrateBaseToCameraResultElement),
+  types: [
+    "type.googleapis.com/farm_ng.calibration.CalibrateBaseToCameraResult",
+  ],
+  options: StandardMultiElementOptions,
+  MultiElement: StandardMultiElement(CalibrateBaseToCameraResultElement),
   Element: CalibrateBaseToCameraResultElement,
 };

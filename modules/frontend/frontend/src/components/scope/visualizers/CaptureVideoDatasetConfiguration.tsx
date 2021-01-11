@@ -8,9 +8,9 @@ import { KeyValueTable } from "./KeyValueTable";
 import { Card } from "./Card";
 import { CaptureVideoDatasetConfiguration } from "@farm-ng/genproto-perception/farm_ng/perception/capture_video_dataset";
 import {
-  StandardComponent,
-  StandardComponentOptions,
-} from "./StandardComponent";
+  StandardMultiElement,
+  StandardMultiElementOptions,
+} from "./StandardMultiElement";
 import { useFormState } from "../../../hooks/useFormState";
 import Form from "./Form";
 
@@ -67,8 +67,8 @@ export const CaptureVideoDatasetConfigurationVisualizer = {
   types: [
     "type.googleapis.com/farm_ng.perception.CaptureVideoDatasetConfiguration",
   ],
-  options: StandardComponentOptions,
-  Component: StandardComponent(CaptureVideoDatasetConfigurationElement),
+  options: StandardMultiElementOptions,
+  MultiElement: StandardMultiElement(CaptureVideoDatasetConfigurationElement),
   Element: CaptureVideoDatasetConfigurationElement,
   Form: CaptureVideoDatasetConfigurationForm,
 };
