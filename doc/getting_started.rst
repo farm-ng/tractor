@@ -239,7 +239,7 @@ Restart ``vscode``, and the workflow above should connect you to the Docker cont
 
 
 Building the code
-=================
+-----------------
 
 To build our C++ and protobuf generated code, we use ``cmake``.  From inside the Docker container (either in the ``exec`` shell, or a terminal in VS code) you can run the following commands:
 

@@ -162,7 +162,3 @@ Examples
   export type EventType =
   | Foo
   // ...
-
-**Add support for a new program**
-
-TODO

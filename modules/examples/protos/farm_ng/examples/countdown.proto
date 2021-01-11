@@ -5,8 +5,8 @@ syntax = "proto3";
 import "farm_ng/core/resource.proto";
 import "google/protobuf/timestamp.proto";
 
-package farm_ng.core;
-option go_package = "github.com/farm-ng/genproto/core";
+package farm_ng.examples;
+option go_package = "github.com/farm-ng/genproto/examples";
 
 message CountdownConfiguration {
   // A name for the result

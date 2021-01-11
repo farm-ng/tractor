@@ -8,21 +8,26 @@
 #include <glog/logging.h>
 
 #include "farm_ng/core/blobstore.h"
-#include "farm_ng/core/countdown.pb.h"
 #include "farm_ng/core/init.h"
 #include "farm_ng/core/ipc.h"
+#include "farm_ng/examples/countdown.pb.h"
 
 DEFINE_bool(interactive, false, "Receive program args via eventbus");
 DEFINE_string(name, "default", "A name for the result file");
 DEFINE_uint64(start, 10, "The starting number for the countdown");
 
-using farm_ng::core::CountdownConfiguration;
-using farm_ng::core::CountdownResult;
-using farm_ng::core::CountdownStatus;
+using farm_ng::core::EventBus;
+using farm_ng::core::LoggingStatus;
+using farm_ng::core::MakeEvent;
+using farm_ng::core::MakeTimestampNow;
+using farm_ng::core::WaitForServices;
+using farm_ng::examples::CountdownConfiguration;
+using farm_ng::examples::CountdownResult;
+using farm_ng::examples::CountdownStatus;
 using EventPb = farm_ng::core::Event;
 
 namespace farm_ng {
-namespace core {
+namespace examples {
 
 // Count down from N to 0, outputting each value to a result file in the
 // blobstore.
@@ -173,22 +178,21 @@ class CountdownProgram {
   std::atomic<bool> countdown_started_{false};
 };
 
-}  // namespace core
+}  // namespace examples
 }  // namespace farm_ng
 
 int Main(farm_ng::core::EventBus& bus) {
   // Populate the program configuration with any relevant command-line flags
-  farm_ng::core::CountdownConfiguration config;
+  farm_ng::examples::CountdownConfiguration config;
   config.set_name(FLAGS_name);
   config.set_start(FLAGS_start);
 
   // Run the program
-  farm_ng::core::CountdownProgram program(bus, config, FLAGS_interactive);
+  farm_ng::examples::CountdownProgram program(bus, config, FLAGS_interactive);
   return program.run();
 }
 
-// This function is invoked by signal handlers, whether the program exited
-// successfully or not.
+// Always invoked by the program runner, to support graceful shutdown.
 void Cleanup(farm_ng::core::EventBus& bus) {
   farm_ng::core::RequestStopLogging(bus);
   LOG(INFO) << "Requested Stop logging";
