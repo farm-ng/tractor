@@ -8,7 +8,6 @@
 #include "farm_ng/examples/helloworld.pb.h"
 
 using farm_ng::core::EventBus;
-// using farm_ng::core::LoggingStatus;
 using farm_ng::core::MakeEvent;
 using farm_ng::core::WaitForServices;
 using farm_ng::examples::HelloWorldCommand;
@@ -23,11 +22,10 @@ class HelloWorld {
  public:
   HelloWorld(EventBus& bus) : bus_(bus), timer_(bus_.get_io_service()) {
     // Subscribe to eventbus messages with names that match a set of regexes
-    bus_.AddSubscriptions(
-        {// Matches events whose names include the string 'helloworld'
-         bus_.GetName(),
-         // Matches logging-related events
-         "logger/command", "logger/status"});
+    bus_.AddSubscriptions({// Matches "helloworld/command events
+                           bus_.GetName() + "/command",
+                           // Matches logging-related events
+                           "logger/command", "logger/status"});
 
     // Invoke the 'on_event' callback when an eventbus message is received
     bus_.GetEventSignal()->connect(

@@ -17,10 +17,9 @@ DEFINE_string(name, "default", "A name for the result file");
 DEFINE_uint64(start, 10, "The starting number for the countdown");
 
 using farm_ng::core::EventBus;
-using farm_ng::core::LoggingStatus;
+using farm_ng::core::GetUniqueArchiveResource;
 using farm_ng::core::MakeEvent;
 using farm_ng::core::MakeTimestampNow;
-using farm_ng::core::WaitForServices;
 using farm_ng::examples::CountdownConfiguration;
 using farm_ng::examples::CountdownResult;
 using farm_ng::examples::CountdownStatus;
@@ -56,6 +55,14 @@ class CountdownProgram {
     bus_.GetEventSignal()->connect(
         std::bind(&CountdownProgram::on_event, this, std::placeholders::_1));
 
+    // Open a file to write the countdown to
+    auto resource_path_pair =
+        GetUniqueArchiveResource(configuration_.name(), "txt", "text/plain");
+    boost::filesystem::path path = resource_path_pair.second;
+    LOG(INFO) << "Writing to: " << path.string();
+    output_ = std::make_pair(path, std::ofstream(path.string()));
+    CHECK(output_.second) << "Could not open : " << path.string() << "\n";
+
     // Start this program's periodic loop
     on_timer(boost::system::error_code());
   }
@@ -66,14 +73,6 @@ class CountdownProgram {
     while (status_.has_input_required_configuration()) {
       bus_.get_io_service().run_one();
     }
-
-    // Wait for any dependent services to advertise themselves on the eventbus
-    // This program depends on the presence of the ipc_logger.
-    WaitForServices(bus_, {"ipc_logger"});
-
-    // A synchronous call that requests the ipc_logger to start logging,
-    // and returns when it reports that it has.
-    LoggingStatus log = StartLogging(bus_, configuration_.name());
 
     // Instantiate a result and populate it with the start time of this program.
     // The rest of the fields will be populated at program completion.
@@ -91,11 +90,11 @@ class CountdownProgram {
     // Populate the result with the end time of this program
     result.mutable_stamp_end()->CopyFrom(MakeTimestampNow());
     // Populate the result with the path to the recorded log
-    result.mutable_dataset()->set_path(log.recording().archive_path());
+    result.mutable_dataset()->set_path(output_.first.string());
     // Send one last status message on the eventbus
     send_status();
 
-    LOG(INFO) << "Complete:\n" << status_.DebugString();
+    LOG(INFO) << "Complete: " << output_.first.string() << "\n";
     return 0;
   }
 
@@ -114,6 +113,7 @@ class CountdownProgram {
 
     // Count down
     if (countdown_started_) {
+      output_.second << status_.count() << "\n";
       status_.set_count(status_.count() - 1);
     }
 
@@ -176,6 +176,9 @@ class CountdownProgram {
 
   // Whether the countdown has started
   std::atomic<bool> countdown_started_{false};
+
+  // The file to write the countdown to
+  std::pair<boost::filesystem::path, std::ofstream> output_;
 };
 
 }  // namespace examples
@@ -193,10 +196,7 @@ int Main(farm_ng::core::EventBus& bus) {
 }
 
 // Always invoked by the program runner, to support graceful shutdown.
-void Cleanup(farm_ng::core::EventBus& bus) {
-  farm_ng::core::RequestStopLogging(bus);
-  LOG(INFO) << "Requested Stop logging";
-}
+void Cleanup(farm_ng::core::EventBus& bus) {}
 
 int main(int argc, char* argv[]) {
   // Invoke the farm_ng program runner, which provides signal handling,
