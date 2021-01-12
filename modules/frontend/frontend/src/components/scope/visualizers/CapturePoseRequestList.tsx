@@ -24,7 +24,7 @@ export const CapturePoseRequestList: React.FC<{
           ? "*"
           : "";
       acc.push(
-        <NamedSE3PoseVisualizer.Marker3D
+        <NamedSE3PoseVisualizer.Element3D
           key={`${pose.frameA}:${pose.frameB}:${index}`}
           showFrameA={index === 0}
           value={[

@@ -5,9 +5,9 @@ import {
   SingleElementVisualizerProps,
 } from "../../../registry/visualization";
 import {
-  StandardComponentOptions,
-  StandardComponent,
-} from "./StandardComponent";
+  StandardMultiElementOptions,
+  StandardMultiElement,
+} from "./StandardMultiElement";
 import { CalibrateIntrinsicsConfiguration } from "@farm-ng/genproto-calibration/farm_ng/calibration/calibrate_intrinsics";
 import { Card } from "./Card";
 import { KeyValueTable } from "./KeyValueTable";
@@ -144,8 +144,8 @@ export const CalibrateIntrinsicsConfigurationVisualizer = {
   types: [
     "type.googleapis.com/farm_ng.calibration.CalibrateIntrinsicsConfiguration",
   ],
-  options: StandardComponentOptions,
-  Component: StandardComponent(CalibrateIntrinsicsConfigurationElement),
+  options: StandardMultiElementOptions,
+  MultiElement: StandardMultiElement(CalibrateIntrinsicsConfigurationElement),
   Element: CalibrateIntrinsicsConfigurationElement,
   Form: CalibrateIntrinsicsConfigurationForm,
 };

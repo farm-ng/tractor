@@ -2,9 +2,9 @@
 import * as React from "react";
 import { SingleElementVisualizerProps } from "../../../registry/visualization";
 import {
-  StandardComponentOptions,
-  StandardComponent,
-} from "./StandardComponent";
+  StandardMultiElementOptions,
+  StandardMultiElement,
+} from "./StandardMultiElement";
 
 import { Card } from "./Card";
 import {
@@ -43,8 +43,12 @@ const CalibrateMultiViewApriltagRigStatusElement: React.FC<SingleElementVisualiz
 
 export const CalibrateMultiViewApriltagRigStatusVisualizer = {
   id: "CalibrateMultiViewApriltagRigStatus",
-  types: ["type.googleapis.com/farm_ng.calibration.CalibrateMultiViewApriltagRigStatus"],
-  options: StandardComponentOptions,
-  Component: StandardComponent(CalibrateMultiViewApriltagRigStatusElement),
+  types: [
+    "type.googleapis.com/farm_ng.calibration.CalibrateMultiViewApriltagRigStatus",
+  ],
+  options: StandardMultiElementOptions,
+  MultiElement: StandardMultiElement(
+    CalibrateMultiViewApriltagRigStatusElement
+  ),
   Element: CalibrateMultiViewApriltagRigStatusElement,
 };

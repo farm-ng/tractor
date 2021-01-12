@@ -9,9 +9,9 @@ import {
 } from "@farm-ng/genproto-perception/farm_ng/perception/create_video_dataset";
 import { useFetchResource } from "../../../hooks/useFetchResource";
 import {
-  StandardComponent,
-  StandardComponentOptions,
-} from "./StandardComponent";
+  StandardMultiElement,
+  StandardMultiElementOptions,
+} from "./StandardMultiElement";
 import { CreateVideoDatasetResultVisualizer } from "./CreateVideoDatasetResult";
 import { formatValue } from "../../../utils/formatValue";
 
@@ -65,7 +65,7 @@ const CreateVideoDatasetStatusElement: React.FC<SingleElementVisualizerProps<
 export const CreateVideoDatasetStatusVisualizer = {
   id: "CreateVideoDatasetStatus",
   types: ["type.googleapis.com/farm_ng.perception.CreateVideoDatasetStatus"],
-  options: StandardComponentOptions,
-  Component: StandardComponent(CreateVideoDatasetStatusElement),
+  options: StandardMultiElementOptions,
+  MultiElement: StandardMultiElement(CreateVideoDatasetStatusElement),
   Element: CreateVideoDatasetStatusElement,
 };

@@ -3,9 +3,9 @@ import * as React from "react";
 import { SingleElementVisualizerProps } from "../../../registry/visualization";
 import { CapturePoseRequest } from "@farm-ng/genproto-calibration/farm_ng/calibration/robot_hal";
 import {
-  StandardComponentOptions,
-  StandardComponent,
-} from "./StandardComponent";
+  StandardMultiElementOptions,
+  StandardMultiElement,
+} from "./StandardMultiElement";
 import { Card } from "./Card";
 import { NamedSE3PoseVisualizer } from "./NamedSE3Pose";
 import { Scene } from "./Scene";
@@ -22,7 +22,7 @@ const CapturePoseRequestElement: React.FC<SingleElementVisualizerProps<
 
   const poses = value.poses.map((pose, index) => {
     return (
-      <NamedSE3PoseVisualizer.Marker3D
+      <NamedSE3PoseVisualizer.Element3D
         key={`${pose.frameA}:${pose.frameB}:${index}`}
         showFrameA={index === 0}
         value={[0, pose]}
@@ -50,7 +50,7 @@ const CapturePoseRequestElement: React.FC<SingleElementVisualizerProps<
 export const CapturePoseRequestVisualizer = {
   id: "CapturePoseRequest",
   types: ["type.googleapis.com/farm_ng.calibration.CapturePoseRequest"],
-  options: StandardComponentOptions,
-  Component: StandardComponent(CapturePoseRequestElement),
+  options: StandardMultiElementOptions,
+  MultiElement: StandardMultiElement(CapturePoseRequestElement),
   Element: CapturePoseRequestElement,
 };

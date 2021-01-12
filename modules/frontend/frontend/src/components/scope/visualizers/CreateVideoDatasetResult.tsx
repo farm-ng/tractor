@@ -5,9 +5,9 @@ import { KeyValueTable } from "./KeyValueTable";
 import { Card } from "./Card";
 import { CreateVideoDatasetResult } from "@farm-ng/genproto-perception/farm_ng/perception/create_video_dataset";
 import {
-  StandardComponent,
-  StandardComponentOptions,
-} from "./StandardComponent";
+  StandardMultiElement,
+  StandardMultiElementOptions,
+} from "./StandardMultiElement";
 import { CreateVideoDatasetConfigurationVisualizer } from "./CreateVideoDatasetConfiguration";
 import { formatValue } from "../../../utils/formatValue";
 
@@ -71,7 +71,7 @@ const CreateVideoDatasetResultElement: React.FC<SingleElementVisualizerProps<
 export const CreateVideoDatasetResultVisualizer = {
   id: "CreateVideoDatasetResult",
   types: ["type.googleapis.com/farm_ng.perception.CreateVideoDatasetResult"],
-  options: StandardComponentOptions,
-  Component: StandardComponent(CreateVideoDatasetResultElement),
+  options: StandardMultiElementOptions,
+  MultiElement: StandardMultiElement(CreateVideoDatasetResultElement),
   Element: CreateVideoDatasetResultElement,
 };

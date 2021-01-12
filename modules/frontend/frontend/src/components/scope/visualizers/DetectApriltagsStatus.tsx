@@ -3,14 +3,12 @@ import * as React from "react";
 import { SingleElementVisualizerProps } from "../../../registry/visualization";
 import { KeyValueTable } from "./KeyValueTable";
 import { Card } from "./Card";
-import {
-  CaptureVideoDatasetResult,
-} from "@farm-ng/genproto-perception/farm_ng/perception/capture_video_dataset";
+import { CaptureVideoDatasetResult } from "@farm-ng/genproto-perception/farm_ng/perception/capture_video_dataset";
 import { useFetchResource } from "../../../hooks/useFetchResource";
 import {
-  StandardComponent,
-  StandardComponentOptions,
-} from "./StandardComponent";
+  StandardMultiElement,
+  StandardMultiElementOptions,
+} from "./StandardMultiElement";
 import { CaptureVideoDatasetResultVisualizer } from "./CaptureVideoDatasetResult";
 import { formatValue } from "../../../utils/formatValue";
 import { DetectApriltagsStatus } from "@farm-ng/genproto-perception/farm_ng/perception/detect_apriltags";
@@ -76,7 +74,7 @@ const DetectApriltagsStatusElement: React.FC<SingleElementVisualizerProps<
 export const DetectApriltagsStatusVisualizer = {
   id: "DetectApriltagsStatus",
   types: ["type.googleapis.com/farm_ng.perception.DetectApriltagsStatus"],
-  options: StandardComponentOptions,
-  Component: StandardComponent(DetectApriltagsStatusElement),
+  options: StandardMultiElementOptions,
+  MultiElement: StandardMultiElement(DetectApriltagsStatusElement),
   Element: DetectApriltagsStatusElement,
 };

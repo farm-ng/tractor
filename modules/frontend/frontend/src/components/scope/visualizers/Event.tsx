@@ -6,9 +6,9 @@ import {
   visualizersForEventType,
 } from "../../../registry/visualization";
 import {
-  StandardComponentOptions,
-  StandardComponent,
-} from "./StandardComponent";
+  StandardMultiElementOptions,
+  StandardMultiElement,
+} from "./StandardMultiElement";
 import { Event as BusEvent } from "@farm-ng/genproto-core/farm_ng/core/io";
 import { EventTypeId } from "../../../registry/events";
 import { decodeAnyEvent } from "../../../models/decodeAnyEvent";
@@ -50,7 +50,7 @@ const EventElement: React.FC<SingleElementVisualizerProps<BusEvent>> = (
 export const EventVisualizer = {
   id: "Event",
   types: [BusEvent],
-  options: StandardComponentOptions,
-  Component: StandardComponent(EventElement),
+  options: StandardMultiElementOptions,
+  MultiElement: StandardMultiElement(EventElement),
   Element: EventElement,
 };

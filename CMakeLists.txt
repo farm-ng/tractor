@@ -14,7 +14,7 @@ list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 include(cmake/farm_ng_modules.cmake)
 include(cmake/farm_ng_find_base_packages.cmake)
 
-list(APPEND _modules core perception calibration tractor frontend)
+list(APPEND _modules core perception calibration tractor frontend examples)
 
 set(BUILD_ONLY_DOCS FALSE CACHE BOOL "Build only the documentation")
 

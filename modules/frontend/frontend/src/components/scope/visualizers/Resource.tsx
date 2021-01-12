@@ -6,9 +6,9 @@ import {
   visualizersForEventType,
 } from "../../../registry/visualization";
 import {
-  StandardComponentOptions,
-  StandardComponent,
-} from "./StandardComponent";
+  StandardMultiElementOptions,
+  StandardMultiElement,
+} from "./StandardMultiElement";
 import { Card } from "./Card";
 import { Resource } from "@farm-ng/genproto-perception/farm_ng/core/resource";
 import { useFormState } from "../../../hooks/useFormState";
@@ -143,8 +143,8 @@ const ResourceElement: React.FC<SingleElementVisualizerProps<Resource>> = (
 export const ResourceVisualizer = {
   id: "Resource",
   types: ["type.googleapis.com/farm_ng.core.Resource"],
-  options: StandardComponentOptions,
-  Component: StandardComponent(ResourceElement),
+  options: StandardMultiElementOptions,
+  MultiElement: StandardMultiElement(ResourceElement),
   Element: ResourceElement,
   Form: ResourceForm,
 };

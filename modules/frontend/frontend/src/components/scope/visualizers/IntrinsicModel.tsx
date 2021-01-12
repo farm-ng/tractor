@@ -4,9 +4,9 @@ import { Card } from "./Card";
 import { SingleElementVisualizerProps } from "../../../registry/visualization";
 import { IntrinsicModel } from "@farm-ng/genproto-calibration/farm_ng/calibration/intrinsic_model";
 import {
-  StandardComponentOptions,
-  StandardComponent,
-} from "./StandardComponent";
+  StandardMultiElementOptions,
+  StandardMultiElement,
+} from "./StandardMultiElement";
 import { KeyValueTable } from "./KeyValueTable";
 import { Table } from "react-bootstrap";
 import { solverStatusToJSON } from "@farm-ng/genproto-calibration/farm_ng/calibration/calibrator";
@@ -111,7 +111,7 @@ const IntrinsicModelElement: React.FC<SingleElementVisualizerProps<
 export const IntrinsicModelVisualizer = {
   id: "IntrinsicModel",
   types: ["type.googleapis.com/farm_ng.calibration.IntrinsicModel"],
-  options: StandardComponentOptions,
-  Component: StandardComponent(IntrinsicModelElement),
+  options: StandardMultiElementOptions,
+  MultiElement: StandardMultiElement(IntrinsicModelElement),
   Element: IntrinsicModelElement,
 };

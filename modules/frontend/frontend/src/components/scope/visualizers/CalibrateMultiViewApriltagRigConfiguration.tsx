@@ -5,9 +5,9 @@ import {
   SingleElementVisualizerProps,
 } from "../../../registry/visualization";
 import {
-  StandardComponentOptions,
-  StandardComponent,
-} from "./StandardComponent";
+  StandardMultiElementOptions,
+  StandardMultiElement,
+} from "./StandardMultiElement";
 import { Card } from "./Card";
 import { CalibrateMultiViewApriltagRigConfiguration } from "@farm-ng/genproto-calibration/farm_ng/calibration/calibrate_multi_view_apriltag_rig";
 import { useFormState } from "../../../hooks/useFormState";
@@ -193,8 +193,8 @@ export const CalibrateMultiViewApriltagRigConfigurationVisualizer = {
   types: [
     "type.googleapis.com/farm_ng.calibration.CalibrateMultiViewApriltagRigConfiguration",
   ],
-  options: StandardComponentOptions,
-  Component: StandardComponent(
+  options: StandardMultiElementOptions,
+  MultiElement: StandardMultiElement(
     CalibrateMultiViewApriltagRigConfigurationElement
   ),
   Element: CalibrateMultiViewApriltagRigConfigurationElement,

@@ -7,10 +7,10 @@ import {
   openCVPoseToThreeJSPose,
 } from "../../../utils/protoConversions";
 import {
-  Standard3DComponent,
-  Standard3DComponentOptions,
-  Standard3DElement,
-} from "./StandardComponent";
+  StandardMultiElement3D,
+  StandardMultiElement3DOptions,
+  StandardElement3D,
+} from "./StandardMultiElement";
 import { NamedSE3PoseVisualizer } from "./NamedSE3Pose";
 import { PerspectiveCamera } from "./Camera";
 
@@ -33,14 +33,14 @@ const MultiViewCameraRig3DElement: React.FC<SingleElementVisualizerProps<
   const cameraRig = cameras?.map((camera) => {
     const key = `${camera.pose.frameA}:${camera.pose.frameB}`;
     return (
-      <NamedSE3PoseVisualizer.Marker3D key={key} value={[0, camera.pose]}>
+      <NamedSE3PoseVisualizer.Element3D key={key} value={[0, camera.pose]}>
         <PerspectiveCamera
           showHelper
           fov={camera.fov}
           far={0.5}
           aspect={camera.aspect}
         />
-      </NamedSE3PoseVisualizer.Marker3D>
+      </NamedSE3PoseVisualizer.Element3D>
     );
   });
 
@@ -50,8 +50,8 @@ const MultiViewCameraRig3DElement: React.FC<SingleElementVisualizerProps<
 export const MultiViewCameraRigVisualizer = {
   id: "MultiViewCameraRig",
   types: ["type.googleapis.com/farm_ng.perception.MultiViewCameraRig"],
-  options: Standard3DComponentOptions,
-  Component: Standard3DComponent(MultiViewCameraRig3DElement),
-  Element: Standard3DElement(MultiViewCameraRig3DElement),
-  Marker3D: MultiViewCameraRig3DElement,
+  options: StandardMultiElement3DOptions,
+  MultiElement: StandardMultiElement3D(MultiViewCameraRig3DElement),
+  Element: StandardElement3D(MultiViewCameraRig3DElement),
+  Element3D: MultiViewCameraRig3DElement,
 };

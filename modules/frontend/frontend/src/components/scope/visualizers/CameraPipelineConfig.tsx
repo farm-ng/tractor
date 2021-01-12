@@ -5,9 +5,9 @@ import {
   SingleElementVisualizerProps,
 } from "../../../registry/visualization";
 import {
-  StandardComponentOptions,
-  StandardComponent,
-} from "./StandardComponent";
+  StandardMultiElementOptions,
+  StandardMultiElement,
+} from "./StandardMultiElement";
 import { Card } from "./Card";
 import { useFormState } from "../../../hooks/useFormState";
 import {
@@ -97,8 +97,8 @@ const CameraPipelineConfigElement: React.FC<SingleElementVisualizerProps<
 export const CameraPipelineConfigVisualizer = {
   id: "CameraPipelineConfig",
   types: ["type.googleapis.com/farm_ng.perception.CameraPipelineConfig"],
-  options: StandardComponentOptions,
-  Component: StandardComponent(CameraPipelineConfigElement),
+  options: StandardMultiElementOptions,
+  MultiElement: StandardMultiElement(CameraPipelineConfigElement),
   Element: CameraPipelineConfigElement,
   Form: CameraPipelineConfigForm,
 };

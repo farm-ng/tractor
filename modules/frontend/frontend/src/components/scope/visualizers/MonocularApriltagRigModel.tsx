@@ -10,9 +10,9 @@ import {
 import { formatValue } from "../../../utils/formatValue";
 import { cloneElement, useState } from "react";
 import {
-  StandardComponentOptions,
-  StandardComponent,
-} from "./StandardComponent";
+  StandardMultiElementOptions,
+  StandardMultiElement,
+} from "./StandardMultiElement";
 import RangeSlider from "react-bootstrap-range-slider";
 import styles from "./MonocularApriltagRigModel.module.scss";
 import { Scene } from "./Scene";
@@ -81,7 +81,7 @@ const MonocularApriltagRigModelElement: React.FC<SingleElementVisualizerProps<
     )
     .map((_) => _.pose) as NamedSE3Pose[];
 
-  const markers = rig && <ApriltagRigVisualizer.Marker3D value={[0, rig]} />;
+  const markers = rig && <ApriltagRigVisualizer.Element3D value={[0, rig]} />;
 
   if (cameraPoseRig) {
     nodePoses.push(cameraPoseRig);
@@ -222,7 +222,7 @@ const MonocularApriltagRigModelElement: React.FC<SingleElementVisualizerProps<
 export const MonocularApriltagRigModelVisualizer = {
   id: "MonocularApriltagRigModel",
   types: ["type.googleapis.com/farm_ng.calibration.MonocularApriltagRigModel"],
-  options: StandardComponentOptions,
-  Component: StandardComponent(MonocularApriltagRigModelElement),
+  options: StandardMultiElementOptions,
+  MultiElement: StandardMultiElement(MonocularApriltagRigModelElement),
   Element: MonocularApriltagRigModelElement,
 };

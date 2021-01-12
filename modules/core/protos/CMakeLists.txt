@@ -4,5 +4,4 @@ farm_ng_add_protobufs(farm_ng_core_protobuf
   ./farm_ng/core/log_playback.proto
   ./farm_ng/core/programd.proto
   ./farm_ng/core/resource.proto
-  ./farm_ng/core/countdown.proto
 )
