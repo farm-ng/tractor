@@ -58,7 +58,7 @@ jobs:
         with:
           builder: ${{ steps.buildx.outputs.name }}
           context: ./docker/devel
-          file: ./docker/${{ matrix.image }}.Dockerfile
+          file: ./docker/devel/${{ matrix.image }}.Dockerfile
           push: true
           tags: ${{ steps.prep.outputs.tags }}
           cache-from: type=local,src=/tmp/.buildx-cache
@@ -112,7 +112,7 @@ jobs:
         with:
           builder: ${{ steps.buildx.outputs.name }}
           context: ./docker/devel
-          file: ./docker/devel.Dockerfile
+          file: ./docker/devel/devel.Dockerfile
           push: true
           tags: ${{ steps.prep.outputs.tags }}
           cache-from: type=local,src=/tmp/.buildx-cache
