@@ -3,7 +3,7 @@ name: Master Branch CI
 # For all pushes to the master branch push the image to the container registry tagged as `edge`
 on:
   push:
-    branches: jetson-docker
+    branches: master
 
 jobs:
 
