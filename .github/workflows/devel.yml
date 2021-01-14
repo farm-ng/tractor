@@ -117,3 +117,17 @@ jobs:
           tags: ${{ steps.prep.outputs.tags }}
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache,mode=max
+      -
+        name: Image digest
+        run: echo ${{ steps.docker_build.outputs.digest }} >> docker/devel/devel_digest.txt
+      - uses: actions/upload-artifact@v2
+        with:
+          name: devel_digest
+          path: docker/devel/devel_digest.txt
+      - name: Commit changes
+        uses: EndBug/add-and-commit@v6
+        with:
+          author_name: Devel Build Action
+          author_email: devel_build@noreply
+          message: 'Update devel digest: farmng/devel@${{ steps.docker_build.outputs.digest }}'
+          add: docker/devel/devel_digest.txt
