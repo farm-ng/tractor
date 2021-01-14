@@ -3,7 +3,7 @@ name: Devel docker images CI
 # For all pushes to the devel branch push devel related images to registry tagged as `edge`
 on:
   push:
-    branches: jetson-docker
+    branches: devel
 
 jobs:
   third_party_build:
