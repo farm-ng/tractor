@@ -12,4 +12,3 @@ message HelloWorldStatus {
 message HelloWorldCommand {
   string message = 1;
 }
-

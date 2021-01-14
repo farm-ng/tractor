@@ -30,9 +30,6 @@ jobs:
 
   build:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        image: ["base", "webservices"]
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -51,7 +48,7 @@ jobs:
       # - The Github cache evicts when it grows above 5GB.
       # - The Github cache has nice built-in support for "fallback" cache keys
       # To use Dockerhub as a cache instead, replace the cache-from/cache-to lines below with:
-      #   cache-from: type=registry,ref=farmng/${{ matrix.image }}:latest
+      #   cache-from: type=registry,ref=farmng/base:latest
       #   cache-to: type=inline,mode=max
       # (taking care to choose appropriate cache keys)
       # see https://github.com/docker/buildx#--cache-fromnametypetypekeyvalue)
@@ -59,9 +56,9 @@ jobs:
         uses: actions/cache@v2
         with:
           path: /tmp/.buildx-cache
-          key: ${{ runner.os }}-buildx-${{ matrix.image }}-${{ github.sha }}
+          key: ${{ runner.os }}-buildx-base-${{ github.sha }}
           restore-keys: |
-            ${{ runner.os }}-buildx-${{ matrix.image }}-
+            ${{ runner.os }}-buildx-base-
             ${{ runner.os }}-buildx-
 
       - name: Build
@@ -69,6 +66,6 @@ jobs:
         with:
           builder: ${{ steps.buildx.outputs.name }}
           context: .
-          file: ./docker/${{ matrix.image }}.Dockerfile
+          file: ./docker/base.Dockerfile
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache,mode=max
