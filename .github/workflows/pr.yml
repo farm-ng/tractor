@@ -31,6 +31,10 @@ jobs:
   docs:
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          submodules: "recursive"
       - name: Build Docs
         run: ./devel.sh make docs
       - uses: actions/upload-artifact@v2
