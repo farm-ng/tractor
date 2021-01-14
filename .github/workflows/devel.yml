@@ -4,6 +4,9 @@ name: Devel docker images CI
 on:
   push:
     branches: devel
+    paths:
+      - 'docker/devel/**'
+      - '!docker/devel/*-digest.txt'
 
 jobs:
   third_party_build:
