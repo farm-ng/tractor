@@ -4,6 +4,9 @@ name: Devel docker images CI
 on:
   push:
     branches: devel
+  paths:
+      - 'docker/devel/**'
+      - '.github/workflows/devel.yml'
 
 jobs:
   third_party_build:
