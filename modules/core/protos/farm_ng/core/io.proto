@@ -6,20 +6,16 @@ import "google/protobuf/any.proto";
 package farm_ng.core;
 option go_package = "github.com/farm-ng/genproto/core";
 
+// [docs] event
 message Event {
   google.protobuf.Timestamp stamp = 1;
   string name = 2;
   google.protobuf.Any data = 3;
   google.protobuf.Timestamp recv_stamp = 4;
 }
+// [docs] event
 
-message Subscription {
-  // A regular expression that acts as a filter on event names.
-  // Scans the entire event name for a match (i.e. re.search, not re.match).
-  // Should only use regex syntax supported by the standard regex library in all implementation languages.
-  string name = 1;
-}
-
+// [docs] announce
 message Announce {
   string host = 1;
   int32 port = 2;
@@ -31,6 +27,14 @@ message Announce {
   // Multiple subscriptions are combined via union, not intersection.
   repeated Subscription subscriptions = 6;
 }
+
+message Subscription {
+  // A regular expression that acts as a filter on event names.
+  // Scans the entire event name for a match (i.e. re.search, not re.match).
+  // Should only use regex syntax supported by the standard regex library in all implementation languages.
+  string name = 1;
+}
+// [docs] announce
 
 message LoggingCommand {
   message RecordStop {}

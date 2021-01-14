@@ -2,9 +2,9 @@
 import * as React from "react";
 import { SingleElementVisualizerProps } from "../../../registry/visualization";
 import {
-  StandardComponentOptions,
-  StandardComponent,
-} from "./StandardComponent";
+  StandardMultiElementOptions,
+  StandardMultiElement,
+} from "./StandardMultiElement";
 import {
   CalibrateApriltagRigResult,
   CalibrateApriltagRigStatus,
@@ -43,7 +43,7 @@ const CalibrateApriltagRigStatusElement: React.FC<SingleElementVisualizerProps<
 export const CalibrateApriltagRigStatusVisualizer = {
   id: "CalibrateApriltagRigStatus",
   types: ["type.googleapis.com/farm_ng.calibration.CalibrateApriltagRigStatus"],
-  options: StandardComponentOptions,
-  Component: StandardComponent(CalibrateApriltagRigStatusElement),
+  options: StandardMultiElementOptions,
+  MultiElement: StandardMultiElement(CalibrateApriltagRigStatusElement),
   Element: CalibrateApriltagRigStatusElement,
 };

@@ -8,9 +8,9 @@ import { KeyValueTable } from "./KeyValueTable";
 import { Card } from "./Card";
 import { DetectApriltagsConfiguration } from "@farm-ng/genproto-perception/farm_ng/perception/detect_apriltags";
 import {
-  StandardComponent,
-  StandardComponentOptions,
-} from "./StandardComponent";
+  StandardMultiElement,
+  StandardMultiElementOptions,
+} from "./StandardMultiElement";
 import { useFormState } from "../../../hooks/useFormState";
 import Form from "./Form";
 import { Resource } from "@farm-ng/genproto-core/farm_ng/core/resource";
@@ -118,8 +118,8 @@ export const DetectApriltagsConfigurationVisualizer = {
   types: [
     "type.googleapis.com/farm_ng.perception.DetectApriltagsConfiguration",
   ],
-  options: StandardComponentOptions,
-  Component: StandardComponent(DetectApriltagsConfigurationElement),
+  options: StandardMultiElementOptions,
+  MultiElement: StandardMultiElement(DetectApriltagsConfigurationElement),
   Element: DetectApriltagsConfigurationElement,
   Form: DetectApriltagsConfigurationForm,
 };

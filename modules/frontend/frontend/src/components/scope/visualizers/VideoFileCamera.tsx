@@ -10,9 +10,9 @@ import Form from "./Form";
 import { KeyValueTable } from "./KeyValueTable";
 import { ResourceVisualizer } from "./Resource";
 import {
-  StandardComponentOptions,
-  StandardComponent,
-} from "./StandardComponent";
+  StandardMultiElementOptions,
+  StandardMultiElement,
+} from "./StandardMultiElement";
 
 const VideoFileCameraForm: React.FC<FormProps<VideoFileCamera>> = (props) => {
   const [value, setValue] = useFormState(props);
@@ -64,8 +64,8 @@ const VideoFileCameraElement: React.FC<SingleElementVisualizerProps<
 export const VideoFileCameraVisualizer = {
   id: "VideoFileCamera",
   types: ["type.googleapis.com/farm_ng.perception.VideoFileCamera"],
-  options: StandardComponentOptions,
-  Component: StandardComponent(VideoFileCameraElement),
+  options: StandardMultiElementOptions,
+  MultiElement: StandardMultiElement(VideoFileCameraElement),
   Element: VideoFileCameraElement,
   Form: VideoFileCameraForm,
 };

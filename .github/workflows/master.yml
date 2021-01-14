@@ -6,11 +6,31 @@ on:
     branches: master
 
 jobs:
+
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          submodules: "recursive"
+      - name: Build Docs
+        run: ./devel.sh make docs
+      - uses: actions/upload-artifact@v2
+        with:
+          name: sphinx
+          path: build/doc/sphinx/
+      - name: Deploy to GitHub Pages
+        if: ${{ github.event_name == 'push' }}
+        uses: JamesIves/github-pages-deploy-action@3.7.1
+        with:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BRANCH: gh-pages # The branch the action should deploy to.
+          FOLDER: build/doc/sphinx # The folder the action should deploy.
+          CLEAN: true # Automatically remove deleted files from the deploy branch
+
   deploy:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        image: ["base", "webservices"]
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -20,7 +40,7 @@ jobs:
       - name: Prepare
         id: prep
         run: |
-          DOCKER_IMAGE=farmng/${{ matrix.image }}
+          DOCKER_IMAGE=farmng/base
           VERSION=edge
           if [[ $GITHUB_REF == refs/tags/* ]]; then
             VERSION=${GITHUB_REF#refs/tags/v}
@@ -28,9 +48,9 @@ jobs:
           if [ "${{ github.event_name }}" = "schedule" ]; then
             VERSION=nightly
           fi
-          TAGS="${DOCKER_IMAGE}:${VERSION}"
+          TAGS="${DOCKER_IMAGE}:${VERSION},farmng/webservices:${VERSION}"
           if [[ $VERSION =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$ ]]; then
-            TAGS="$TAGS,${DOCKER_IMAGE}:latest"
+            TAGS="$TAGS,${DOCKER_IMAGE}:latest,farmng/webservices:latest"
           fi
           echo ::set-output name=tags::${TAGS}
 
@@ -42,9 +62,9 @@ jobs:
         uses: actions/cache@v2
         with:
           path: /tmp/.buildx-cache
-          key: ${{ runner.os }}-buildx-${{ matrix.image }}-${{ github.sha }}
+          key: ${{ runner.os }}-buildx-base-${{ github.sha }}
           restore-keys: |
-            ${{ runner.os }}-buildx-${{ matrix.image }}-
+            ${{ runner.os }}-buildx-base-
             ${{ runner.os }}-buildx-
 
       - name: Login to DockerHub
@@ -59,7 +79,7 @@ jobs:
         with:
           builder: ${{ steps.buildx.outputs.name }}
           context: .
-          file: ./docker/${{ matrix.image }}.Dockerfile
+          file: ./docker/base.Dockerfile
           push: true
           tags: ${{ steps.prep.outputs.tags }}
           cache-from: type=local,src=/tmp/.buildx-cache

@@ -13,12 +13,12 @@ import { useFormState } from "../../../hooks/useFormState";
 import Form from "./Form";
 import { toQuaternion, toVector3 } from "../../../utils/protoConversions";
 import {
-  Standard3DComponent,
-  Standard3DComponentOptions,
-  Standard3DElement,
-} from "./StandardComponent";
+  StandardMultiElement3D,
+  StandardMultiElement3DOptions,
+  StandardElement3D,
+} from "./StandardMultiElement";
 
-const SE3PoseMarker3D: React.FC<SingleElementVisualizerProps<SE3Pose>> = (
+const SE3PoseElement3D: React.FC<SingleElementVisualizerProps<SE3Pose>> = (
   props
 ) => {
   const {
@@ -145,9 +145,9 @@ const SE3PoseForm: React.FC<FormProps<SE3Pose>> = (props) => {
 export const SE3PoseVisualizer = {
   id: "SE3Pose",
   types: ["type.googleapis.com/farm_ng.perception.SE3Pose"],
-  options: Standard3DComponentOptions,
-  Component: Standard3DComponent(SE3PoseMarker3D),
-  Element: Standard3DElement(SE3PoseMarker3D),
+  options: StandardMultiElement3DOptions,
+  MultiElement: StandardMultiElement3D(SE3PoseElement3D),
+  Element: StandardElement3D(SE3PoseElement3D),
   Form: SE3PoseForm,
-  Marker3D: SE3PoseMarker3D,
+  Element3D: SE3PoseElement3D,
 };

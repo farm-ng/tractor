@@ -5,9 +5,9 @@ import {
   SingleElementVisualizerProps,
 } from "../../../registry/visualization";
 import {
-  StandardComponentOptions,
-  StandardComponent,
-} from "./StandardComponent";
+  StandardMultiElementOptions,
+  StandardMultiElement,
+} from "./StandardMultiElement";
 import { CalibrateApriltagRigConfiguration } from "@farm-ng/genproto-calibration/farm_ng/calibration/calibrate_apriltag_rig";
 import { useFetchResource } from "../../../hooks/useFetchResource";
 import { KeyValueTable } from "./KeyValueTable";
@@ -174,8 +174,8 @@ export const CalibrateApriltagRigConfigurationVisualizer = {
   types: [
     "type.googleapis.com/farm_ng.calibration.CalibrateApriltagRigConfiguration",
   ],
-  options: StandardComponentOptions,
-  Component: StandardComponent(CalibrateApriltagRigConfigurationElement),
+  options: StandardMultiElementOptions,
+  MultiElement: StandardMultiElement(CalibrateApriltagRigConfigurationElement),
   Element: CalibrateApriltagRigConfigurationElement,
   Form: CalibrateApriltagRigConfigurationForm,
 };

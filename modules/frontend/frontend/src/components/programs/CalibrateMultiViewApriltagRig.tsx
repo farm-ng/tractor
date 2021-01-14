@@ -14,7 +14,7 @@ import { CalibrateMultiViewApriltagRigConfigurationVisualizer } from "../scope/v
 
 const programId = "calibrate_multi_view_apriltag_rig";
 
-const Component: React.FC<ProgramProps<Configuration>> = ({
+const MultiElement: React.FC<ProgramProps<Configuration>> = ({
   inputRequired,
 }) => {
   const { busClient } = useStores();
@@ -61,5 +61,5 @@ export const CalibrateMultiViewApriltagRigProgram = {
     }
     return (data as Status).inputRequiredConfiguration || null;
   },
-  Component,
+  MultiElement,
 };

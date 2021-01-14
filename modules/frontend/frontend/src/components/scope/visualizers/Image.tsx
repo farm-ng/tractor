@@ -4,9 +4,9 @@ import { SingleElementVisualizerProps } from "../../../registry/visualization";
 import { Image } from "@farm-ng/genproto-perception/farm_ng/perception/image";
 import { forwardRef, useEffect, useRef, useState } from "react";
 import {
-  StandardComponentOptions,
-  StandardComponent,
-} from "./StandardComponent";
+  StandardMultiElementOptions,
+  StandardMultiElement,
+} from "./StandardMultiElement";
 import { useFetchDataUrl } from "../../../hooks/useFetchDataUrl";
 import styles from "./Image.module.scss";
 
@@ -82,7 +82,7 @@ const ImageElement: React.FC<ImageProps> = (props) => {
 export const ImageVisualizer = {
   id: "Image",
   types: ["type.googleapis.com/farm_ng.perception.Image"],
-  options: StandardComponentOptions,
-  Component: StandardComponent(ImageElement),
+  options: StandardMultiElementOptions,
+  MultiElement: StandardMultiElement(ImageElement),
   Element: ImageElement,
 };

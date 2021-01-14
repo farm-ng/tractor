@@ -44,11 +44,12 @@ export const Stream: React.FC<IProps> = ({ panel, name, values }) => {
     return (
       <div className={styles.stream}>
         <h4>{name}</h4>
-        {React.createElement(visualizer.Component, {
-          values: filteredValues,
-          options,
-          resources: store.resourceArchive
-        })}
+        {visualizer.MultiElement &&
+          React.createElement(visualizer.MultiElement, {
+            values: filteredValues,
+            options,
+            resources: store.resourceArchive,
+          })}
       </div>
     );
   });

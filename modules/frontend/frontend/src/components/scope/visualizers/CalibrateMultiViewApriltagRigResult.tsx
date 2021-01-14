@@ -2,9 +2,9 @@
 import * as React from "react";
 import { SingleElementVisualizerProps } from "../../../registry/visualization";
 import {
-  StandardComponentOptions,
-  StandardComponent,
-} from "./StandardComponent";
+  StandardMultiElementOptions,
+  StandardMultiElement,
+} from "./StandardMultiElement";
 import { Card } from "./Card";
 import { CalibrateMultiViewApriltagRigResult } from "@farm-ng/genproto-calibration/farm_ng/calibration/calibrate_multi_view_apriltag_rig";
 import { useFetchResource } from "../../../hooks/useFetchResource";
@@ -158,7 +158,9 @@ export const CalibrateMultiViewApriltagRigResultVisualizer = {
   types: [
     "type.googleapis.com/farm_ng.calibration.CalibrateMultiViewApriltagRigResult",
   ],
-  options: StandardComponentOptions,
-  Component: StandardComponent(CalibrateMultiViewApriltagRigResultElement),
+  options: StandardMultiElementOptions,
+  MultiElement: StandardMultiElement(
+    CalibrateMultiViewApriltagRigResultElement
+  ),
   Element: CalibrateMultiViewApriltagRigResultElement,
 };

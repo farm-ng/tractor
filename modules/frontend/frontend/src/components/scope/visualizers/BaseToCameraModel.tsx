@@ -6,9 +6,9 @@ import {
   solverStatusToJSON,
 } from "@farm-ng/genproto-calibration/farm_ng/calibration/calibrator";
 import {
-  StandardComponentOptions,
-  StandardComponent,
-} from "./StandardComponent";
+  StandardMultiElementOptions,
+  StandardMultiElement,
+} from "./StandardMultiElement";
 import { Card } from "./Card";
 import { KeyValueTable } from "./KeyValueTable";
 import { BaseToCameraInitializationVisualizer } from "./BaseToCameraInitialization";
@@ -59,7 +59,7 @@ const BaseToCameraModelElement: React.FC<SingleElementVisualizerProps<
 export const BaseToCameraModelVisualizer = {
   id: "BaseToCameraModel",
   types: ["type.googleapis.com/farm_ng.calibration.BaseToCameraModel"],
-  options: StandardComponentOptions,
-  Component: StandardComponent(BaseToCameraModelElement),
+  options: StandardMultiElementOptions,
+  MultiElement: StandardMultiElement(BaseToCameraModelElement),
   Element: BaseToCameraModelElement,
 };

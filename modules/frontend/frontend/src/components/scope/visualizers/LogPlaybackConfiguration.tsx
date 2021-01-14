@@ -7,9 +7,9 @@ import {
 import { Card } from "./Card";
 import { LogPlaybackConfiguration } from "@farm-ng/genproto-core/farm_ng/core/log_playback";
 import {
-  StandardComponent,
-  StandardComponentOptions,
-} from "./StandardComponent";
+  StandardMultiElement,
+  StandardMultiElementOptions,
+} from "./StandardMultiElement";
 import { useFormState } from "../../../hooks/useFormState";
 import Form from "./Form";
 import { ResourceVisualizer } from "./Resource";
@@ -96,8 +96,8 @@ const LogPlaybackConfigurationElement: React.FC<SingleElementVisualizerProps<
 export const LogPlaybackConfigurationVisualizer = {
   id: "LogPlaybackConfiguration",
   types: ["type.googleapis.com/farm_ng.core.LogPlaybackConfiguration"],
-  options: StandardComponentOptions,
-  Component: StandardComponent(LogPlaybackConfigurationElement),
+  options: StandardMultiElementOptions,
+  MultiElement: StandardMultiElement(LogPlaybackConfigurationElement),
   Element: LogPlaybackConfigurationElement,
   Form: LogPlaybackConfigurationForm,
 };

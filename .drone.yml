@@ -1,0 +1,23 @@
+kind: pipeline
+name: l4t-build
+
+platform:
+  arch: arm64
+
+steps:
+  - name: submodules
+    image: alpine/git
+    commands:
+    - git submodule update --init --depth=1
+    - cd third_party/grpc && git submodule update --init --depth=1
+  - name: build_docker_l4t
+    image: plugins/docker
+    settings:
+      repo: farmng/devel-l4t
+      dockerfile: docker/devel-l4t.Dockerfile
+      tags:
+        - build_${DRONE_BUILD_NUMBER}
+      username:
+        from_secret: docker_user
+      password:
+        from_secret: docker_pass

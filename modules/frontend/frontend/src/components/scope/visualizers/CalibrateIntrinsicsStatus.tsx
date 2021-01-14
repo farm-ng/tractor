@@ -2,9 +2,9 @@
 import * as React from "react";
 import { SingleElementVisualizerProps } from "../../../registry/visualization";
 import {
-  StandardComponentOptions,
-  StandardComponent,
-} from "./StandardComponent";
+  StandardMultiElementOptions,
+  StandardMultiElement,
+} from "./StandardMultiElement";
 import {
   CalibrateIntrinsicsResult,
   CalibrateIntrinsicsStatus,
@@ -43,7 +43,7 @@ const CalibrateIntrinsicsStatusElement: React.FC<SingleElementVisualizerProps<
 export const CalibrateIntrinsicsStatusVisualizer = {
   id: "CalibrateIntrinsicsStatus",
   types: ["type.googleapis.com/farm_ng.calibration.CalibrateIntrinsicsStatus"],
-  options: StandardComponentOptions,
-  Component: StandardComponent(CalibrateIntrinsicsStatusElement),
+  options: StandardMultiElementOptions,
+  MultiElement: StandardMultiElement(CalibrateIntrinsicsStatusElement),
   Element: CalibrateIntrinsicsStatusElement,
 };

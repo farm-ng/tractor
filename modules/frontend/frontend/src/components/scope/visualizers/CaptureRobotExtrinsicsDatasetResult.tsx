@@ -5,9 +5,9 @@ import { KeyValueTable } from "./KeyValueTable";
 import { Card } from "./Card";
 import { CaptureRobotExtrinsicsDatasetResult } from "@farm-ng/genproto-calibration/farm_ng/calibration/capture_robot_extrinsics_dataset";
 import {
-  StandardComponent,
-  StandardComponentOptions,
-} from "./StandardComponent";
+  StandardMultiElement,
+  StandardMultiElementOptions,
+} from "./StandardMultiElement";
 import { CaptureRobotExtrinsicsDatasetConfigurationVisualizer } from "./CaptureRobotExtrinsicsDatasetConfiguration";
 
 const CaptureRobotExtrinsicsDatasetResultElement: React.FC<SingleElementVisualizerProps<
@@ -49,7 +49,9 @@ export const CaptureRobotExtrinsicsDatasetResultVisualizer = {
   types: [
     "type.googleapis.com/farm_ng.calibration.CaptureRobotExtrinsicsDatasetResult",
   ],
-  options: StandardComponentOptions,
-  Component: StandardComponent(CaptureRobotExtrinsicsDatasetResultElement),
+  options: StandardMultiElementOptions,
+  MultiElement: StandardMultiElement(
+    CaptureRobotExtrinsicsDatasetResultElement
+  ),
   Element: CaptureRobotExtrinsicsDatasetResultElement,
 };

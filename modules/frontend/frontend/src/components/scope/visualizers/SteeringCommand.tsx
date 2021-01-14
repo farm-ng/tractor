@@ -44,5 +44,5 @@ export const SteeringCommandVisualizer = {
   id: "SteeringCommand",
   types: ["type.googleapis.com/farm_ng.tractor.SteeringCommand"],
   options: [{ label: "strokeWidth", options: ["1", "2", "3", "4"] }],
-  Component: SteeringCommandComponent,
+  MultiElement: SteeringCommandComponent,
 };

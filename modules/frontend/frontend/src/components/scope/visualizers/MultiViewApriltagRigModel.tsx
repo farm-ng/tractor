@@ -9,9 +9,9 @@ import {
 } from "@farm-ng/genproto-calibration/farm_ng/calibration/calibrator";
 import { formatValue } from "../../../utils/formatValue";
 import {
-  StandardComponentOptions,
-  StandardComponent,
-} from "./StandardComponent";
+  StandardMultiElementOptions,
+  StandardMultiElement,
+} from "./StandardMultiElement";
 import { Scene } from "./Scene";
 
 import { KeyValueTable } from "./KeyValueTable";
@@ -71,7 +71,7 @@ const MultiViewApriltagRigModelElement: React.FC<SingleElementVisualizerProps<
 
   // Apriltag Rig Visualization
   const apriltagRig = value.apriltagRig && (
-    <ApriltagRigVisualizer.Marker3D value={[0, value.apriltagRig]} />
+    <ApriltagRigVisualizer.Element3D value={[0, value.apriltagRig]} />
   );
 
   // Camera Rig Visualization
@@ -91,14 +91,14 @@ const MultiViewApriltagRigModelElement: React.FC<SingleElementVisualizerProps<
   const cameraRig = cameras?.map((camera) => {
     const key = `${camera.pose.frameA}:${camera.pose.frameB}`;
     return (
-      <NamedSE3PoseVisualizer.Marker3D key={key} value={[0, camera.pose]}>
+      <NamedSE3PoseVisualizer.Element3D key={key} value={[0, camera.pose]}>
         <PerspectiveCamera
           showHelper
           fov={camera.fov}
           far={0.5}
           aspect={camera.aspect}
         />
-      </NamedSE3PoseVisualizer.Marker3D>
+      </NamedSE3PoseVisualizer.Element3D>
     );
   });
 
@@ -292,7 +292,7 @@ const MultiViewApriltagRigModelElement: React.FC<SingleElementVisualizerProps<
 export const MultiViewApriltagRigModelVisualizer = {
   id: "MultiViewApriltagRigModel",
   types: ["type.googleapis.com/farm_ng.calibration.MultiViewApriltagRigModel"],
-  options: StandardComponentOptions,
-  Component: StandardComponent(MultiViewApriltagRigModelElement),
+  options: StandardMultiElementOptions,
+  MultiElement: StandardMultiElement(MultiViewApriltagRigModelElement),
   Element: MultiViewApriltagRigModelElement,
 };

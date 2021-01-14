@@ -32,5 +32,5 @@ export const TimeSkewVisualizer = {
   id: "TimeSkew",
   types: "*" as const,
   options: [],
-  Component: TimeSkewComponent,
+  MultiElement: TimeSkewComponent,
 };

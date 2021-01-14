@@ -9,9 +9,9 @@ import {
 } from "@farm-ng/genproto-calibration/farm_ng/calibration/capture_robot_extrinsics_dataset";
 import { useFetchResource } from "../../../hooks/useFetchResource";
 import {
-  StandardComponent,
-  StandardComponentOptions,
-} from "./StandardComponent";
+  StandardMultiElement,
+  StandardMultiElementOptions,
+} from "./StandardMultiElement";
 import { CaptureRobotExtrinsicsDatasetResultVisualizer } from "./CaptureRobotExtrinsicsDatasetResult";
 import { CapturePoseRequestList } from "./CapturePoseRequestList";
 import { formatValue } from "../../../utils/formatValue";
@@ -118,7 +118,9 @@ export const CaptureRobotExtrinsicsDatasetStatusVisualizer = {
   types: [
     "type.googleapis.com/farm_ng.calibration.CaptureRobotExtrinsicsDatasetStatus",
   ],
-  options: StandardComponentOptions,
-  Component: StandardComponent(CaptureRobotExtrinsicsDatasetStatusElement),
+  options: StandardMultiElementOptions,
+  MultiElement: StandardMultiElement(
+    CaptureRobotExtrinsicsDatasetStatusElement
+  ),
   Element: CaptureRobotExtrinsicsDatasetStatusElement,
 };

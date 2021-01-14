@@ -14,7 +14,7 @@ import Form from "../scope/visualizers/Form";
 
 const programId = "log_playback";
 
-const Component: React.FC<ProgramProps<Configuration>> = ({
+const MultiElement: React.FC<ProgramProps<Configuration>> = ({
   inputRequired,
 }) => {
   const { busClient } = useStores();
@@ -60,5 +60,5 @@ export const LogPlaybackProgram = {
     }
     return (data as Status).inputRequiredConfiguration || null;
   },
-  Component,
+  MultiElement,
 };
