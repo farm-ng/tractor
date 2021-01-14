@@ -107,7 +107,7 @@ Services may be started manually from the command line, but are usually managed 
   services:
     ipc_logger:
       image: farmng/base:latest
-      entrypoint: ./env.sh build/modules/core/cpp/farm_ng/ipc_logger
+      entrypoint: build/modules/core/cpp/farm_ng/ipc_logger
       environment:
         - BLOBSTORE_ROOT=/blobstore
       volumes:
@@ -115,7 +115,7 @@ Services may be started manually from the command line, but are usually managed 
       network_mode: host
     programd:
       image: farmng/base:latest
-      entrypoint: ./env.sh python -m farm_ng.core.programd
+      entrypoint: python -m farm_ng.core.programd
       environment:
         - BLOBSTORE_ROOT=/blobstore
       volumes:

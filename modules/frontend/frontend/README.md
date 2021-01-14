@@ -25,13 +25,11 @@ In development it's helpful to run them separately.
   # To launch a development server on a machine with the hostname tractor.local
 
   # In one terminal, run the backend on port 8081
-  cd $FARM_NG_ROOT && . setup.bash
-  cd modules/frontend/go/webrtc
+  cd $FARM_NG_ROOT/modules/frontend/go/webrtc
   PORT=8081 go run cmd/proxy-server/main.go
 
   # In another terminal, run webpack-dev-server (in watch mode) on port 8080
-  cd $FARM_NG_ROOT && . setup.bash
-  cd modules/frontend/frontend
+  cd $FARM_NG_ROOT/modules/frontend/frontend
   BASE_URL="http://tractor.local:8081" yarn dev-start-remote --port 8080
 
   # Wait for the initial webpack build to complete, then

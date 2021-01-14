@@ -1,4 +1,5 @@
-FROM farmng/devel@sha256:15c31ddbeb3649575de3dfbc4c3360c1b5af04e04fbc275fd7c9de4cde60b89d
+ARG FARM_NG_DEVEL_IMAGE=farmng/devel:latest
+FROM $FARM_NG_DEVEL_IMAGE
 
 WORKDIR /workspace/farm_ng
 RUN export FARM_NG_ROOT=/workspace/farm_ng
@@ -9,11 +10,6 @@ COPY CMakeLists.txt .
 COPY cmake cmake
 COPY doc doc
 COPY modules modules
-COPY setup.bash .
-COPY env.sh .
 COPY third_party third_party
 
-
-SHELL ["/bin/bash", "-c"]
-
-RUN ./env.sh make doc cpp webservices
+RUN make doc cpp webservices

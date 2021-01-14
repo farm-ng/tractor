@@ -6,7 +6,6 @@ endif
 FARM_NG_PREFIX=/farm_ng/env
 
 all:
-	make bootstrap
 	make third_party
 	make cpp
 	make webservices
@@ -16,42 +15,39 @@ all:
 clean:
 	rm -rf build env third_party/build-*
 
-bootstrap:
-	./bootstrap.sh
+cmakelists := CMakeLists.txt doc/CMakeLists.txt $(shell find modules/ -type f -name "CMakeLists.txt")
 
+build/CMakeCache.txt: $(cmakelists)
+	mkdir -p build && cd build && cmake -DCMAKE_PREFIX_PATH=$(FARM_NG_PREFIX) -DCMAKE_BUILD_TYPE=Release -DBUILD_DOCS=TRUE ..
 
-cpp:
-	mkdir -p build
-	cd build && cmake -DCMAKE_PREFIX_PATH=$(FARM_NG_PREFIX) -DCMAKE_BUILD_TYPE=Release .. && make -j`nproc --ignore=1`
+cmake: build/CMakeCache.txt
 
-docs:
-	mkdir -p build
-	cd build && cmake -DCMAKE_PREFIX_PATH=$(FARM_NG_PREFIX) -DBUILD_DOCS=TRUE .. && make docs
+cpp: build/CMakeCache.txt
+	make -C build -j`nproc --ignore=1`
+
+docs: build/CMakeCache.txt
+	make -C build docs
 
 frontend:
 	cd modules/frontend/frontend && yarn && yarn build
 	cp -rT modules/frontend/frontend/dist build/frontend
 
-protos:
-	mkdir -p build
-	cd build && cmake -DCMAKE_PREFIX_PATH=$(FARM_NG_PREFIX) -DCMAKE_BUILD_TYPE=Release .. && make -j`nproc --ignore=1` farm_ng_all_protobuf_py farm_ng_all_protobuf_go farm_ng_all_protobuf_ts
+protos: build/CMakeCache.txt
+	make -C build -j`nproc --ignore=1` farm_ng_all_protobuf_py farm_ng_all_protobuf_go farm_ng_all_protobuf_ts
 
 systemd:
 	cd jetson && sudo ./install.sh
 
-third_party:
-	cd third_party && ./install.sh
-
 test:
-	./env.sh pytest $(PY_TEST_FILTER)
+	pytest $(PY_TEST_FILTER)
 	cd modules/frontend/frontend && yarn test $(JS_TEST_FILTER)
 
 webserver:
-	./env.sh make -C modules/frontend/go/webrtc
+	make -C modules/frontend/go/webrtc
 
 webservices:
 	make protos
 	make frontend
 	make webserver
 
-.PHONY: clean bootstrap cpp docs frontend protos systemd third_party test webserver webservices all
+.PHONY: clean bootstrap cpp docs frontend protos systemd third_party test webserver webservices cmake all

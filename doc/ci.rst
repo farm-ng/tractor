@@ -52,15 +52,15 @@ The files in this layer are meant to be copied into other containers,
 and the images themselves are small compared to the build-time requirements.
 
 The images are pushed to the dockerhub repository ``farmng/build-<third party name>``. For example, ``farmng/build-grpc`` is built from
-`//docker/grpc.Dockerfile <https://github.com/farm-ng/tractor/blob/devel/docker/grpc.Dockerfile>`_.
+`//docker/devel/grpc.Dockerfile <https://github.com/farm-ng/tractor/blob/master/docker/devel/grpc.Dockerfile>`_.
 
-.. literalinclude:: ../docker/grpc.Dockerfile
+.. literalinclude:: ../docker/devel/grpc.Dockerfile
    :language: dockerfile
 
-Next, this workflow builds our devel image (`//docker/devel.Dockerfile <https://github.com/farm-ng/tractor/blob/devel/docker/devel.Dockerfile>`_),
+Next, this workflow builds our devel image (`//docker/devel/devel.Dockerfile <https://github.com/farm-ng/tractor/blob/master/docker/devel/devel.Dockerfile>`_),
 which depends on the third party images described above:
 
-.. literalinclude:: ../docker/devel.Dockerfile
+.. literalinclude:: ../docker/devel/devel.Dockerfile
    :language: dockerfile
    :start-after: [docs] copy_third_party
    :end-before: [docs] copy_third_party

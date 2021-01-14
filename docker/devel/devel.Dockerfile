@@ -54,6 +54,7 @@ RUN apt-get update --fix-missing && \
     python3-dev \
     python3-pip \
     python3-numpy \
+    sudo \
     yarn \
     && \
     apt-get clean
@@ -61,6 +62,15 @@ RUN apt-get update --fix-missing && \
 RUN update-alternatives --install /usr/bin/python python /usr/bin/python3 10
 
 ARG PREFIX=/farm_ng/env
+
+ENV FARM_NG_PREFIX=$PREFIX
+ENV PYTHONPATH=$FARM_NG_PREFIX/lib/python3.6/site-packages:$FARM_NG_PREFIX/lib/python3.6/dist-packages
+ENV LD_LIBRARY_PATH=$FARM_NG_PREFIX/lib
+
+ENV FARM_NG_GOPATH=$FARM_NG_PREFIX/go
+ENV GOPATH=$FARM_NG_GOPATH:$GOPATH
+ENV PATH=$FARM_NG_GOPATH/bin:$FARM_NG_PREFIX/bin:/usr/local/go/bin:$PATH
+
 RUN arch=`dpkg --print-architecture` && \
     wget https://golang.org/dl/go1.15.1.linux-${arch}.tar.gz -P /tmp/ && \
     tar -C /usr/local -xzf /tmp/go1.15.1.linux-${arch}.tar.gz && \
@@ -94,4 +104,12 @@ COPY --from=farmng/build-apriltag:edge $PREFIX $PREFIX
 COPY --from=farmng/build-ceres:edge $PREFIX $PREFIX
 # [docs] copy_third_party
 
-COPY setup.bash /farm_ng/setup.bash
+ARG WORKSPACE_DIR=/workspace/tractor
+ENV FARM_NG_ROOT=$WORKSPACE_DIR
+ENV GOPATH=$FARM_NG_ROOT/.go:$GOPATH
+
+ENV PYTHONPATH=$FARM_NG_ROOT/modules/core/python:$FARM_NG_ROOT/build/modules/core/python/protos/python:$PYTHONPATH
+ENV PYTHONPATH=$FARM_NG_ROOT/modules/perception/python:$FARM_NG_ROOT/build/modules/perception/python/protos/python:$PYTHONPATH
+ENV PYTHONPATH=$FARM_NG_ROOT/modules/calibration/python:$FARM_NG_ROOT/build/modules/calibration/python/protos/python:$PYTHONPATH
+ENV PYTHONPATH=$FARM_NG_ROOT/modules/frontend/python:$FARM_NG_ROOT/build/modules/frontend/python/protos/python:$PYTHONPATH
+ENV PYTHONPATH=$FARM_NG_ROOT/modules/tractor/python:$FARM_NG_ROOT/build/modules/tractor/python/protos/python:$PYTHONPATH

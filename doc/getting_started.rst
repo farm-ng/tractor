@@ -122,40 +122,47 @@ Get the code
 Start the development container
 -------------------------------
 
-``docker-compose`` can be used to start the development Docker container. It mounts the repository from your host as a volume.
+``docker-compose`` can be used to start the development Docker
+container.  It mounts the repository from your host as a volume.For
+convenience, we've wrapped the docker-compose commands in Makefile
+located under ``$FARM_NG_ROOT/docker/devel``.
+
+The following command starts the development docker environment in the background.
 
 .. code-block:: bash
 
-  cd docker
-  docker-compose -f docker-compose.devel.yml up
+  make -C docker/devel upd
 
-
+On the first run, the development environment docker image is built, inheriting the user name, UID and GID of the parent shell.
 You should see something similar to:
 
 .. code-block::
 
-  $ docker-compose -f docker-compose.devel.yml up
-  Creating docker_devel_1 ... done
-  Attaching to docker_devel_1
-  devel_1  | farm-ng's devel container is running.  Press Ctrl-C to stop it.
-  devel_1  | You can open up a shell inside the container:
-  devel_1  |   docker exec -it docker_devel_1 bash
+   ~/code/tractor$ make -C docker/devel upd
+   Building workspace
+   Successfully built c0861fd269b0
+   Successfully tagged devel_workspace:latest
+   Creating devel_workspace_1 ... done
+   farm-ng's devel container is running.  Run make down to stop it.
+   You can open up a shell inside the container:
+      docker exec -it devel_workspace_1 bash
 
 
-To stop the container, press ``Ctrl-C``.
+To stop the container, run ``make -C docker/devel down``
+
 
 Now the Docker container is up and running.  You can ``exec`` into it, interactively, and open as many shells as you like with the following command:
 
 .. code-block::
 
-   docker exec -it docker_devel_1 bash
+   docker exec -it devel_workspace_1 bash
 
 
 Try the following, on your host machine, to configure the ``cmake`` build inside the container:
 
 .. code-block:: bash
 
-   docker exec docker_devel_1 bash -c ". setup.bash && mkdir -p build && cd build && cmake -DCMAKE_PREFIX_PATH=/farm_ng/env -DBUILD_DOCS=True .."
+   docker exec devel_workspace_1 make cmake
 
 
 You should see something similar to::
@@ -171,30 +178,23 @@ Now that the code is configured, you should see a ``build/`` directory on the ho
 
 Let's try building these docs::
 
-   docker exec docker_devel_1 /workspace/tractor/env.sh make -C build docs
+   docker exec devel_workspace_1 make -C build docs
 
 
 And run a server to host them::
 
-   docker exec docker_devel_1 bash -c "cd build/doc/sphinx && python3 -m http.server 8000"
+   docker exec devel_workspace_1 bash -c "cd build/doc/sphinx && python3 -m http.server 8000"
 
 Try browsing to http://localhost:8000/getting_started.html#start-the-development-container
 
-Now take a moment to study the contents of ``docker/docker-compose.devel.yaml``:
+Now take a moment to study the contents of ``docker/devel/docker-compose.yaml``:
 
-.. literalinclude:: ../docker/docker-compose.devel.yml
+.. literalinclude:: ../docker/devel/docker-compose.yml
    :language: yaml
 
 - The source directory is mounted at ``/workspace/tractor``.
-- A named volume is mounted at ``/root`` -- this allows the container to persist bash history and other cached variables.
+- A named volume is mounted at ``/home/$USERNAME`` -- this allows the container to persist bash history and other cached variables.
 - A host directory is mounted as the ``BLOBSTORE_ROOT`` for :ref:`persistent storage of application data<section-core_blobstore>`.
-
-
-.. note::
-
-   Currently the Docker container user is ``root``.  We want to fix that shortly, so it matches your ``$UID`` on the host...
-   living on the edge here!
-
 
 
 Visual Studio Code setup
@@ -204,7 +204,7 @@ Now that you're comfortable execing into the development container let's boot up
 
 Start ``vscode`` in the normal way and install the extension ``ms-vscode-remote.remote-containers``.
 
-Attach to the container ``docker_devel_1`` using **Remote-Containers: Attach to Running Container**.
+Attach to the container ``devel_workspace_1`` using **Remote-Containers: Attach to Running Container**.
 
 .. note::
 
@@ -246,7 +246,6 @@ To build our C++ and protobuf generated code, we use ``cmake``.  From inside the
 .. code-block:: bash
 
    cd /workspace/tractor
-   . setup.bash
    mkdir -p build
    cd build
    cmake -DCMAKE_PREFIX_PATH=/farm_ng/env ..
@@ -261,10 +260,10 @@ To build our webservices (Typescript and Go) run:
 .. code-block:: bash
 
    cd /workspace/tractor
-   ./env.sh make webservices
+   make webservices
 
    # Run the webservices
-   PORT=9999 ./env.sh build/go/farm_ng_webservices
+   PORT=9999 build/go/farm_ng_webservices
 
 Try browsing to `<http://localhost:9999/>`_.
 
