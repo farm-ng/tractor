@@ -1,6 +1,6 @@
 #!/bin/bash -ex
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
-TAG=farmng/devel@sha256:ae2c7f801fcd8ffda5ca1e3f24321f3eef5962b81fb1d57026816aca22e270e7
+TAG=farmng/devel@sha256:0be3c6a66403711dd76fac557d5c73c4fb626bcd74795a106ab65e1b251e0c6d
 
 COMMAND=$@
 docker run \
