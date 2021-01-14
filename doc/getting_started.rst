@@ -292,9 +292,7 @@ Docker Releases
 
 The following images are available on Dockerhub:
 
-- `farmng/base <https://hub.docker.com/repository/docker/farmng/base>`_: All C++ and Python binaries and all source code.
-
-- `farmng/webservices <https://hub.docker.com/repository/docker/farmng/webservices>`_: The web server and web application, but no source code.
+- `farmng/base <https://hub.docker.com/repository/docker/farmng/base>`_: All C++, Go, web server and web applications, and Python binaries and all source code.
 
 - `farmng/devel <https://hub.docker.com/repository/docker/farmng/devel>`_: All source code and a base development environment with dependencies pre-installed.
 
