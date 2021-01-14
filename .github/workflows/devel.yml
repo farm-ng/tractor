@@ -6,7 +6,6 @@ on:
     branches: devel
     paths:
       - 'docker/devel/**'
-      - '!docker/devel/*-digest.txt'
 
 jobs:
   third_party_build:
@@ -59,7 +58,6 @@ jobs:
       - name: Build and push
         id: docker_build
         uses: docker/build-push-action@v2
-        if: false
         with:
           builder: ${{ steps.buildx.outputs.name }}
           context: ./docker/devel
@@ -70,8 +68,19 @@ jobs:
           cache-to: type=local,dest=/tmp/.buildx-cache,mode=max
       -
         name: Image digest
-        if: false
         run: echo ${{ steps.docker_build.outputs.digest }} >> docker/devel/${{ matrix.image }}-digest.txt
+
+      - uses: actions/upload-artifact@v2
+        with:
+          name: ${{ matrix.image }}-digest
+          path: docker/devel/${{ matrix.image }}-digest.txt
+      - name: Commit changes
+        uses: EndBug/add-and-commit@v6
+        with:
+          author_name: Devel Build Action
+          author_email: devel_build@noreply
+          message: 'Update ${{ matrix.image }} digest: farmng/build-${{ matrix.image }}@${{ steps.docker_build.outputs.digest }}'
+          add: docker/devel/${{ matrix.image }}-digest.txt
 
   devel_build:
     runs-on: ubuntu-latest
@@ -132,11 +141,11 @@ jobs:
       - uses: actions/upload-artifact@v2
         with:
           name: devel_digest
-          path: docker/devel/devel_digest.txt
+          path: docker/devel/devel-digest.txt
       - name: Commit changes
         uses: EndBug/add-and-commit@v6
         with:
           author_name: Devel Build Action
           author_email: devel_build@noreply
           message: 'Update devel digest: farmng/devel@${{ steps.docker_build.outputs.digest }}'
-          add: docker/devel/*-digest.txt
+          add: docker/devel/devel-digest.txt
