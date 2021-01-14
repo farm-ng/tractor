@@ -25,9 +25,11 @@ jobs:
         uses: JamesIves/github-pages-deploy-action@3.7.1
         with:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPOSITORY_NAME: farm-ng/farm-ng.github.io
           BRANCH: gh-pages # The branch the action should deploy to.
           FOLDER: build/doc/sphinx # The folder the action should deploy.
           CLEAN: true # Automatically remove deleted files from the deploy branch
+
 
   deploy:
     runs-on: ubuntu-latest
