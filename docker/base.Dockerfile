@@ -16,4 +16,4 @@ COPY third_party third_party
 
 SHELL ["/bin/bash", "-c"]
 
-RUN ./env.sh make docs # && ./env.sh make cpp  && ./env.sh make webservices
+# RUN ./env.sh make cpp  && ./env.sh make webservices

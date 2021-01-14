@@ -6,6 +6,29 @@ on:
     branches: jetson-docker
 
 jobs:
+
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          submodules: "recursive"
+      - name: Build Docs
+        run: ./devel.sh make docs
+      - uses: actions/upload-artifact@v2
+        with:
+          name: sphinx
+          path: build/doc/sphinx/
+      - name: Deploy to GitHub Pages
+        if: ${{ github.event_name == 'push' }}
+        uses: JamesIves/github-pages-deploy-action@3.7.1
+        with:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BRANCH: gh-pages # The branch the action should deploy to.
+          FOLDER: build/doc/sphinx # The folder the action should deploy.
+          CLEAN: true # Automatically remove deleted files from the deploy branch
+
   deploy:
     runs-on: ubuntu-latest
     steps:
@@ -61,16 +84,3 @@ jobs:
           tags: ${{ steps.prep.outputs.tags }}
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache,mode=max
-      - uses: shrink/actions-docker-extract@v1
-        id: sphinx
-        with:
-          image: farmng/base
-          path: /workspace/tractor/build/doc/sphinx
-      - name: Deploy to GitHub Pages
-        if: ${{ github.event_name == 'push' }}
-        uses: JamesIves/github-pages-deploy-action@3.7.1
-        with:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          BRANCH: gh-pages # The branch the action should deploy to.
-          FOLDER: ${{ steps.sphinx.outputs.destination }} # The folder the action should deploy.
-          CLEAN: true # Automatically remove deleted files from the deploy branch
