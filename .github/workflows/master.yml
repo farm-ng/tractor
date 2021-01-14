@@ -3,14 +3,11 @@ name: Master Branch CI
 # For all pushes to the master branch push the image to the container registry tagged as `edge`
 on:
   push:
-    branches: master
+    branches: master, jetson-docker
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        image: ["base", "webservices"]
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -20,7 +17,7 @@ jobs:
       - name: Prepare
         id: prep
         run: |
-          DOCKER_IMAGE=farmng/${{ matrix.image }}
+          DOCKER_IMAGE=farmng/base
           VERSION=edge
           if [[ $GITHUB_REF == refs/tags/* ]]; then
             VERSION=${GITHUB_REF#refs/tags/v}
@@ -42,9 +39,9 @@ jobs:
         uses: actions/cache@v2
         with:
           path: /tmp/.buildx-cache
-          key: ${{ runner.os }}-buildx-${{ matrix.image }}-${{ github.sha }}
+          key: ${{ runner.os }}-buildx-base-${{ github.sha }}
           restore-keys: |
-            ${{ runner.os }}-buildx-${{ matrix.image }}-
+            ${{ runner.os }}-buildx-base-
             ${{ runner.os }}-buildx-
 
       - name: Login to DockerHub
@@ -59,8 +56,21 @@ jobs:
         with:
           builder: ${{ steps.buildx.outputs.name }}
           context: .
-          file: ./docker/${{ matrix.image }}.Dockerfile
+          file: ./docker/base.Dockerfile
           push: true
           tags: ${{ steps.prep.outputs.tags }}
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache,mode=max
+      - uses: shrink/actions-docker-extract@v1
+        id: sphinx
+        with:
+          image: farmng/base
+          path: /workspace/tractor/build/doc/sphinx
+      - name: Deploy to GitHub Pages
+        if: ${{ github.event_name == 'push' }}
+        uses: JamesIves/github-pages-deploy-action@3.7.1
+        with:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BRANCH: gh-pages # The branch the action should deploy to.
+          FOLDER: ${{ steps.sphinx.outputs.destination }} # The folder the action should deploy.
+          CLEAN: true # Automatically remove deleted files from the deploy branch
