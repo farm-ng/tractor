@@ -10,7 +10,6 @@ on:
 
 jobs:
   third_party_build:
-    if: false
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -69,7 +68,7 @@ jobs:
           cache-to: type=local,dest=/tmp/.buildx-cache,mode=max
       -
         name: Image digest
-        run: echo ${{ steps.docker_build.outputs.digest }} >> docker/devel/${{ matrix.image }}-digest.txt
+        run: echo ${{ steps.docker_build.outputs.digest }} > docker/devel/${{ matrix.image }}-digest.txt
 
       - uses: actions/upload-artifact@v2
         with:
@@ -138,7 +137,7 @@ jobs:
           cache-to: type=local,dest=/tmp/.buildx-cache,mode=max
       -
         name: Image digest
-        run: echo ${{ steps.docker_build.outputs.digest }} >> docker/devel/devel-digest.txt
+        run: echo ${{ steps.docker_build.outputs.digest }} > docker/devel/devel-digest.txt
       - uses: actions/upload-artifact@v2
         with:
           name: devel_digest
