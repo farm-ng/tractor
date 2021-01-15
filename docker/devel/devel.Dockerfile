@@ -1,5 +1,20 @@
 ARG base_image=ubuntu:18.04
-FROM $base_image
+ARG grpc_tag=farmng/build-grpc:latest
+ARG opencv_tag=farmng/build-opencv:latest
+ARG ceres_tag=farmng/build-ceres:latest
+ARG apriltag_tag=farmng/build-apriltag:latest
+ARG sophus_tag=farmng/build-sophus:latest
+
+
+FROM $grpc_tag AS grpc
+FROM $opencv_tag AS opencv
+FROM $ceres_tag AS ceres
+FROM $apriltag_tag AS apriltag
+FROM $sophus_tag AS sophus
+
+
+FROM $base_image AS devel
+
 RUN apt-get update --fix-missing && \
     apt-get install -y --no-install-recommends \
     apt-transport-https \
@@ -97,11 +112,11 @@ RUN python -m pip install --upgrade pip setuptools && python -m pip install \
     sphinx-tabs==1.3.0
 
 # [docs] copy_third_party
-COPY --from=farmng/build-grpc:edge $PREFIX $PREFIX
-COPY --from=farmng/build-opencv:edge $PREFIX $PREFIX
-COPY --from=farmng/build-sophus:edge $PREFIX $PREFIX
-COPY --from=farmng/build-apriltag:edge $PREFIX $PREFIX
-COPY --from=farmng/build-ceres:edge $PREFIX $PREFIX
+COPY --from=grpc $PREFIX $PREFIX
+COPY --from=opencv $PREFIX $PREFIX
+COPY --from=ceres $PREFIX $PREFIX
+COPY --from=sophus $PREFIX $PREFIX
+COPY --from=apriltag $PREFIX $PREFIX
 # [docs] copy_third_party
 
 ARG WORKSPACE_DIR=/workspace/tractor

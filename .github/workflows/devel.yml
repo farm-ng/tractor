@@ -83,6 +83,7 @@ jobs:
           add: docker/devel/${{ matrix.image }}-digest.txt
 
   devel_build:
+    needs: third_party_build
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -131,6 +132,8 @@ jobs:
           builder: ${{ steps.buildx.outputs.name }}
           context: ./docker/devel
           file: ./docker/devel/devel.Dockerfile
+          build-args: |
+            grpc_tag=@$(cat docker/devel/grpc-digest.txt)
           push: true
           tags: ${{ steps.prep.outputs.tags }}
           cache-from: type=local,src=/tmp/.buildx-cache
