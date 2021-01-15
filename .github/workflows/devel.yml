@@ -10,7 +10,6 @@ on:
 
 jobs:
   third_party_build:
-    if: false
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -84,6 +83,7 @@ jobs:
           add: docker/devel/${{ matrix.image }}-digest.txt
 
   devel_build:
+    needs: third_party_build
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
