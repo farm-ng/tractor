@@ -133,11 +133,11 @@ jobs:
           context: ./docker/devel
           file: ./docker/devel/devel.Dockerfile
           build-args: |
-            grpc_tag=@$(cat docker/devel/grpc-digest.txt)
-            opencv_tag=@$(cat docker/devel/opencv-digest.txt)
-            sophus_tag=@$(cat docker/devel/sophus-digest.txt)
-            apriltag_tag=@$(cat docker/devel/apriltag-digest.txt)
-            ceres_tag=@$(cat docker/devel/ceres-digest.txt)
+            grpc_tag=farmng/build-grpc@$(cat docker/devel/grpc-digest.txt)
+            opencv_tag=farmng/build-opencv@$(cat docker/devel/opencv-digest.txt)
+            sophus_tag=farmng/build-sophus@$(cat docker/devel/sophus-digest.txt)
+            apriltag_tag=farmng/build-apriltag@$(cat docker/devel/apriltag-digest.txt)
+            ceres_tag=farmng/build-ceres@$(cat docker/devel/ceres-digest.txt)
           push: true
           tags: ${{ steps.prep.outputs.tags }}
           cache-from: type=local,src=/tmp/.buildx-cache
