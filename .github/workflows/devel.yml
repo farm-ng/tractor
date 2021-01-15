@@ -125,6 +125,14 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
+      - name: Get digest
+        id: vars
+        run: |
+          echo ::set-output name=apriltag::$(cat docker/devel/apriltag-digest.txt)
+          echo ::set-output name=ceres::$(cat docker/devel/ceres-digest.txt)
+          echo ::set-output name=grpc::$(cat docker/devel/grpc-digest.txt)
+          echo ::set-output name=opencv::$(cat docker/devel/opencv-digest.txt)
+          echo ::set-output name=sophus::$(cat docker/devel/sophus-digest.txt)
       - name: Build and push
         id: docker_build
         uses: docker/build-push-action@v2
@@ -133,11 +141,11 @@ jobs:
           context: ./docker/devel
           file: ./docker/devel/devel.Dockerfile
           build-args: |
-            grpc_tag=farmng/build-grpc@$(cat docker/devel/grpc-digest.txt)
-            opencv_tag=farmng/build-opencv@$(cat docker/devel/opencv-digest.txt)
-            sophus_tag=farmng/build-sophus@$(cat docker/devel/sophus-digest.txt)
-            apriltag_tag=farmng/build-apriltag@$(cat docker/devel/apriltag-digest.txt)
-            ceres_tag=farmng/build-ceres@$(cat docker/devel/ceres-digest.txt)
+            apriltag_tag=farmng/build-apriltag@${{steps.vars.outputs.apriltag}}
+            ceres_tag=farmng/build-ceres@${{steps.vars.outputs.ceres}}
+            grpc_tag=farmng/build-grpc@${{steps.vars.outputs.grpc}}
+            opencv_tag=farmng/build-opencv@${{steps.vars.outputs.opencv}}
+            sophus_tag=farmng/build-sophus@${{steps.vars.outputs.sophus}}
           push: true
           tags: ${{ steps.prep.outputs.tags }}
           cache-from: type=local,src=/tmp/.buildx-cache
