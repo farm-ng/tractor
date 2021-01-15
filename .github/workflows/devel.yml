@@ -165,6 +165,7 @@ jobs:
           message: 'Update devel digest: farmng/devel@${{ steps.docker_build.outputs.digest }}'
           add: docker/devel/devel-digest.txt
   docs:
+    needs: devel_build
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
