@@ -1,8 +1,7 @@
 ARG FARM_NG_DEVEL_IMAGE=farmng/devel:latest
 FROM $FARM_NG_DEVEL_IMAGE
 
-WORKDIR /workspace/farm_ng
-RUN export FARM_NG_ROOT=/workspace/farm_ng
+WORKDIR $FARM_NG_ROOT
 
 # Build first-party c++
 COPY Makefile .
