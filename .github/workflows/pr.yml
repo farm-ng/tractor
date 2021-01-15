@@ -74,12 +74,17 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-buildx-base-
             ${{ runner.os }}-buildx-
-
+      - name: Get digest
+        id: vars
+        run: |
+          echo ::set-output name=devel::$(cat docker/devel/devel-digest.txt)
       - name: Build Base
         uses: docker/build-push-action@v2
         with:
           builder: ${{ steps.buildx.outputs.name }}
           context: .
           file: ./docker/base.Dockerfile
+          build-args: |
+            FARM_NG_DEVEL_IMAGE=farmng/devel@${{steps.vars.outputs.devel}}
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache,mode=max
