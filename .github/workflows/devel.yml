@@ -164,28 +164,6 @@ jobs:
           author_email: devel_build@noreply
           message: 'Update devel digest: farmng/devel@${{ steps.docker_build.outputs.digest }}'
           add: docker/devel/devel-digest.txt
-  static:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-        with:
-          submodules: "recursive"
-
-      - name: Set up Python
-        uses: actions/setup-python@v2
-        with:
-          python-version: "3.6.9"
-
-      - name: Cache pre-commit's installed hooks
-        uses: actions/cache@v1
-        with:
-          path: ~/.cache/pre-commit
-          key: pre-commit|${{ env.PY }}|${{ hashFiles('.pre-commit-config.yaml') }}
-
-      - name: Run pre-commit static analyzers
-        uses: pre-commit/action@v1.0.1
-
   docs:
     runs-on: ubuntu-latest
     steps:
