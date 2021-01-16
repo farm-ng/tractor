@@ -114,7 +114,7 @@ jobs:
         uses: actions/cache@v2
         with:
           path: docker/devel
-          key: ${{ runner.os }}-devel-${{ hashFiles('docker/devel/devel.Dockerfile', 'docker/devel/*-digest.txt') }}
+          key: ${{ runner.os }}-devel-${{ hashFiles('docker/devel/*.Dockerfile') }}
 
 
       - name: Prepare

@@ -115,6 +115,17 @@ RUN python -m pip install --upgrade pip setuptools && python -m pip install \
     sphinx-rtd-theme==0.5.0 \
     sphinx-tabs==1.3.0
 
+# Substitute BIN for your bin directory.
+# Substitute VERSION for the current released version.
+# Substitute BINARY_NAME for "buf", "protoc-gen-buf-breaking", or "protoc-gen-buf-lint".
+RUN BIN="/usr/local/bin" && \
+    VERSION="0.35.1" && \
+    BINARY_NAME="buf" && \
+    curl -sSL \
+    	 "https://github.com/bufbuild/buf/releases/download/v${VERSION}/${BINARY_NAME}-$(uname -s)-$(uname -m)" \
+    	 -o "${BIN}/${BINARY_NAME}" && \
+	   chmod +x "${BIN}/${BINARY_NAME}"
+
 # [docs] copy_third_party
 COPY --from=apriltag $PREFIX $PREFIX
 COPY --from=ceres $PREFIX $PREFIX
