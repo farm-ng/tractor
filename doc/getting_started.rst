@@ -286,6 +286,28 @@ Try browsing to `<http://localhost:9999/>`_.
 
    We'll transition all the build steps to ``cmake`` eventually...
 
+
+Git workflow
+============
+
+pre-commit
+++++++++++
+
+Please install pre-commit for static linting on your host machine.  We don't yet support git commiting from the development environment.
+
+Install the following:
+ * pre-commit -  https://pre-commit.com/#install
+ * buf for protobuf linting - https://docs.buf.build/installation/
+
+To have pre-commit run on every commit, run the following at the root of the repository::
+
+  pre-commit install
+
+If you don't want it part of your git pre-commit check, you can run this via the devel image via::
+  
+  ./devel.sh pre-commit run --all-files
+
+
 Tutorials
 =========
 
