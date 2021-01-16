@@ -85,6 +85,7 @@ jobs:
           cache-to: type=local,dest=/tmp/.buildx-cache,mode=max
       -
         name: Image digest
+        if: steps.docker_file_hash.outputs.cache-hit != 'true'
         run: echo ${{ steps.docker_build.outputs.digest }} > docker/devel/${{ matrix.image }}-digest.txt
 
       - uses: actions/upload-artifact@v2
