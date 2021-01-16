@@ -22,14 +22,11 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-x86-devel_home-
 
+      - name: Start devel
+        run: ./devel.sh echo "Up."
+
       - name: Build Docs
         run: ./devel.sh make docs
-
-      - name: Upload docs
-        uses: actions/upload-artifact@v2
-        with:
-          name: sphinx
-          path: build/doc/sphinx/
 
       - name: Clean
         run: ./devel.sh make clean
