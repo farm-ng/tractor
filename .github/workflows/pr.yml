@@ -28,25 +28,6 @@ jobs:
       - name: Run pre-commit static analyzers
         uses: pre-commit/action@v1.0.1
 
-  docs:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-        with:
-          submodules: "recursive"
-      - name: Cache devel_home volume
-        uses: actions/cache@v2
-        with:
-          path: /var/lib/docker/volumes/devel_home
-          key: ${{ runner.os }}-x86-devel_home
-      - name: Build Docs
-        run: ./devel.sh make docs
-      - uses: actions/upload-artifact@v2
-        with:
-          name: sphinx
-          path: build/doc/sphinx/
-
   build:
     runs-on: ubuntu-latest
     steps:
@@ -54,15 +35,31 @@ jobs:
         uses: actions/checkout@v2
         with:
           submodules: "recursive"
+
       - name: Cache devel_home volume
         uses: actions/cache@v2
         with:
-          path: /var/lib/docker/volumes/devel_home
-          key: ${{ runner.os }}-x86-devel_home
+          path: .devel_home
+          key: ${{ runner.os }}-x86-devel_home-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-x86-devel_home-
+
+      - name: Build Docs
+        run: ./devel.sh make docs
+      - uses: actions/upload-artifact@v2
+        with:
+          name: sphinx
+          path: build/doc/sphinx/
+
+      - name: Clean
+        run: ./devel.sh clean
+
       - name: Build Cpp
         run: ./devel.sh make cpp
+
       - name: Build Webservices
         run: ./devel.sh make webservices
+
       - uses: actions/upload-artifact@v2
         with:
           name: build
