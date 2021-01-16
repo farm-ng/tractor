@@ -50,6 +50,24 @@ double TagSize(const TagLibrary& tag_library, int tag_id) {
   return 1;
 }
 
+void AddApriltagRigToApriltagConfig(const ApriltagRig& rig,
+                                    ApriltagConfig* config) {
+  std::set<int> tag_id_set;
+  for (const TagConfig& tag_config : config->tag_library().tags()) {
+    CHECK(tag_id_set.insert(tag_config.id()).second)
+        << tag_config.id() << " is not unique";
+  }
+
+  for (const auto& node : rig.nodes()) {
+    CHECK(tag_id_set.insert(node.id()).second)
+        << "ApriltagRig node id is already present in config: "
+        << node.ShortDebugString();
+
+    TagConfig* tag_config = config->mutable_tag_library()->add_tags();
+    tag_config->set_size(node.tag_size());
+    tag_config->set_id(node.id());
+  }
+}
 // Taken from
 // https://github.com/IntelRealSense/librealsense/blob/d8f5d4212df85522a14b4a7b83bf4d54219b06fa/examples/pose-apriltag/rs-pose-apriltag.cpp#L249
 // Re-compute homography between ideal standard tag image and undistorted tag
@@ -386,6 +404,30 @@ void ApriltagDetector::Close() { impl_->apriltag_config_.reset(); }
 ApriltagDetections ApriltagDetector::Detect(
     const cv::Mat& gray, const google::protobuf::Timestamp& stamp) {
   return impl_->Detect(gray, stamp);
+}
+
+ApriltagDetections ApriltagDetector::Detect(
+    const cv::Mat& gray, const cv::Mat& depthmap,
+    const google::protobuf::Timestamp& stamp) {
+  CHECK_EQ(depthmap.size().width, gray.size().width);
+  CHECK_EQ(depthmap.size().height, gray.size().height);
+  CHECK_EQ(depthmap.type(), CV_32FC1);
+  ApriltagDetections detections = Detect(gray, stamp);
+  cv::Rect depthmap_bounds(0, 0, depthmap.size().width, depthmap.size().height);
+  for (ApriltagDetection& detection : *detections.mutable_detections()) {
+    for (int i = 0; i < detection.p_size(); ++i) {
+      google::protobuf::DoubleValue* maybe_depth = detection.add_depth();
+      cv::Point p(detection.p(i).x() + 0.5, detection.p(i).y() + 0.5);
+      if (!depthmap_bounds.contains(p)) {
+        continue;
+      }
+      float depth = depthmap.at<float>(p);
+      if (depth > 0.0) {
+        maybe_depth->set_value(depth);
+      }
+    }
+  }
+  return detections;
 }
 
 ApriltagsFilter::ApriltagsFilter() : once_(false) {}

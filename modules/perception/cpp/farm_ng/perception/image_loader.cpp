@@ -47,6 +47,8 @@ cv::Mat ImageLoader::LoadImage(const Image& image) {
                        cv::IMREAD_UNCHANGED);
   }
   if (frame.empty()) {
+    LOG(WARNING) << "Could not load image: "
+                 << (GetBlobstoreRoot() / image.resource().path()).string();
     frame = cv::Mat::zeros(cv::Size(image.camera_model().image_width(),
                                     image.camera_model().image_height()),
                            CV_8UC3);
@@ -54,14 +56,49 @@ cv::Mat ImageLoader::LoadImage(const Image& image) {
   CHECK(!frame.empty());
   if (frame.size().width != image.camera_model().image_width() ||
       frame.size().height != image.camera_model().image_height()) {
-    frame = cv::Mat::zeros(cv::Size(image.camera_model().image_width(),
-                                    image.camera_model().image_height()),
-                           CV_8UC3);
+    LOG(FATAL) << "Image is unexpected size." << frame.size().width << "x"
+               << frame.size().height << " vs "
+               << image.camera_model().image_width() << "x"
+               << image.camera_model().image_height();
   }
   CHECK_EQ(frame.size().width, image.camera_model().image_width());
   CHECK_EQ(frame.size().height, image.camera_model().image_height());
   return frame;
 }
+
+cv::Mat ImageLoader::LoadDepthmap(const Image& image) {
+  if (!image.has_depthmap()) {
+    return cv::Mat::zeros(cv::Size(image.camera_model().image_width(),
+                                   image.camera_model().image_height()),
+                          CV_32FC1);
+  }
+  cv::Mat frame;
+  frame = cv::imread(
+      (GetBlobstoreRoot() / image.depthmap().resource().path()).string(),
+      cv::IMREAD_UNCHANGED);
+  if (frame.empty()) {
+    LOG(FATAL)
+        << "Could not load depthmap: "
+        << (GetBlobstoreRoot() / image.depthmap().resource().path()).string();
+  }
+  CHECK(!frame.empty());
+  if (frame.size().width != image.camera_model().image_width() ||
+      frame.size().height != image.camera_model().image_height()) {
+    LOG(FATAL) << "Image is unexpected size." << frame.size().width << " "
+               << frame.size().height;
+  }
+  CHECK_EQ(frame.size().width, image.camera_model().image_width());
+  CHECK_EQ(frame.size().height, image.camera_model().image_height());
+  if (image.depthmap().range() == Depthmap::RANGE_MM) {
+    cv::Mat out;
+    frame.convertTo(out, CV_32FC1, 1.0 / 1000);
+    frame = out;
+  } else {
+    LOG(FATAL) << "Unsupported range type: "
+               << Depthmap::Range_Name(image.depthmap().range());
+  }
+  return frame;
+}  // namespace perception
 
 }  // namespace perception
 }  // namespace farm_ng

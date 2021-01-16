@@ -15,7 +15,7 @@ namespace perception {
 template <typename T>
 class CameraModelJetMap {
  public:
-  static int constexpr num_parameters = 9;
+  static int constexpr num_parameters = 12;
 
   explicit CameraModelJetMap(const CameraModel& camera_model)
       : storage_({0.}),
@@ -25,7 +25,7 @@ class CameraModelJetMap {
     storage_[1] = camera_model_.fy();
     storage_[2] = camera_model_.cx();
     storage_[3] = camera_model_.cy();
-    CHECK_LE(camera_model_.distortion_coefficients_size(), 5);
+    CHECK_LE(camera_model_.distortion_coefficients_size(), 8);
     for (int i = 0; i < camera_model_.distortion_coefficients_size(); ++i) {
       storage_[4 + i] = camera_model_.distortion_coefficients(i);
     }
@@ -54,6 +54,11 @@ class CameraModelJetMap {
   const T& distortion_coefficients(int idx) const {
     return raw_model_[4 + idx];
   }
+
+  size_t distortion_coefficients_size() const {
+    return camera_model_.distortion_coefficients_size();
+  }
+
   CameraModel::DistortionModel distortion_model() const {
     return camera_model_.distortion_model();
   }
@@ -89,7 +94,6 @@ Eigen::Matrix<T, 2, 1> ProjectPointToPixel(
   using std::sqrt;
   const T eps(std::numeric_limits<float>::epsilon());
   T x = point.x() / point.z();
-
   T y = point.y() / point.z();
 
   if (camera.distortion_model() ==
@@ -108,6 +112,32 @@ Eigen::Matrix<T, 2, 1> ProjectPointToPixel(
            T(camera.distortion_coefficients(2)) * (r2 + T(2) * y * y);
     x = dx;
     y = dy;
+  } else if (camera.distortion_model() ==
+             CameraModel::DISTORTION_MODEL_BROWN_CONRADY) {
+    // From:
+    // https://github.com/opencv/opencv/blob/63bb2abadab875fc648a572faccafee134f06fc8/modules/calib3d/src/calibration.cpp#L791
+    T r2 = x * x + y * y;
+    T r4 = r2 * r2;
+    T r6 = r4 * r2;
+    T a1 = T(2) * x * y;
+    T a2 = r2 + T(2) * x * x;
+    T a3 = r2 + T(2) * y * y;
+
+    T cdist = T(1) + T(camera.distortion_coefficients(0)) * r2 +
+              T(camera.distortion_coefficients(1)) * r4 +
+              T(camera.distortion_coefficients(4)) * r6;
+
+    T icdist2 = T(1);
+    if (camera.distortion_coefficients_size() >= 8) {
+      icdist2 = T(1) / (T(1) + T(camera.distortion_coefficients(5)) * r2 +
+                        T(camera.distortion_coefficients(6)) * r4 +
+                        T(camera.distortion_coefficients(7)) * r6);
+    }
+
+    x = x * cdist * icdist2 + T(camera.distortion_coefficients(2)) * a1 +
+        T(camera.distortion_coefficients(3)) * r2;
+    y = y * cdist * icdist2 + T(camera.distortion_coefficients(2)) * a3 +
+        T(camera.distortion_coefficients(3)) * a1;
   } else if (camera.distortion_model() ==
              CameraModel::DISTORTION_MODEL_KANNALA_BRANDT4) {
     // Model copied from librealsense:
@@ -167,6 +197,31 @@ Eigen::Matrix<T, 3, 1> ReprojectPixelToPoint(
     x = ux;
     y = uy;
   } else if (camera.distortion_model() ==
+             CameraModel::DISTORTION_MODEL_BROWN_CONRADY) {
+    // From
+    // https://github.com/opencv/opencv/blob/63bb2abadab875fc648a572faccafee134f06fc8/modules/calib3d/src/undistort.dispatch.cpp#L365
+    T k[8] = {T(0)};
+    CHECK_LE(camera.distortion_coefficients_size(), 8);
+    for (int i = 0; i < camera.distortion_coefficients_size(); ++i) {
+      k[i] = camera.distortion_coefficients(i);
+    }
+    T x0 = x;
+    T y0 = y;
+    for (int j = 0; j < 5; j++) {
+      T r2 = x * x + y * y;
+      T icdist = (T(1) + ((k[7] * r2 + k[6]) * r2 + k[5]) * r2) /
+                 (T(1) + ((k[4] * r2 + k[1]) * r2 + k[0]) * r2);
+      if (icdist < 0) {
+        x = x0;
+        y = y0;
+        break;
+      }
+      T deltaX = T(2) * k[2] * x * y + k[3] * (r2 + T(2) * x * x);
+      T deltaY = k[2] * (r2 + T(2) * y * y) + T(2) * k[3] * x * y;
+      x = (x0 - deltaX) * icdist;
+      y = (y0 - deltaY) * icdist;
+    }
+  } else if (camera.distortion_model() ==
              CameraModel::DISTORTION_MODEL_KANNALA_BRANDT4) {
     // https://github.com/IntelRealSense/librealsense/blob/0adceb9dc6fce63c348346e1aef1b63c052a1db9/include/librealsense2/rsutil.h#L83
 
@@ -209,7 +264,7 @@ Eigen::Matrix<T, 3, 1> ReprojectPixelToPoint(
     LOG(FATAL) << "Unsupported distortion model: " << camera.ShortDebugString();
   }
   return Eigen::Matrix<T, 3, 1>(depth * x, depth * y, depth);
-}
+}  // namespace perception
 
 CameraModel DefaultFishEyeT265CameraModel();
 CameraModel Default1080HDCameraModel();

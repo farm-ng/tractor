@@ -17,6 +17,7 @@ class ImageLoader {
   explicit ImageLoader(bool zero_indexed = true)
       : zero_indexed_(zero_indexed) {}
   cv::Mat LoadImage(const Image& image);
+  cv::Mat LoadDepthmap(const Image& image);
 
  private:
   void OpenVideo(const farm_ng::core::Resource& resource);

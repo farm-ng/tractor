@@ -5,6 +5,8 @@ import "farm_ng/perception/apriltag.proto";
 import "farm_ng/perception/camera_model.proto";
 import "farm_ng/perception/geometry.proto";
 import "farm_ng/perception/image.proto";
+import "farm_ng/perception/kinematics.proto";
+
 import "google/protobuf/timestamp.proto";
 
 package farm_ng.calibration;
@@ -257,6 +259,50 @@ message MultiViewApriltagRigModel {
   // rig.
   repeated farm_ng.perception.Image reprojection_images = 9;
 }
+
+message RobotExtrinsicsModel {
+  farm_ng.perception.ApriltagRig link_tag_rig = 1;
+  farm_ng.perception.ApriltagRig base_tag_rig = 2;
+  farm_ng.perception.MultiViewCameraRig base_camera_rig = 3;
+  farm_ng.perception.MultiViewCameraRig link_camera_rig = 4;
+
+   // The name of the workspace frame
+  string workspace_frame_name = 5;
+
+  // The name of the base frame
+  string base_frame_name = 6;
+
+  // The name of the link frame
+  string link_frame_name = 7;
+
+
+  // Is this the initial rig, or did the solver converge, fail...
+  // For diagnosis of failures or unexpected results its useful to look at the
+  // initialization first.
+  SolverStatus solver_status = 8;
+  // The total rig RMSE of all tags from all images.
+  double rmse = 9;
+
+  // Per tag statistics, can be used to
+  repeated ApriltagRigTagStats tag_stats = 10;
+
+  message Measurement {
+    farm_ng.perception.MultiViewApriltagDetections multi_view_detections = 1;
+    repeated farm_ng.perception.NamedSE3Pose poses = 2;
+    repeated farm_ng.perception.JointState joint_states = 3;
+  }
+  repeated Measurement measurements = 11;
+
+  repeated farm_ng.perception.NamedSE3Pose base_camera_rig_poses_link_tag_rig = 12;
+  repeated farm_ng.perception.NamedSE3Pose link_camera_rig_poses_base_tag_rig = 13;
+
+
+  // Each image where we are able to estimate a pose has a projection debug
+  // image, which shows the detected points, and the reprojected corners of the
+  // rig.
+  repeated farm_ng.perception.Image reprojection_images = 14;
+}
+
 
 message BaseToCameraModel {
   message WheelMeasurement {
