@@ -45,6 +45,7 @@ RUN apt-get update --fix-missing && \
     apt-get install -y --no-install-recommends \
     build-essential \
     clang \
+    clang-format \
     cython \
     dirmngr \
     doxygen \
@@ -108,6 +109,7 @@ RUN python -m pip install --upgrade pip setuptools && python -m pip install \
     cmake==3.18.4.post1 \
     grpcio==1.34.0 \
     linuxfd==1.5 \
+    pre-commit==2.9.3 \
     protobuf==3.14.0 \
     sphinx-rtd-theme==0.5.0 \
     sphinx-tabs==1.3.0

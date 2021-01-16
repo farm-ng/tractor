@@ -71,18 +71,6 @@
     "cmake.configureArgs": [
       "-DCMAKE_PREFIX_PATH=/farm_ng/env"
     ],
-    "cmake.environment": {
-      "PATH": "/farm_ng/env/go/bin:/usr/local/go/bin:/farm_ng/env/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
-      "LD_LIBRARY_PATH": "/farm_ng/env/lib",
-    },
-    "cmake.buildEnvironment": {
-      "PATH": "/farm_ng/env/go/bin:/usr/local/go/bin:/farm_ng/env/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
-      "LD_LIBRARY_PATH": "/farm_ng/env/lib",
-    },
-    "cmake.configureEnvironment": {
-      "PATH": "/farm_ng/env/go/bin:/usr/local/go/bin:/farm_ng/env/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
-      "LD_LIBRARY_PATH": "/farm_ng/env/lib",
-    },
     "C_Cpp.formatting": "clangFormat",
     "files.associations": {
       "cctype": "cpp",
