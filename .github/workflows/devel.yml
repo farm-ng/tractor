@@ -7,6 +7,9 @@ on:
     paths:
       - 'docker/devel/**'
       - '.github/workflows/devel.yml'
+      - '!docker/devel/Makefile'
+      - '!docker/devel/docker-compose.yml'
+
 
 jobs:
   third_party_build:
