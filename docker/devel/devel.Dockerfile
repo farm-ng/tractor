@@ -47,6 +47,7 @@ RUN apt-get update --fix-missing && \
     clang \
     clang-format \
     cython \
+    ccache \
     dirmngr \
     doxygen \
     git \
