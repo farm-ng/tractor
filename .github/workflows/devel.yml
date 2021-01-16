@@ -2,13 +2,15 @@ name: Devel docker images CI
 
 # For all pushes to the devel branch push devel related images to registry tagged as `edge`
 on:
-  pull_request:
-    branches: master
+  push:
+    branches-ignore:
+      - "master"
     paths:
       - 'docker/devel/**'
       - '.github/workflows/devel.yml'
       - '!docker/devel/Makefile'
       - '!docker/devel/docker-compose.yml'
+      - '!docker/devel/user_devel.Dockerfile'
 
 
 jobs:
