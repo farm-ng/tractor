@@ -304,7 +304,7 @@ To have pre-commit run on every commit, run the following at the root of the rep
   pre-commit install
 
 If you don't want it part of your git pre-commit check, you can run this via the devel image via::
-  
+
   ./devel.sh pre-commit run --all-files
 
 
