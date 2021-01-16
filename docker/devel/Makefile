@@ -1,6 +1,8 @@
 .EXPORT_ALL_VARIABLES:
 
 FARM_NG_DEVEL_IMAGE = farmng/devel@$(shell cat devel-digest.txt)
+BLOBSTORE_ROOT = ../../../tractor-data
+
 uid = $(shell id -u)
 
 test:

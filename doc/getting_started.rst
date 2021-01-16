@@ -197,6 +197,20 @@ Now take a moment to study the contents of ``docker/devel/docker-compose.yaml``:
 - A host directory is mounted as the ``BLOBSTORE_ROOT`` for :ref:`persistent storage of application data<section-core_blobstore>`.
 
 
+To start the development environment with a custom BLOBSTORE_ROOT::
+
+   make BLOBSTORE_ROOT=/some/other/blobstore/root -C docker/devel upd
+
+To start the development environment with a custom devel docker image::
+
+   make FARM_NG_DEVEL_IMAGE=farmng/devel:latest -C docker/devel upd
+
+To build a the devel image locally:
+
+   cd docker/devel
+   ./build_devel.sh # this will result in farmng/devel:latest
+
+
 Visual Studio Code setup
 ------------------------
 
