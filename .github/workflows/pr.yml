@@ -40,10 +40,5 @@ jobs:
       - name: Build Webservices
         run: ./devel.sh make webservices
 
-      - uses: actions/upload-artifact@v2
-        with:
-          name: build
-          path: build
-
       - name: Run pre-commit checks
         run: ./devel.sh pre-commit run --all-files

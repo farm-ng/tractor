@@ -235,9 +235,3 @@ jobs:
 
       - name: Build Webservices
         run: ./devel.sh make webservices
-
-      - name: Upload build folder
-        uses: actions/upload-artifact@v2
-        with:
-          name: build
-          path: build
