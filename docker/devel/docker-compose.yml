@@ -13,11 +13,8 @@ services:
     environment:
       - BLOBSTORE_ROOT=/blobstore
     volumes:
-      - home:/home/${USER}
-      - ../../../tractor-data:/blobstore
+      - ../../.devel_home:/home/${USER}
+      - ${BLOBSTORE_ROOT}:/blobstore
       - ../..:/workspace/tractor
     working_dir: /workspace/tractor
     network_mode: host
-
-volumes:
-  home:

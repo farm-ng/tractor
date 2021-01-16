@@ -2,11 +2,16 @@ name: Devel docker images CI
 
 # For all pushes to the devel branch push devel related images to registry tagged as `edge`
 on:
-  pull_request:
-    branches: master
+  push:
+    branches-ignore:
+      - "master"
     paths:
       - 'docker/devel/**'
       - '.github/workflows/devel.yml'
+      - '!docker/devel/Makefile'
+      - '!docker/devel/docker-compose.yml'
+      - '!docker/devel/user_devel.Dockerfile'
+
 
 jobs:
   third_party_build:
@@ -19,7 +24,15 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
 
+      - name: Dockerfile hash
+        id: docker_file_hash
+        uses: actions/cache@v2
+        with:
+          path: docker/devel/${{ matrix.image }}.Dockerfile
+          key: ${{ runner.os }}-${{ matrix.image }}-${{ hashFiles( format('docker/devel/{0}.Dockerfile', matrix.image) ) }}
+
       - name: Prepare
+        if: steps.docker_file_hash.outputs.cache-hit != 'true'
         id: prep
         run: |
           DOCKER_IMAGE=farmng/build-${{ matrix.image }}
@@ -37,10 +50,12 @@ jobs:
           echo ::set-output name=tags::${TAGS}
 
       - name: Set up Docker Buildx
+        if: steps.docker_file_hash.outputs.cache-hit != 'true'
         id: buildx
         uses: docker/setup-buildx-action@v1
 
       - name: Cache Docker layers
+        if: steps.docker_file_hash.outputs.cache-hit != 'true'
         uses: actions/cache@v2
         with:
           path: /tmp/.buildx-cache
@@ -50,12 +65,14 @@ jobs:
             ${{ runner.os }}-buildx-
 
       - name: Login to DockerHub
+        if: steps.docker_file_hash.outputs.cache-hit != 'true'
         uses: docker/login-action@v1
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Build and push
+        if: steps.docker_file_hash.outputs.cache-hit != 'true'
         id: docker_build
         uses: docker/build-push-action@v2
         with:
@@ -68,13 +85,17 @@ jobs:
           cache-to: type=local,dest=/tmp/.buildx-cache,mode=max
       -
         name: Image digest
+        if: steps.docker_file_hash.outputs.cache-hit != 'true'
         run: echo ${{ steps.docker_build.outputs.digest }} > docker/devel/${{ matrix.image }}-digest.txt
 
       - uses: actions/upload-artifact@v2
+        if: steps.docker_file_hash.outputs.cache-hit != 'true'
         with:
           name: ${{ matrix.image }}-digest
           path: docker/devel/${{ matrix.image }}-digest.txt
+
       - name: Commit changes
+        if: steps.docker_file_hash.outputs.cache-hit != 'true'
         uses: EndBug/add-and-commit@v6
         with:
           author_name: Devel Build Action
@@ -89,7 +110,16 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
 
+      - name: Dockerfile hash
+        id: docker_file_hash
+        uses: actions/cache@v2
+        with:
+          path: docker/devel
+          key: ${{ runner.os }}-devel-${{ hashFiles('docker/devel/*.Dockerfile') }}
+
+
       - name: Prepare
+        if: steps.docker_file_hash.outputs.cache-hit != 'true'
         id: prep
         run: |
           DOCKER_IMAGE=farmng/devel
@@ -107,10 +137,12 @@ jobs:
           echo ::set-output name=tags::${TAGS}
 
       - name: Set up Docker Buildx
+        if: steps.docker_file_hash.outputs.cache-hit != 'true'
         id: buildx
         uses: docker/setup-buildx-action@v1
 
       - name: Cache Docker layers
+        if: steps.docker_file_hash.outputs.cache-hit != 'true'
         uses: actions/cache@v2
         with:
           path: /tmp/.buildx-cache
@@ -120,12 +152,14 @@ jobs:
             ${{ runner.os }}-buildx-
 
       - name: Login to DockerHub
+        if: steps.docker_file_hash.outputs.cache-hit != 'true'
         uses: docker/login-action@v1
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Get digest
+        if: steps.docker_file_hash.outputs.cache-hit != 'true'
         id: vars
         run: |
           echo ::set-output name=apriltag::$(cat docker/devel/apriltag-digest.txt)
@@ -134,6 +168,7 @@ jobs:
           echo ::set-output name=opencv::$(cat docker/devel/opencv-digest.txt)
           echo ::set-output name=sophus::$(cat docker/devel/sophus-digest.txt)
       - name: Build and push
+        if: steps.docker_file_hash.outputs.cache-hit != 'true'
         id: docker_build
         uses: docker/build-push-action@v2
         with:
@@ -152,32 +187,23 @@ jobs:
           cache-to: type=local,dest=/tmp/.buildx-cache,mode=max
       -
         name: Image digest
+        if: steps.docker_file_hash.outputs.cache-hit != 'true'
         run: echo ${{ steps.docker_build.outputs.digest }} > docker/devel/devel-digest.txt
+
       - uses: actions/upload-artifact@v2
+        if: steps.docker_file_hash.outputs.cache-hit != 'true'
         with:
           name: devel_digest
           path: docker/devel/devel-digest.txt
+
       - name: Commit changes
+        if: steps.docker_file_hash.outputs.cache-hit != 'true'
         uses: EndBug/add-and-commit@v6
         with:
           author_name: Devel Build Action
           author_email: devel_build@noreply
           message: 'Update devel digest: farmng/devel@${{ steps.docker_build.outputs.digest }}'
           add: docker/devel/devel-digest.txt
-  docs:
-    needs: devel_build
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-        with:
-          submodules: "recursive"
-      - name: Build Docs
-        run: ./devel.sh make docs
-      - uses: actions/upload-artifact@v2
-        with:
-          name: sphinx
-          path: build/doc/sphinx/
   build:
     needs: devel_build
     runs-on: ubuntu-latest
@@ -187,41 +213,22 @@ jobs:
         with:
           submodules: "recursive"
 
-      - name: Set up Docker Buildx
-        id: buildx
-        uses: docker/setup-buildx-action@v1
-
-      # Use the Github Actions cache to cache our container image layers.
-      # The tradeoffs relative to using the container registry as a cache are not yet clear.
-      # For example:
-      # - Using Dockerhub as a cache would allow local builds and CI builds to share the same cache.
-      # - Dockerhub has announced a rate-limit of 200 pulls/6 hrs for unpaid accounts.
-      # - The Github cache evicts when it grows above 5GB.
-      # - The Github cache has nice built-in support for "fallback" cache keys
-      # To use Dockerhub as a cache instead, replace the cache-from/cache-to lines below with:
-      #   cache-from: type=registry,ref=farmng/base:latest
-      #   cache-to: type=inline,mode=max
-      # (taking care to choose appropriate cache keys)
-      # see https://github.com/docker/buildx#--cache-fromnametypetypekeyvalue)
-      - name: Cache Docker layers
+      - name: Cache devel_home volume
         uses: actions/cache@v2
         with:
-          path: /tmp/.buildx-cache
-          key: ${{ runner.os }}-buildx-base-${{ github.sha }}
+          path: .devel_home
+          key: ${{ runner.os }}-x86-devel_home-${{ github.sha }}
           restore-keys: |
-            ${{ runner.os }}-buildx-base-
-            ${{ runner.os }}-buildx-
-      - name: Get digest
-        id: vars
-        run: |
-          echo ::set-output name=devel::$(cat docker/devel/devel-digest.txt)
-      - name: Build Base
-        uses: docker/build-push-action@v2
-        with:
-          builder: ${{ steps.buildx.outputs.name }}
-          context: .
-          file: ./docker/base.Dockerfile
-          build-args: |
-            FARM_NG_DEVEL_IMAGE=farmng/devel@${{steps.vars.outputs.devel}}
-          cache-from: type=local,src=/tmp/.buildx-cache
-          cache-to: type=local,dest=/tmp/.buildx-cache,mode=max
+            ${{ runner.os }}-x86-devel_home-
+
+      - name: Build Docs
+        run: ./devel.sh make docs
+
+      - name: Clean
+        run: ./devel.sh make clean
+
+      - name: Build Cpp
+        run: ./devel.sh make cpp
+
+      - name: Build Webservices
+        run: ./devel.sh make webservices
