@@ -209,6 +209,8 @@ To build a the devel image locally:
 
    cd docker/devel
    ./build_devel.sh # this will result in farmng/devel:latest
+   make FARM_NG_DEVEL_IMAGE=farmng/devel:latest down
+   make FARM_NG_DEVEL_IMAGE=farmng/devel:latest upd
 
 
 Visual Studio Code setup
