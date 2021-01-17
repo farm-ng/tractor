@@ -23,6 +23,10 @@ std::array<Eigen::Vector2d, 4> PointsImage(const ApriltagDetection& detection);
 
 double TagSize(const TagLibrary& tag_library, int tag_id);
 
+// Adds the tag id and sizes contained in ApriltagRig to the ApriltagConfig.
+void AddApriltagRigToApriltagConfig(const ApriltagRig& rig,
+                                    ApriltagConfig* config);
+
 // This class is meant to help filter apriltags, returning true once after the
 // camera becomes relatively stationary.  To allow for a capture program which
 // automatically captures a sparse set of unique view points for calibration
@@ -67,6 +71,12 @@ class ApriltagDetector {
   void Close();
 
   ApriltagDetections Detect(const cv::Mat& gray,
+                            const google::protobuf::Timestamp& stamp);
+
+  // Detects apriltags, and looks up the depth value at each point.
+  // Precondition: the depthmap is the same size as gray
+  // Precondition: the depthmap is of type CV_32FC1.
+  ApriltagDetections Detect(const cv::Mat& gray, const cv::Mat& depthmap,
                             const google::protobuf::Timestamp& stamp);
 
  private:

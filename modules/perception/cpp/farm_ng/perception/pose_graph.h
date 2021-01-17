@@ -313,7 +313,7 @@ class PoseGraph {
   }
 
   // This function computes the shortest path (weighted inversely by number of
-  // poses between frames) of very frame to the given frame_a, and then
+  // poses between frames) between every frame to the given frame_a, and then
   // collapses each path in to a single SE3 transform, such that the returned
   // posegraph contains only edges which are between frame_a and frame_X, and
   // each edge contains only a single pose.

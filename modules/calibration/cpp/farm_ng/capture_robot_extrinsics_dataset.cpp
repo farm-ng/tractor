@@ -1,5 +1,3 @@
-#include <thread>
-
 #include <gflags/gflags.h>
 #include <glog/logging.h>
 #include <grpc/grpc.h>
@@ -252,9 +250,8 @@ int Main(farm_ng::core::EventBus& bus) {
   farm_ng::core::Resource resource;
   resource.set_path(FLAGS_configuration_path);
   resource.set_content_type(
-      "application/json; "
-      "type=type.googleapis.com/"
-      "farm_ng.calibration.CaptureRobotExtrinsicsDatasetConfiguration");
+      farm_ng::core::ContentTypeProtobufJson<
+          farm_ng::calibration::CaptureRobotExtrinsicsDatasetConfiguration>());
 
   farm_ng::calibration::CaptureRobotExtrinsicsDatasetProgram program(
       bus, resource, FLAGS_interactive);
