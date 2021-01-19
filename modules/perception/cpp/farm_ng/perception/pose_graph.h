@@ -188,6 +188,18 @@ class PoseGraph {
     return &PoseEdgeMap()[edge.first];
   }
 
+  const PoseEdge& GetPoseEdge(const std::string& frame_a,
+                              const std::string& frame_b) const {
+    size_t id_a = GetId(frame_a);
+    size_t id_b = GetId(frame_b);
+    if (id_a >= id_b) {
+      std::swap(id_a, id_b);
+    }
+    auto edge = boost::edge(id_a, id_b, graph_);
+    CHECK(edge.second);
+    return PoseEdgeMap()[edge.first];
+  }
+
   void AddPose(std::string frame_a, std::string frame_b, SE3d a_pose_b) {
     CHECK_NE(frame_a, frame_b);
     size_t id_a = MakeId(frame_a);
@@ -289,7 +301,7 @@ class PoseGraph {
       size_t child = n;
       size_t parent = p[n];
       if (parent == child) {
-        LOG(INFO) << "no parent: " << GetName(child);
+        VLOG(2) << "no parent: " << GetName(child);
         return std::optional<SE3d>();
       }
 

@@ -266,7 +266,7 @@ message RobotExtrinsicsModel {
   farm_ng.perception.MultiViewCameraRig base_camera_rig = 3;
   farm_ng.perception.MultiViewCameraRig link_camera_rig = 4;
 
-   // The name of the workspace frame
+  // The name of the workspace frame
   string workspace_frame_name = 5;
 
   // The name of the base frame
