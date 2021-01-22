@@ -261,6 +261,8 @@ message MultiViewApriltagRigModel {
 }
 
 message RobotExtrinsicsModel {
+  MultiViewApriltagRigModel base_camera_rig_model = 100;
+
   farm_ng.perception.ApriltagRig link_tag_rig = 1;
   farm_ng.perception.ApriltagRig base_tag_rig = 2;
   farm_ng.perception.MultiViewCameraRig base_camera_rig = 3;

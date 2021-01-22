@@ -1,5 +1,6 @@
 #ifndef FARM_NG_PERCEPTION_POSE_GRAPH_H_
 #define FARM_NG_PERCEPTION_POSE_GRAPH_H_
+#include <glog/logging.h>
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/dijkstra_shortest_paths.hpp>
 #include <boost/graph/graph_traits.hpp>

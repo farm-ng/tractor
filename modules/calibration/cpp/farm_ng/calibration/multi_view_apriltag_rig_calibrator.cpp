@@ -390,13 +390,15 @@ PoseGraph TagRigFromMultiViewDetections(std::string tag_rig_name,
   return tag_rig_small;
 }
 
-void CameraRigFromMultiViewDetections(
-    const CalibrateMultiViewApriltagRigConfiguration& config,
-    const PoseGraph& tag_rig, MultiViewApriltagRigModel* model) {
-  model->mutable_camera_rig()->set_root_camera_name(config.root_camera_name());
-  model->mutable_camera_rig()->set_name(config.name());
+void CameraRigFromMultiViewDetections(std::string camera_rig_name,
+                                      std::string root_camera_name,
+                                      const PoseGraph& tag_rig,
+                                      MultiViewApriltagRigModel* model) {
+  model->mutable_camera_rig()->set_root_camera_name(root_camera_name);
+  model->mutable_camera_rig()->set_name(camera_rig_name);
 
-  std::string root_tag_name = "tag/" + std::to_string(config.root_tag_id());
+  std::string root_tag_name =
+      "tag/" + std::to_string(model->apriltag_rig().root_tag_id());
   PoseGraph camera_rig_inter;
   PoseGraph camera_rig_tags;
 
@@ -407,8 +409,7 @@ void CameraRigFromMultiViewDetections(
     frame_num++;
     PoseGraph camera_rig_step_i;
 
-    camera_rig_step_i.AddPose(config.name(), config.root_camera_name(),
-                              SE3d::rotX(0));
+    camera_rig_step_i.AddPose(camera_rig_name, root_camera_name, SE3d::rotX(0));
 
     for (const auto& detections_per_view :
          mv_detections.detections_per_view()) {
@@ -434,10 +435,10 @@ void CameraRigFromMultiViewDetections(
                                   c_pose_root_tag);
       }
     }
-    if (!camera_rig_step_i.HasName(config.root_camera_name())) {
+    if (!camera_rig_step_i.HasName(root_camera_name)) {
       continue;
     }
-    auto camera_rig_i = camera_rig_step_i.AveragePoseGraph(config.name());
+    auto camera_rig_i = camera_rig_step_i.AveragePoseGraph(camera_rig_name);
 
     for (auto es = camera_rig_i.Edges(); es.first != es.second; es.first++) {
       auto edge = camera_rig_i.PoseEdgeMap()[*es.first];
@@ -445,7 +446,7 @@ void CameraRigFromMultiViewDetections(
       std::string frame_b = edge.frame_b;
       if (frame_a == root_tag_name || frame_b == root_tag_name) {
         std::string rig_frame_name =
-            config.tag_rig_name() + "/view/" + std::to_string(frame_num);
+            model->apriltag_rig().name() + "/view/" + std::to_string(frame_num);
         if (frame_a == root_tag_name) {
           frame_a = rig_frame_name;
         }
@@ -463,10 +464,10 @@ void CameraRigFromMultiViewDetections(
   }
 
   model->mutable_camera_rig()->mutable_camera_pose_rig()->CopyFrom(
-      camera_rig_inter.AveragePoseGraph(config.name()).ToNamedSE3Poses());
+      camera_rig_inter.AveragePoseGraph(camera_rig_name).ToNamedSE3Poses());
 
   model->mutable_camera_rig_poses_apriltag_rig()->CopyFrom(
-      camera_rig_tags.AveragePoseGraph(config.name()).ToNamedSE3Poses());
+      camera_rig_tags.AveragePoseGraph(camera_rig_name).ToNamedSE3Poses());
 }
 
 MultiViewApriltagRigModel InitialMultiViewApriltagModelFromConfig(
@@ -481,7 +482,8 @@ MultiViewApriltagRigModel InitialMultiViewApriltagModelFromConfig(
   }
   auto tag_rig = TagRigFromMultiViewDetections(config.tag_rig_name(),
                                                config.root_tag_id(), &model);
-  CameraRigFromMultiViewDetections(config, tag_rig, &model);
+  CameraRigFromMultiViewDetections(config.name(), config.root_camera_name(),
+                                   tag_rig, &model);
 
   model.set_solver_status(SolverStatus::SOLVER_STATUS_INITIAL);
   ModelError(&model);
