@@ -330,11 +330,11 @@ std::vector<MultiViewApriltagDetections> LoadMultiViewApriltagDetections(
 
   return mv_detections_series;
 }
-PoseGraph TagRigFromMultiViewDetections(
-    const CalibrateMultiViewApriltagRigConfiguration& config,
-    MultiViewApriltagRigModel* model) {
-  model->mutable_apriltag_rig()->set_name(config.tag_rig_name());
-  model->mutable_apriltag_rig()->set_root_tag_id(config.root_tag_id());
+PoseGraph TagRigFromMultiViewDetections(std::string tag_rig_name,
+                                        int root_tag_id,
+                                        MultiViewApriltagRigModel* model) {
+  model->mutable_apriltag_rig()->set_name(tag_rig_name);
+  model->mutable_apriltag_rig()->set_root_tag_id(root_tag_id);
 
   PoseGraph tag_rig;
   std::map<int, ApriltagRig::Node> tag_rig_nodes;
@@ -351,7 +351,7 @@ PoseGraph TagRigFromMultiViewDetections(
         }
         ApriltagRig::Node node;
         node.set_id(detection.id());
-        node.set_frame_name(FrameRigTag(config.tag_rig_name(), detection.id()));
+        node.set_frame_name(FrameRigTag(tag_rig_name, detection.id()));
         node.set_tag_size(detection.tag_size());
         for (const auto& v : PointsTag(detection)) {
           EigenToProto(v, node.add_points_tag());
@@ -373,7 +373,7 @@ PoseGraph TagRigFromMultiViewDetections(
       }
     }
   }
-  std::string root_tag = "tag/" + std::to_string(config.root_tag_id());
+  std::string root_tag = "tag/" + std::to_string(root_tag_id);
 
   auto tag_rig_small = tag_rig.AveragePoseGraph(root_tag);
 
@@ -383,8 +383,8 @@ PoseGraph TagRigFromMultiViewDetections(
     if (!root_pose_tag) {
       continue;
     }
-    SophusToProto(*root_pose_tag, config.tag_rig_name(),
-                  node.second.frame_name(), node.second.mutable_pose());
+    SophusToProto(*root_pose_tag, tag_rig_name, node.second.frame_name(),
+                  node.second.mutable_pose());
     model->mutable_apriltag_rig()->add_nodes()->CopyFrom(node.second);
   }
   return tag_rig_small;
@@ -479,7 +479,8 @@ MultiViewApriltagRigModel InitialMultiViewApriltagModelFromConfig(
            config.root_camera_name(), dataset_result.dataset(), config)) {
     model.add_multi_view_detections()->CopyFrom(mv_detections);
   }
-  auto tag_rig = TagRigFromMultiViewDetections(config, &model);
+  auto tag_rig = TagRigFromMultiViewDetections(config.tag_rig_name(),
+                                               config.root_tag_id(), &model);
   CameraRigFromMultiViewDetections(config, tag_rig, &model);
 
   model.set_solver_status(SolverStatus::SOLVER_STATUS_INITIAL);

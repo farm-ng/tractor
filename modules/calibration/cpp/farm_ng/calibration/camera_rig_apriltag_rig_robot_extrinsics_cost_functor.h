@@ -46,17 +46,21 @@ struct CameraRigApriltagRigRobotExtrinsicsCostFunctor {
 
     auto camera_pose_camera_rig =
         camera_pose_camera_rig_.Map(raw_camera_pose_camera_rig);
+
     auto tag_rig_pose_tag = tag_rig_pose_tag_.Map(raw_tag_rig_pose_tag);
+
     auto camera_rig_pose_tag_rig =
-        tag_rig_pose_tag_.Map(raw_camera_rig_pose_tag_rig);
+        camera_rig_pose_tag_rig_.Map(raw_camera_rig_pose_tag_rig);
+
     auto base_pose_camera_rig =
         base_pose_camera_rig_.Map(raw_base_pose_camera_rig);
+
     auto link_pose_tag_rig = link_pose_tag_rig_.Map(raw_link_pose_tag_rig);
     Sophus::SE3<T> tag_pose_tag =
         tag_rig_pose_tag.inverse() * camera_rig_pose_tag_rig.inverse() *
         camera_pose_camera_rig * base_pose_camera_rig.inverse() *
         base_pose_link_.cast<T>() * link_pose_tag_rig * tag_rig_pose_tag;
-    residuals = tag_pose_tag.log();
+    residuals = T(100) * tag_pose_tag.log();
 
     return true;
   }
