@@ -234,6 +234,11 @@ class PoseGraph {
     ProtoToSophus(pose.a_pose_b(), &a_pose_b);
     AddPose(pose.frame_a(), pose.frame_b(), a_pose_b);
   }
+  void AddPoses(const google::protobuf::RepeatedPtrField<NamedSE3Pose>& poses) {
+    for (const NamedSE3Pose& pose : poses) {
+      AddPose(pose);
+    }
+  }
 
   std::vector<size_t> ComputeShortestPaths(std::string frame_a) const {
     size_t id_a = GetId(frame_a);

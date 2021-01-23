@@ -83,10 +83,7 @@ PoseGraph PoseGraphFromModel(const MultiViewApriltagRigModel& model) {
   for (const ApriltagRig::Node& node : model.apriltag_rig().nodes()) {
     pose_graph.AddPose(node.pose());
   }
-  for (const NamedSE3Pose& camera_pose_rig :
-       model.camera_rig().camera_pose_rig()) {
-    pose_graph.AddPose(camera_pose_rig);
-  }
+  pose_graph.AddPoses(model.camera_rig().camera_pose_rig());
   GetCameraRigPosesTagRig(model, &pose_graph);
   return pose_graph;
 }
@@ -588,7 +585,7 @@ MultiViewApriltagRigModel SolveMultiViewApriltagModel(
   }
   UpdateModelFromPoseGraph(pose_graph, &model);
 
-  ModelError(&model);
+  // ModelError(&model);
   return model;
 }
 
