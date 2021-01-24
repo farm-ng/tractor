@@ -249,6 +249,15 @@ void ModelError(MultiViewApriltagRigModel* model) {
         ConstructGridImage(images, cv::Size(image_width, image_height), 3)))
         << "Could not write: " << resource_path.second;
   }
+  std::stringstream summary;
+  summary << "# tag_id frame_number camera_name rmse depth_error\n";
+  for (auto& stats : tag_stats) {
+    for (auto& per_image : stats.second.per_image_rmse()) {
+      summary << stats.second.tag_id() << " " << per_image.frame_number() << " "
+              << per_image.camera_name() << " " << per_image.rmse() << " "
+              << per_image.depth_error() << "\n";
+    }
+  }
   for (auto& stats : tag_stats) {
     stats.second.set_tag_rig_rmse(
         std::sqrt(stats.second.tag_rig_rmse() / stats.second.n_frames()));
@@ -260,15 +269,16 @@ void ModelError(MultiViewApriltagRigModel* model) {
 
     auto debug_stats = stats.second;
     debug_stats.clear_per_image_rmse();
-    LOG(INFO) << debug_stats.DebugString();
+    summary << debug_stats.DebugString() << "\n\n";
     model->add_tag_stats()->CopyFrom(stats.second);
   }
   model->set_rmse(std::sqrt(total_rmse / total_count));
-  LOG(INFO) << "model rmse (pixels): " << model->rmse();
+  summary << "model rmse (pixels): " << model->rmse() << "\n";
   if (total_depth_count > 0) {
     model->set_depth_error(std::sqrt(total_depth_error / total_depth_count));
-    LOG(INFO) << "model depth error (meters): " << model->depth_error();
+    summary << "model depth error (meters): " << model->depth_error() << "\n";
   }
+  LOG(INFO) << "Error Summary:\n" << summary.str();
 }
 
 std::vector<MultiViewApriltagDetections> LoadMultiViewApriltagDetections(
