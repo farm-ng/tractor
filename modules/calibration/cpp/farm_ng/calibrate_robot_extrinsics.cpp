@@ -256,10 +256,13 @@ RobotExtrinsicsModel SolveRobotExtrinsicsModel(RobotExtrinsicsModel model) {
                                    model.base_camera_rig().root_camera_name(),
                                    tag_rig, &camera_tag_model);
   camera_tag_model.set_solver_status(SolverStatus::SOLVER_STATUS_INITIAL);
-  // ModelError(&camera_tag_model);
   camera_tag_model = SolveMultiViewApriltagModel(camera_tag_model);
+
+  camera_tag_model.set_solver_status(SolverStatus::SOLVER_STATUS_INITIAL);
+  ModelError(&camera_tag_model);
+
   result.mutable_multi_view_apriltag_rig_solved()->CopyFrom(
-      core::ArchiveProtobufAsBinaryResource("solved", camera_tag_model));
+      core::ArchiveProtobufAsBinaryResource("initial", camera_tag_model));
   result.set_rmse(camera_tag_model.rmse());
   result.set_solver_status(camera_tag_model.solver_status());
   result.mutable_stamp_end()->CopyFrom(MakeTimestampNow());
@@ -359,6 +362,7 @@ RobotExtrinsicsModel SolveRobotExtrinsicsModel2(RobotExtrinsicsModel model) {
     problem.AddParameterBlock(pose_edge->GetAPoseB().data(),
                               Sophus::SE3d::num_parameters,
                               new LocalParameterizationSE3);
+    // problem.SetParameterBlockConstant(pose_edge->GetAPoseB().data());
   }
 
   std::string camera_rig_frame =
@@ -380,6 +384,8 @@ RobotExtrinsicsModel SolveRobotExtrinsicsModel2(RobotExtrinsicsModel model) {
           ->GetAPoseB()
           .data());
 
+  std::map<int, Sophus::SE3d> base_poses_link;
+
   for (int frame_num = 0; frame_num < model.measurements_size(); ++frame_num) {
     const RobotExtrinsicsModel::Measurement& measurement =
         model.measurements(frame_num);
@@ -397,7 +403,7 @@ RobotExtrinsicsModel SolveRobotExtrinsicsModel2(RobotExtrinsicsModel model) {
     }
     CHECK(base_pose_link) << "No base pose link set: "
                           << measurement.ShortDebugString();
-
+    base_poses_link[frame_num] = *base_pose_link;
     for (const auto& detections_per_view :
          measurement.multi_view_detections().detections_per_view()) {
       if (detections_per_view.detections_size() < 1) {
@@ -422,12 +428,12 @@ RobotExtrinsicsModel SolveRobotExtrinsicsModel2(RobotExtrinsicsModel model) {
             pose_graph.MutablePoseEdge(tag_frame, tag_rig_frame);
 
         ceres::CostFunction* cost_function1 = new ceres::AutoDiffCostFunction<
-            CameraRigApriltagRigRobotExtrinsicsCostFunctor, 8,
+            CameraRigApriltagRigRobotExtrinsicsCostFunctor, 12,
             Sophus::SE3d::num_parameters, Sophus::SE3d::num_parameters,
             Sophus::SE3d::num_parameters, Sophus::SE3d::num_parameters>(
             new CameraRigApriltagRigRobotExtrinsicsCostFunctor(
-                detections_per_view.image().camera_model(),
-                PointsTag(detection), PointsImage(detection), *base_pose_link,
+                detections_per_view.image().camera_model(), detection,
+                *base_pose_link,
                 camera_to_camera_rig->GetAPoseBMap(camera_frame,
                                                    camera_rig_frame),
                 tag_to_tag_rig->GetAPoseBMap(tag_rig_frame, tag_frame),
@@ -436,7 +442,8 @@ RobotExtrinsicsModel SolveRobotExtrinsicsModel2(RobotExtrinsicsModel model) {
                 link_to_tag_rig->GetAPoseBMap(model.link_frame_name(),
                                               tag_rig_frame)));
 
-        problem.AddResidualBlock(cost_function1, new ceres::CauchyLoss(1.0),
+        problem.AddResidualBlock(cost_function1,
+                                 nullptr,  // new ceres::CauchyLoss(1.0),
                                  camera_to_camera_rig->GetAPoseB().data(),
                                  tag_to_tag_rig->GetAPoseB().data(),
                                  base_to_camera_rig->GetAPoseB().data(),
@@ -459,11 +466,44 @@ RobotExtrinsicsModel SolveRobotExtrinsicsModel2(RobotExtrinsicsModel model) {
   ceres::Solve(options, &problem, &summary);
   LOG(INFO) << summary.FullReport() << std::endl;
   if (summary.termination_type == ceres::CONVERGENCE) {
-    model.set_solver_status(SolverStatus::SOLVER_STATUS_CONVERGED);
+    model.mutable_base_camera_rig_model()->set_solver_status(
+        SolverStatus::SOLVER_STATUS_CONVERGED);
   } else {
     model.set_solver_status(SolverStatus::SOLVER_STATUS_FAILED);
   }
+  pose_graph.UpdateNamedSE3Poses(model.mutable_workspace_poses());
+  auto* rig_model = model.mutable_base_camera_rig_model();
+  for (perception::ApriltagRig::Node& node :
+       *rig_model->mutable_apriltag_rig()->mutable_nodes()) {
+    pose_graph.UpdateNamedSE3Pose(node.mutable_pose());
+  }
+  pose_graph.UpdateNamedSE3Poses(
+      rig_model->mutable_camera_rig()->mutable_camera_pose_rig());
 
+  perception::PoseGraph camera_tag_posegraph;
+  camera_tag_posegraph.AddPoses(rig_model->camera_rig_poses_apriltag_rig());
+
+  auto camera_rig_pose_base =
+      pose_graph.AverageAPoseB(camera_rig_frame, model.base_frame_name());
+  CHECK(camera_rig_pose_base);
+
+  auto link_pose_tag_rig =
+      pose_graph.AverageAPoseB(model.link_frame_name(), tag_rig_frame);
+  CHECK(link_pose_tag_rig);
+  rig_model->clear_camera_rig_poses_apriltag_rig();
+  for (auto frame_num_base_pose_link : base_poses_link) {
+    Sophus::SE3d camera_rig_pose_apriltag_rig =
+        (*camera_rig_pose_base) * frame_num_base_pose_link.second *
+        (*link_pose_tag_rig);
+
+    perception::SophusToProto(
+        camera_rig_pose_apriltag_rig, camera_rig_frame,
+        tag_rig_frame + "/view/" +
+            std::to_string(frame_num_base_pose_link.first),
+        rig_model->add_camera_rig_poses_apriltag_rig());
+  }
+
+  ModelError(rig_model);
   for (auto pose :
        pose_graph.AveragePoseGraph(model.base_frame_name()).ToNamedSE3Poses()) {
     LOG(INFO) << pose.ShortDebugString();
