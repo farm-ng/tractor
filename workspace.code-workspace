@@ -10,6 +10,8 @@
       "./app/frontend"
     ],
     "files.exclude": {
+      "**/.devel_home": true,
+      "**/.go": true,
       "**/.git": true,
       "**/.DS_Store": true,
       "**/node_modules": true,

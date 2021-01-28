@@ -138,8 +138,8 @@ ARG WORKSPACE_DIR=/workspace/tractor
 ENV FARM_NG_ROOT=$WORKSPACE_DIR
 ENV GOPATH=$FARM_NG_ROOT/.go:$GOPATH
 
-ENV PYTHONPATH=$FARM_NG_ROOT/modules/core/python:$FARM_NG_ROOT/build/modules/core/python/protos/python:$PYTHONPATH
-ENV PYTHONPATH=$FARM_NG_ROOT/modules/perception/python:$FARM_NG_ROOT/build/modules/perception/python/protos/python:$PYTHONPATH
-ENV PYTHONPATH=$FARM_NG_ROOT/modules/calibration/python:$FARM_NG_ROOT/build/modules/calibration/python/protos/python:$PYTHONPATH
-ENV PYTHONPATH=$FARM_NG_ROOT/modules/frontend/python:$FARM_NG_ROOT/build/modules/frontend/python/protos/python:$PYTHONPATH
-ENV PYTHONPATH=$FARM_NG_ROOT/modules/tractor/python:$FARM_NG_ROOT/build/modules/tractor/python/protos/python:$PYTHONPATH
+ENV PYTHONPATH=$FARM_NG_ROOT/modules/core/python:$FARM_NG_ROOT/build/modules/core/protos/python:$PYTHONPATH
+ENV PYTHONPATH=$FARM_NG_ROOT/modules/perception/python:$FARM_NG_ROOT/build/modules/perception/protos/python:$PYTHONPATH
+ENV PYTHONPATH=$FARM_NG_ROOT/modules/calibration/python:$FARM_NG_ROOT/build/modules/calibration/protos/python:$PYTHONPATH
+ENV PYTHONPATH=$FARM_NG_ROOT/modules/frontend/python:$FARM_NG_ROOT/build/modules/frontend/protos/python:$PYTHONPATH
+ENV PYTHONPATH=$FARM_NG_ROOT/modules/tractor/python:$FARM_NG_ROOT/build/modules/tractor/protos/python:$PYTHONPATH

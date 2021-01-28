@@ -17,4 +17,3 @@ services:
       - ${BLOBSTORE_ROOT}:/blobstore
       - ../..:/workspace/tractor
     working_dir: /workspace/tractor
-    network_mode: host
