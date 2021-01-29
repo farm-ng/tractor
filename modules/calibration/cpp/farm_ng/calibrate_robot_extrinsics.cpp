@@ -29,6 +29,7 @@
 DEFINE_bool(interactive, false, "receive program args via eventbus");
 DEFINE_string(dataset, "", "CaptureRobotExtrinsicsResult");
 DEFINE_string(initial, "", "Start from an initial model");
+DEFINE_bool(joint_offsets, false, "Set true to solve for joint offsets");
 using farm_ng::core::MakeEvent;
 using farm_ng::core::MakeTimestampNow;
 using farm_ng::core::ReadProtobufFromJsonFile;
@@ -491,7 +492,10 @@ RobotArmExtrinsicsModel SolveRobotArmExtrinsicsModel2(
       joint_offsets.data(), joint_offsets.rows(),
       new ceres::SubsetParameterization(6, std::vector<int32_t>({0, 5})));
 
-  // problem.SetParameterBlockConstant(joint_offsets.data());
+  if (!FLAGS_joint_offsets) {
+    problem.SetParameterBlockConstant(joint_offsets.data());
+  }
+
   for (int frame_num = 0; frame_num < model.measurements_size(); ++frame_num) {
     const RobotArmExtrinsicsModel::Measurement& measurement =
         model.measurements(frame_num);
@@ -591,8 +595,7 @@ RobotArmExtrinsicsModel SolveRobotArmExtrinsicsModel2(
     model.mutable_base_camera_rig_model()->set_solver_status(
         SolverStatus::SOLVER_STATUS_FAILED);
   }
-  LOG(INFO) << "Joint offsets (degrees): "
-            << (180.0 / M_PI) * joint_offsets.transpose();
+
   pose_graph.UpdateNamedSE3Poses(model.mutable_workspace_poses());
   auto* rig_model = model.mutable_base_camera_rig_model();
   for (perception::ApriltagRig::Node& node :
@@ -627,6 +630,28 @@ RobotArmExtrinsicsModel SolveRobotArmExtrinsicsModel2(
   }
 
   ModelError(rig_model);
+
+  CalibrateMultiViewApriltagRigResult result;
+  result.mutable_multi_view_apriltag_rig_solved()->CopyFrom(
+      core::ArchiveProtobufAsBinaryResource("solved", *rig_model));
+  result.set_rmse(rig_model->rmse());
+  result.set_solver_status(rig_model->solver_status());
+  result.mutable_stamp_end()->CopyFrom(MakeTimestampNow());
+
+  // Write out json rigs for down stream consumption.
+  result.mutable_camera_rig_solved()->CopyFrom(
+      core::ArchiveProtobufAsJsonResource("camera_rig_solved",
+                                          rig_model->camera_rig()));
+  result.mutable_apriltag_rig_solved()->CopyFrom(
+      core::ArchiveProtobufAsJsonResource("apriltag_rig_solved",
+                                          rig_model->apriltag_rig()));
+
+  // TODO some how save the result in the archive directory as well, so its
+  // self contained.
+  core::ArchiveProtobufAsJsonResource("multiview_rig", result);
+
+  LOG(INFO) << "Joint offsets (degrees): "
+            << (180.0 / M_PI) * joint_offsets.transpose();
   for (auto pose :
        pose_graph.AveragePoseGraph(model.base_frame_name()).ToNamedSE3Poses()) {
     LOG(INFO) << pose.ShortDebugString();
