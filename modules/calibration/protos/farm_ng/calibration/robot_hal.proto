@@ -63,6 +63,28 @@ message CapturePoseResponse {
   repeated farm_ng.perception.Image images = 4;
 }
 
+// message CalibrationResultRequest {
+//   // base_camera_rig == camera_top
+//   // base_camera_rig_pose_camera_top == Identity
+
+//   // base_pose_camera_top =  base_pose_base_camera_rig * base_camera_rig_pose_camera_top;
+//   // point_base = base_pose_camera_top*point_camera_top
+
+//   // base == base_camera_rig
+//   // base_pose_base_camera_rig == Identity
+
+//   // point_base = base_camera_rig_pose_camera_top*point_camera_top;
+
+//   NamedSE3Pose base_pose_base_camera_rig = 1;
+//   NamedSE3Pose link_pose_tag_rig = 1;
+//   NamedSE3Pose base_pose_base_tig_rig = 1;
+//   NamedSE3Pose link_pose_link_camera_rig = 1;
+
+//   MultiviewCameraRig base_camera_rig;
+//   MultiviewCameraRig link_camera_rig;
+
+// }
+
 // This service API is implemented by a robot (or robot workcell), and allows
 // the calibration tool UI to interactively drive a calibration motion and
 // capture dance. The implementation of the service has access to camera frame
@@ -77,4 +99,8 @@ service RobotHALService {
   rpc CapturePose(stream CapturePoseRequest)
       returns (stream CapturePoseResponse) {
   }
+
+  // rpc CalibrationResult(CalibrationResultRequest Result) {
+  //   return CalibrationResultResponse;
+  // }
 }

@@ -11,3 +11,6 @@ target_link_libraries(calibrate_intrinsics farm_ng_calibration)
 
 add_executable(capture_robot_extrinsics_dataset capture_robot_extrinsics_dataset.cpp)
 target_link_libraries(capture_robot_extrinsics_dataset farm_ng_calibration farm_ng_calibration_grpc)
+
+add_executable(calibrate_robot_extrinsics calibrate_robot_extrinsics.cpp)
+target_link_libraries(calibrate_robot_extrinsics farm_ng_calibration)

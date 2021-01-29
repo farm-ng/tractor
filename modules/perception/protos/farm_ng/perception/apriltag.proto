@@ -1,5 +1,7 @@
 syntax = "proto3";
 
+import "google/protobuf/wrappers.proto";
+
 import "farm_ng/perception/image.proto";
 import "farm_ng/perception/geometry.proto";
 
@@ -53,6 +55,9 @@ message ApriltagDetection {
 
   // Size of the tag, outside corner to corner on one side, in meters.
   double tag_size = 9;
+
+  // If available the depth of each point in p
+  repeated google.protobuf.DoubleValue  depth = 10;
 }
 
 message ApriltagDetections {

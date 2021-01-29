@@ -4,6 +4,7 @@ import "farm_ng/calibration/robot_hal.proto";
 import "farm_ng/core/resource.proto";
 import "farm_ng/perception/apriltag.proto";
 import "farm_ng/perception/camera_model.proto";
+import "farm_ng/perception/kinematics.proto";
 import "google/protobuf/timestamp.proto";
 
 package farm_ng.calibration;
@@ -45,6 +46,9 @@ message CaptureRobotExtrinsicsDatasetConfiguration {
 
   // the hostname and port of the RobotHALService server. e.g. "localhost:50051"
   string hal_service_address = 10;
+
+  // robot arm kinematic description
+  farm_ng.perception.RobotArm robot_arm = 11;
 }
 
 message CaptureRobotExtrinsicsDatasetStatus {

@@ -1,5 +1,6 @@
 #ifndef FARM_NG_PERCEPTION_POSE_GRAPH_H_
 #define FARM_NG_PERCEPTION_POSE_GRAPH_H_
+#include <glog/logging.h>
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/dijkstra_shortest_paths.hpp>
 #include <boost/graph/graph_traits.hpp>
@@ -188,6 +189,18 @@ class PoseGraph {
     return &PoseEdgeMap()[edge.first];
   }
 
+  const PoseEdge& GetPoseEdge(const std::string& frame_a,
+                              const std::string& frame_b) const {
+    size_t id_a = GetId(frame_a);
+    size_t id_b = GetId(frame_b);
+    if (id_a >= id_b) {
+      std::swap(id_a, id_b);
+    }
+    auto edge = boost::edge(id_a, id_b, graph_);
+    CHECK(edge.second);
+    return PoseEdgeMap()[edge.first];
+  }
+
   void AddPose(std::string frame_a, std::string frame_b, SE3d a_pose_b) {
     CHECK_NE(frame_a, frame_b);
     size_t id_a = MakeId(frame_a);
@@ -220,6 +233,11 @@ class PoseGraph {
     SE3d a_pose_b;
     ProtoToSophus(pose.a_pose_b(), &a_pose_b);
     AddPose(pose.frame_a(), pose.frame_b(), a_pose_b);
+  }
+  void AddPoses(const google::protobuf::RepeatedPtrField<NamedSE3Pose>& poses) {
+    for (const NamedSE3Pose& pose : poses) {
+      AddPose(pose);
+    }
   }
 
   std::vector<size_t> ComputeShortestPaths(std::string frame_a) const {
@@ -289,7 +307,7 @@ class PoseGraph {
       size_t child = n;
       size_t parent = p[n];
       if (parent == child) {
-        LOG(INFO) << "no parent: " << GetName(child);
+        VLOG(2) << "no parent: " << GetName(child);
         return std::optional<SE3d>();
       }
 
@@ -313,7 +331,7 @@ class PoseGraph {
   }
 
   // This function computes the shortest path (weighted inversely by number of
-  // poses between frames) of very frame to the given frame_a, and then
+  // poses between frames) between every frame to the given frame_a, and then
   // collapses each path in to a single SE3 transform, such that the returned
   // posegraph contains only edges which are between frame_a and frame_X, and
   // each edge contains only a single pose.
