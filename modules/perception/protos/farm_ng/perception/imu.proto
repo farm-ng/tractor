@@ -1,0 +1,19 @@
+syntax = "proto3";
+import "farm_ng/perception/geometry.proto";
+
+
+package farm_ng.perception;
+option go_package = "github.com/farm-ng/genproto/perception";
+
+// inspired by: http://docs.ros.org/en/melodic/api/sensor_msgs/html/msg/Imu.html
+message Imu {
+    // Translation is usually 0, using NamedSE3Pose as this has explicit frame conventions.
+    // frame_a ~ "imu_init"
+    // frame_b ~ "imu"
+    farm_ng.perception.NamedSE3Pose orientation=1;
+    farm_ng.perception.Matrix orientation_covariance = 2;
+    farm_ng.perception.Vec3 angular_velocity=3;
+    farm_ng.perception.Matrix angular_velocity_covariance = 4;
+    farm_ng.perception.Vec3 linear_acceleration=5;
+    farm_ng.perception.Matrix linear_acceleration_covariance = 6;
+}
