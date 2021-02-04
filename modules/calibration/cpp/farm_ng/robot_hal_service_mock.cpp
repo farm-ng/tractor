@@ -13,6 +13,7 @@
 #include "farm_ng/core/event_log_reader.h"
 #include "farm_ng/core/init.h"
 #include "farm_ng/core/ipc.h"
+#include "farm_ng/perception/image_loader.h"
 
 #include "farm_ng/calibration/calibrator.pb.h"
 #include "farm_ng/calibration/capture_robot_extrinsics_dataset.pb.h"
@@ -40,16 +41,7 @@ std::vector<CapturePoseResponse> CapturePoseResponses(
     if (event.data().UnpackTo(&pose_response)) {
       VLOG(2) << "Response:\n" << pose_response.ShortDebugString();
       for (auto& image : *pose_response.mutable_images()) {
-        if (image.resource().payload_case() ==
-            core::Resource::PayloadCase::kPath) {
-          std::ifstream bin_in(
-              (core::GetBlobstoreRoot() / image.resource().path()).string(),
-              std::ifstream::binary);
-          CHECK(bin_in.good());
-          std::string bin_str((std::istreambuf_iterator<char>(bin_in)),
-                              std::istreambuf_iterator<char>());
-          image.mutable_resource()->set_data(bin_str);
-        }
+        perception::ImageResourcePathToData(&image);
       }
       responses.push_back(pose_response);
     }

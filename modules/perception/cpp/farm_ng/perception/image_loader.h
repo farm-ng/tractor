@@ -25,9 +25,14 @@ class ImageLoader {
   bool zero_indexed_;
 };
 
-// If the image resource has a data payload rather than a resource, this saves
+// If the image resource has a data payload rather than a path, this saves
 // it to disk, and replaces the resource payload with the path on disk.
 void ImageResourceDataToPath(Image* image);
+
+// If the image resource has a path payload rather than data, this reads
+// the playload form the path on disk, and replaces the resource payload with
+// data.
+void ImageResourcePathToData(Image* image);
 }  // namespace farm_ng::perception
 
 #endif

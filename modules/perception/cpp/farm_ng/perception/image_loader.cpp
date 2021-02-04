@@ -136,6 +136,24 @@ void ImageResourcePayloadToPath(core::Resource* resource,
       << resource->ShortDebugString();
 }
 
+void ImageResourcePayloadToData(core::Resource* resource) {
+  if (resource->payload_case() != core::Resource::kPath) {
+    CHECK_EQ(resource->payload_case(), core::Resource::kData)
+        << resource->ShortDebugString();
+    return;
+  }
+  std::string bin_path = (core::GetBlobstoreRoot() / resource->path()).string();
+
+  LOG(INFO) << "Reading " << bin_path;
+
+  std::ifstream bin_in(bin_path, std::ifstream::binary);
+  CHECK(bin_in.good());
+  std::string bin_str((std::istreambuf_iterator<char>(bin_in)),
+                      std::istreambuf_iterator<char>());
+  resource->set_data(bin_str);
+  return;
+}
+
 void ImageResourceDataToPath(Image* image) {
   uint32_t frame_number = 0;
   if (image->has_frame_number()) {
@@ -154,5 +172,14 @@ void ImageResourceDataToPath(Image* image) {
                                     frame_number, "_depthmap"));
   }
 }
+
+void ImageResourcePathToData(Image* image) {
+  ImageResourcePayloadToData(image->mutable_resource());
+
+  if (image->has_depthmap()) {
+    ImageResourcePayloadToData(image->mutable_depthmap()->mutable_resource());
+  }
+}
+
 }  // namespace perception
 }  // namespace farm_ng
