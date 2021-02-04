@@ -1,9 +1,6 @@
 #include <gflags/gflags.h>
 #include <glog/logging.h>
 
-#include <ceres/ceres.h>
-#include <opencv2/imgproc.hpp>
-
 #include <grpc/grpc.h>
 #include <grpcpp/channel.h>
 #include <grpcpp/create_channel.h>
@@ -11,45 +8,19 @@
 #include <grpcpp/server_builder.h>
 #include <grpcpp/server_context.h>
 
-#include "farm_ng/calibration/robot_hal.grpc.pb.h"
-
 #include "farm_ng/core/blobstore.h"
 #include "farm_ng/core/event_log.h"
 #include "farm_ng/core/event_log_reader.h"
 #include "farm_ng/core/init.h"
 #include "farm_ng/core/ipc.h"
 
-#include "farm_ng/calibration/camera_rig_apriltag_rig_cost_functor.h"
-#include "farm_ng/calibration/local_parameterization.h"
-#include "farm_ng/calibration/multi_view_apriltag_rig_calibrator.h"
-#include "farm_ng/calibration/robot_hal_client.h"
-
-#include "farm_ng/perception/apriltag.h"
-#include "farm_ng/perception/camera_model.h"
-#include "farm_ng/perception/image.pb.h"
-#include "farm_ng/perception/image_loader.h"
-#include "farm_ng/perception/pose_graph.h"
-#include "farm_ng/perception/pose_utils.h"
-#include "farm_ng/perception/robot_arm_fk.h"
-#include "farm_ng/perception/sophus_protobuf.h"
-
 #include "farm_ng/calibration/calibrator.pb.h"
 #include "farm_ng/calibration/capture_robot_extrinsics_dataset.pb.h"
+#include "farm_ng/calibration/robot_hal.grpc.pb.h"
 
 DEFINE_bool(interactive, false, "receive program args via eventbus");
 DEFINE_string(dataset, "", "CaptureRobotExtrinsicsResult");
 DEFINE_string(calibration, "", "RobotArmExtrinsicsModel model");
-using farm_ng::core::MakeEvent;
-using farm_ng::core::MakeTimestampNow;
-using farm_ng::core::ReadProtobufFromJsonFile;
-using farm_ng::perception::CameraModel;
-using farm_ng::perception::Image;
-using farm_ng::perception::NamedSE3Pose;
-using farm_ng::perception::RobotArmFK6dof;
-using farm_ng::perception::RobotLinkFK;
-using farm_ng::perception::SE3Map;
-
-typedef farm_ng::core::Event EventPb;
 
 namespace farm_ng::calibration {
 
@@ -58,7 +29,7 @@ std::vector<CapturePoseResponse> CapturePoseResponses(
   core::EventLogReader log_reader(dataset_result.dataset());
   std::vector<CapturePoseResponse> responses;
   while (true) {
-    EventPb event;
+    core::Event event;
     try {
       event = log_reader.ReadNext();
     } catch (const std::runtime_error& e) {
@@ -158,7 +129,7 @@ class RobotHalServiceMock final : public RobotHALService::Service {
     send_status();
   }
 
-  bool on_configuration(const EventPb& event) {
+  bool on_configuration(const core::Event& event) {
     core::Resource configuration_resource;
     if (!event.data().UnpackTo(&configuration_resource)) {
       return false;
@@ -170,7 +141,7 @@ class RobotHalServiceMock final : public RobotHALService::Service {
 
   void set_configuration(const core::Resource& resource) { send_status(); }
 
-  void on_event(const EventPb& event) {
+  void on_event(const core::Event& event) {
     if (on_configuration(event)) {
       return;
     }

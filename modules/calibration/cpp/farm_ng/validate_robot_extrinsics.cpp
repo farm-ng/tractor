@@ -1,7 +1,6 @@
 #include <gflags/gflags.h>
 #include <glog/logging.h>
 
-#include <ceres/ceres.h>
 #include <opencv2/imgproc.hpp>
 
 #include "farm_ng/core/blobstore.h"
@@ -10,39 +9,18 @@
 #include "farm_ng/core/init.h"
 #include "farm_ng/core/ipc.h"
 
-#include "farm_ng/calibration/camera_rig_apriltag_rig_cost_functor.h"
-#include "farm_ng/calibration/local_parameterization.h"
-#include "farm_ng/calibration/multi_view_apriltag_rig_calibrator.h"
-#include "farm_ng/calibration/robot_hal_client.h"
-
 #include "farm_ng/perception/apriltag.h"
-#include "farm_ng/perception/camera_model.h"
-#include "farm_ng/perception/image.pb.h"
 #include "farm_ng/perception/image_loader.h"
-#include "farm_ng/perception/pose_graph.h"
-#include "farm_ng/perception/pose_utils.h"
-#include "farm_ng/perception/robot_arm_fk.h"
-#include "farm_ng/perception/sophus_protobuf.h"
 
 #include "farm_ng/calibration/calibrator.pb.h"
 #include "farm_ng/calibration/capture_robot_extrinsics_dataset.pb.h"
+#include "farm_ng/calibration/multi_view_apriltag_rig_calibrator.h"
+#include "farm_ng/calibration/robot_hal_client.h"
 
 DEFINE_bool(interactive, false, "receive program args via eventbus");
 DEFINE_string(hal_service_address, "", "Hal service address");
 DEFINE_string(apriltag_rig, "", "Apriltag rig json file.");
 DEFINE_string(name, "", "Log directory name.");
-
-using farm_ng::core::MakeEvent;
-using farm_ng::core::MakeTimestampNow;
-using farm_ng::core::ReadProtobufFromJsonFile;
-using farm_ng::perception::CameraModel;
-using farm_ng::perception::Image;
-using farm_ng::perception::NamedSE3Pose;
-using farm_ng::perception::RobotArmFK6dof;
-using farm_ng::perception::RobotLinkFK;
-using farm_ng::perception::SE3Map;
-
-typedef farm_ng::core::Event EventPb;
 
 namespace farm_ng::calibration {
 
@@ -52,10 +30,10 @@ class MultiViewApriltagDetector {
       : apriltag_config_(apriltag_config) {}
 
   perception::MultiViewApriltagDetections Detect(
-      const google::protobuf::RepeatedPtrField<Image>& images,
+      const google::protobuf::RepeatedPtrField<perception::Image>& images,
       google::protobuf::Timestamp stamp) {
     perception::MultiViewApriltagDetections multi_view_detections;
-    for (const Image& image : images) {
+    for (const perception::Image& image : images) {
       std::string camera_frame_name = image.camera_model().frame_name();
       CHECK_GT(image.camera_model().image_width(), 1);
 
@@ -129,7 +107,7 @@ class ValidateRobotExtrinsicsProgram {
     send_status();
   }
 
-  bool on_configuration(const EventPb& event) {
+  bool on_configuration(const core::Event& event) {
     core::Resource configuration_resource;
     if (!event.data().UnpackTo(&configuration_resource)) {
       return false;
@@ -141,7 +119,7 @@ class ValidateRobotExtrinsicsProgram {
 
   void set_configuration(const core::Resource& resource) { send_status(); }
 
-  void on_event(const EventPb& event) {
+  void on_event(const core::Event& event) {
     if (on_configuration(event)) {
       return;
     }
@@ -185,7 +163,7 @@ class ValidateRobotExtrinsicsProgram {
       return -1;
     }
     // Transform images to disk for logging purposes.
-    for (Image& image : *capture_response.mutable_images()) {
+    for (perception::Image& image : *capture_response.mutable_images()) {
       perception::ImageResourceDataToPath(&image);
     }
     for (auto pose : capture_response.workspace_poses()) {
