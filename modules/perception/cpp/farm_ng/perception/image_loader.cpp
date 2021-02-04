@@ -5,6 +5,8 @@
 #include <opencv2/imgcodecs.hpp>
 
 #include "farm_ng/core/blobstore.h"
+#include "farm_ng/core/ipc.h"
+#include "farm_ng/perception/pose_utils.h"
 
 using farm_ng::core::GetBlobstoreRoot;
 using farm_ng::core::Resource;
@@ -98,7 +100,59 @@ cv::Mat ImageLoader::LoadDepthmap(const Image& image) {
                << Depthmap::Range_Name(image.depthmap().range());
   }
   return frame;
-}  // namespace perception
+}
 
+void ImageResourcePayloadToPath(core::Resource* resource,
+                                const std::string& name) {
+  if (resource->payload_case() != core::Resource::kData) {
+    CHECK_EQ(resource->payload_case(), core::Resource::kPath)
+        << resource->ShortDebugString();
+    return;
+  }
+
+  std::string ext;
+  if (resource->content_type() == "image/png") {
+    ext = "png";
+  } else if (resource->content_type() == "image/jpeg") {
+    ext = "jpg";
+  }
+  CHECK(!ext.empty())
+      << "Could not determine image extension (jpg, png supported): "
+      << resource->content_type();
+
+  auto resource_path =
+      core::GetUniqueArchiveResource(name, ext, resource->content_type());
+  {
+    LOG(INFO) << "Writing to: " << resource_path.second.string();
+    std::ofstream outf(resource_path.second.string(), std::ofstream::binary);
+    CHECK(outf) << "Could not open : " << resource_path.second.string() << "\n"
+                << resource_path.first.ShortDebugString();
+    outf << resource->data();
+  }
+  CHECK(boost::filesystem::exists(resource_path.second.string()))
+      << "Did not write to: " << resource_path.second.string();
+  resource->CopyFrom(resource_path.first);
+  CHECK_EQ(resource->payload_case(), core::Resource::kPath)
+      << resource->ShortDebugString();
+}
+
+void ImageResourceDataToPath(Image* image) {
+  uint32_t frame_number = 0;
+  if (image->has_frame_number()) {
+    frame_number = image->frame_number().value();
+  }
+
+  ImageResourcePayloadToPath(
+      image->mutable_resource(),
+      perception::FrameNameNumber(image->camera_model().frame_name(),
+                                  frame_number));
+
+  if (image->has_depthmap()) {
+    ImageResourcePayloadToPath(
+        image->mutable_depthmap()->mutable_resource(),
+        perception::FrameNameNumber(image->camera_model().frame_name(),
+                                    frame_number, "_depthmap"));
+  }
+}
 }  // namespace perception
 }  // namespace farm_ng

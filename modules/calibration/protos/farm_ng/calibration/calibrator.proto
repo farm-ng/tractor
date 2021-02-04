@@ -227,7 +227,6 @@ message MonocularApriltagRigModel {
   repeated farm_ng.perception.Image reprojection_images = 8;
 }
 
-
 message MultiViewApriltagRigModel {
   // Solved for rig, this bit is reusable for tracking or downstream
   // calibration.
@@ -248,7 +247,8 @@ message MultiViewApriltagRigModel {
   // rig. For debugging purposes, these typically have the image resources
   // associated with them.  The tag_stats.per_image_rmse keys refer to the
   // elements of this collection.
-  repeated farm_ng.perception.MultiViewApriltagDetections multi_view_detections = 6;
+  repeated farm_ng.perception.MultiViewApriltagDetections
+      multi_view_detections = 6;
 
   // The solver also estimates the pose of each of the camera views in
   // detections to the the rig.  This is may not be the same length of
@@ -257,7 +257,6 @@ message MultiViewApriltagRigModel {
   // <camera_frame_name>/<detections_index %05d> encode
   // encode which index in detections these refer to.
   repeated farm_ng.perception.NamedSE3Pose camera_rig_poses_apriltag_rig = 7;
-
 
   // Each image where we are able to estimate a pose has a projection debug
   // image, which shows the detected points, and the reprojected corners of the
@@ -278,14 +277,16 @@ message RobotArmExtrinsicsModel {
   // The name of the link frame
   string link_frame_name = 5;
 
+  // Set of estimated joint offsets
+  repeated farm_ng.perception.JointState estimated_joint_offsets = 6;
+
   message Measurement {
     farm_ng.perception.MultiViewApriltagDetections multi_view_detections = 1;
     repeated farm_ng.perception.NamedSE3Pose poses = 2;
     repeated farm_ng.perception.JointState joint_states = 3;
   }
-  repeated Measurement measurements = 6;
+  repeated Measurement measurements = 7;
 }
-
 
 message BaseToCameraModel {
   message WheelMeasurement {

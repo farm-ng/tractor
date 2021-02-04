@@ -212,7 +212,7 @@ void ModelError(MultiViewApriltagRigModel* model) {
         stats.set_tag_id(detection.id());
         stats.set_n_frames(stats.n_frames() + 1);
         stats.set_tag_rig_rmse(stats.tag_rig_rmse() +
-                               residuals.squaredNorm() / 8);
+                               residuals.block<4, 2>(0, 0).squaredNorm() / 8);
         stats.set_tag_rig_depth_error(stats.tag_rig_depth_error() +
                                       depth_error);
         stats.set_tag_rig_depth_count(stats.tag_rig_depth_count() +
@@ -371,6 +371,7 @@ std::vector<MultiViewApriltagDetections> LoadMultiViewApriltagDetections(
 
   return mv_detections_series;
 }
+
 PoseGraph TagRigFromMultiViewDetections(std::string tag_rig_name,
                                         int root_tag_id,
                                         MultiViewApriltagRigModel* model) {
@@ -535,6 +536,7 @@ MultiViewApriltagRigModel InitialMultiViewApriltagModelFromConfig(
 MultiViewApriltagRigModel SolveMultiViewApriltagModel(
     MultiViewApriltagRigModel model) {
   PoseGraph pose_graph = PoseGraphFromModel(model);
+  double depth_weight = 100.0;
   ceres::Problem problem;
   for (PoseEdge* pose_edge : pose_graph.MutablePoseEdges()) {
     LOG(INFO) << *pose_edge;
@@ -598,7 +600,7 @@ MultiViewApriltagRigModel SolveMultiViewApriltagModel(
                 tag_to_tag_rig->GetAPoseBMap(tag_rig_frame, tag_frame),
                 camera_rig_to_tag_rig_view->GetAPoseBMap(camera_rig_frame,
                                                          tag_rig_view_frame),
-                100.0));
+                depth_weight));
         problem.AddResidualBlock(
             cost_function1, new ceres::CauchyLoss(1.0),
             camera_to_camera_rig->GetAPoseB().data(),
@@ -633,5 +635,216 @@ MultiViewApriltagRigModel SolveMultiViewApriltagModel(
   return model;
 }
 
+std::optional<NamedSE3Pose> CameraRigPoseApriltagRigEstimateAverage(
+    const perception::MultiViewCameraRig& camera_rig,
+    const perception::ApriltagRig& apriltag_rig,
+    const perception::MultiViewApriltagDetections& mv_detections,
+    PoseGraph* pose_graph) {
+  perception::ApriltagRigIdMap tag_id_map;
+  tag_id_map.AddRig(apriltag_rig);
+
+  *pose_graph = PoseGraph();
+
+  for (const ApriltagRig::Node& node : apriltag_rig.nodes()) {
+    pose_graph->AddPose(node.pose());
+  }
+  pose_graph->AddPoses(camera_rig.camera_pose_rig());
+  for (const auto& detections_per_view : mv_detections.detections_per_view()) {
+    for (const auto& detection : detections_per_view.detections()) {
+      auto frame_names = tag_id_map.GetFrameNames(detection.id());
+      if (!frame_names) {
+        continue;
+      }
+      CHECK_EQ(detections_per_view.image().camera_model().frame_name(),
+               detection.pose().frame_a());
+
+      Sophus::SE3d c_pose_tag;
+      ProtoToSophus(detection.pose().a_pose_b(), &c_pose_tag);
+
+      auto tag_pose_tag_rig = pose_graph->CheckAverageAPoseB(
+          frame_names->tag_frame, frame_names->rig_frame);
+
+      auto camera_rig_pose_camera = pose_graph->CheckAverageAPoseB(
+          camera_rig.name(),
+          detections_per_view.image().camera_model().frame_name());
+
+      auto camera_rig_pose_tag_rig =
+          camera_rig_pose_camera * c_pose_tag * tag_pose_tag_rig;
+      pose_graph->AddPose(camera_rig.name(), apriltag_rig.name(),
+                          camera_rig_pose_tag_rig);
+    }
+  }
+  if (pose_graph->HasEdge(camera_rig.name(), apriltag_rig.name())) {
+    auto edge =
+        pose_graph->MutablePoseEdge(camera_rig.name(), apriltag_rig.name());
+
+    LOG(INFO) << camera_rig.name() << " <- " << apriltag_rig.name()
+              << " has: " << edge->a_poses_b.size() << " estimates.";
+    edge->Collapse();
+  }
+  return pose_graph->AverageNamedSE3Pose(camera_rig.name(),
+                                         apriltag_rig.name());
+}
+
+std::optional<std::tuple<perception::NamedSE3Pose, double,
+                         std::vector<ApriltagRigTagStats>>>
+EstimateMultiViewCameraRigPoseApriltagRig(
+    const perception::MultiViewCameraRig& camera_rig,
+    const perception::ApriltagRig& apriltag_rig,
+    const perception::MultiViewApriltagDetections& mv_detections) {
+  PoseGraph pose_graph;
+  auto o_camera_rig_pose_tag_rig = CameraRigPoseApriltagRigEstimateAverage(
+      camera_rig, apriltag_rig, mv_detections, &pose_graph);
+  if (!o_camera_rig_pose_tag_rig) {
+    return std::nullopt;
+  }
+  double depth_weight = 100.0;
+  ceres::Problem problem;
+  for (PoseEdge* pose_edge : pose_graph.MutablePoseEdges()) {
+    LOG(INFO) << *pose_edge;
+    problem.AddParameterBlock(pose_edge->GetAPoseB().data(),
+                              SE3d::num_parameters,
+                              new LocalParameterizationSE3);
+    if (!pose_edge->HasFrames(camera_rig.name(), apriltag_rig.name())) {
+      problem.SetParameterBlockConstant(pose_edge->GetAPoseB().data());
+    }
+  }
+
+  PoseEdge* camera_rig_to_tag_rig =
+      pose_graph.MutablePoseEdge(camera_rig.name(), apriltag_rig.name());
+
+  std::map<int, ApriltagRigTagStats> tag_stats;
+  std::map<int, std::vector<std::tuple<PerImageRmse, ceres::ResidualBlockId>>>
+      tag_id_to_per_image_rmse_block_id;
+
+  for (const auto& detections_per_view : mv_detections.detections_per_view()) {
+    if (detections_per_view.detections_size() < 1) {
+      continue;
+    }
+    std::string camera_frame =
+        detections_per_view.image().camera_model().frame_name();
+
+    PoseEdge* camera_to_camera_rig =
+        pose_graph.MutablePoseEdge(camera_frame, camera_rig.name());
+
+    for (const auto& detection : detections_per_view.detections()) {
+      std::string tag_frame = FrameRigTag(apriltag_rig.name(), detection.id());
+      if (!pose_graph.HasEdge(tag_frame, apriltag_rig.name())) {
+        continue;
+      }
+      ApriltagRigTagStats& stats = tag_stats[detection.id()];
+      stats.set_tag_id(detection.id());
+      stats.set_n_frames(stats.n_frames() + 1);
+
+      PoseEdge* tag_to_tag_rig =
+          pose_graph.MutablePoseEdge(tag_frame, apriltag_rig.name());
+
+      ceres::CostFunction* cost_function1 = new ceres::AutoDiffCostFunction<
+          CameraRigApriltagRigCostFunctor, 12, Sophus::SE3d::num_parameters,
+          Sophus::SE3d::num_parameters, Sophus::SE3d::num_parameters>(
+          new CameraRigApriltagRigCostFunctor(
+              detections_per_view.image().camera_model(), detection,
+              camera_to_camera_rig->GetAPoseBMap(camera_frame,
+                                                 camera_rig.name()),
+              tag_to_tag_rig->GetAPoseBMap(apriltag_rig.name(), tag_frame),
+              camera_rig_to_tag_rig->GetAPoseBMap(camera_rig.name(),
+                                                  apriltag_rig.name()),
+              depth_weight));
+      auto block_id =
+          problem.AddResidualBlock(cost_function1, new ceres::CauchyLoss(1.0),
+                                   camera_to_camera_rig->GetAPoseB().data(),
+                                   tag_to_tag_rig->GetAPoseB().data(),
+                                   camera_rig_to_tag_rig->GetAPoseB().data());
+      PerImageRmse per_image_rmse;
+      per_image_rmse.set_frame_number(0);
+      per_image_rmse.set_camera_name(camera_frame);
+
+      tag_id_to_per_image_rmse_block_id[detection.id()].push_back(
+          std::make_tuple(per_image_rmse, block_id));
+    }
+  }
+
+  // Set solver options (precision / method)
+  ceres::Solver::Options options;
+  options.linear_solver_type = ceres::SPARSE_SCHUR;
+  options.gradient_tolerance = 1e-18;
+  options.function_tolerance = 1e-18;
+  options.parameter_tolerance = 1e-18;
+  options.max_num_iterations = 2000;
+
+  // Solve
+  ceres::Solver::Summary summary;
+  options.logging_type = ceres::PER_MINIMIZER_ITERATION;
+  options.minimizer_progress_to_stdout = true;
+  ceres::Solve(options, &problem, &summary);
+  LOG(INFO) << summary.FullReport() << std::endl;
+  if (!summary.IsSolutionUsable()) {
+    return std::nullopt;
+  }
+  double total_depth_count = 0;
+  double total_depth_error = 0;
+  double total_rmse = 0.0;
+  double total_count = 0;
+  std::vector<ApriltagRigTagStats> out_tag_stats;
+  for (auto it : tag_id_to_per_image_rmse_block_id) {
+    int tag_id = it.first;
+    auto& stats = tag_stats[tag_id];
+    for (auto per_image_rmse_block : it.second) {
+      auto [image_rmse, block] = per_image_rmse_block;
+      double cost;
+      Eigen::Matrix<double, 4, 3> residuals;
+      problem.EvaluateResidualBlockAssumingParametersUnchanged(
+          block, false, &cost, residuals.data(), nullptr);
+      double depth_error = 0;
+      int depth_count = 0;
+      for (int i = 0; i < 4; ++i) {
+        double d2 = residuals(i, 2) * residuals(i, 2);
+        if (d2 > 0.0) {
+          depth_error += residuals(i, 2) / depth_weight;
+          depth_count += 1;
+        }
+      }
+      total_depth_count += depth_count;
+      total_depth_error += depth_error;
+      total_rmse += residuals.block<4, 2>(0, 0).squaredNorm();
+      total_count += 8;
+
+      stats.set_tag_rig_rmse(stats.tag_rig_rmse() +
+                             residuals.block<4, 2>(0, 0).squaredNorm() / 8);
+      stats.set_tag_rig_depth_error(stats.tag_rig_depth_error() + depth_error);
+      stats.set_tag_rig_depth_count(stats.tag_rig_depth_count() + depth_count);
+
+      image_rmse.set_rmse(
+          std::sqrt(residuals.block<4, 2>(0, 0).squaredNorm() / 8));
+
+      if (depth_count > 0) {
+        image_rmse.set_depth_error(  // std::sqrt
+            (depth_error / depth_count));
+      }
+      stats.add_per_image_rmse()->CopyFrom(image_rmse);
+    }
+    stats.set_tag_rig_rmse(std::sqrt(stats.tag_rig_rmse() / stats.n_frames()));
+    if (stats.tag_rig_depth_count() > 0) {
+      stats.set_tag_rig_depth_error(
+          // std::sqrt
+          (stats.tag_rig_depth_error() / stats.tag_rig_depth_count()));
+    }
+    out_tag_stats.push_back(stats);
+  }
+  double rmse = std::sqrt(total_rmse / total_count);
+  std::stringstream ss;
+  ss << "model rmse (pixels): " << rmse << "\n";
+  double depth_error = 0;
+  if (total_depth_count > 0) {
+    depth_error = (total_depth_error / total_depth_count);
+    ss << "model depth error (meters): " << depth_error << "\n";
+  }
+
+  auto pose = pose_graph.CheckAverageNamedSE3Pose(camera_rig.name(),
+                                                  apriltag_rig.name());
+
+  LOG(INFO) << "Solved pose:" << pose.ShortDebugString() << "\n" << ss.str();
+  return {{pose, rmse, out_tag_stats}};
+}
 }  // namespace calibration
 }  // namespace farm_ng

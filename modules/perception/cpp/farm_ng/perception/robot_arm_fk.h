@@ -78,17 +78,21 @@ class RobotArmFK6dof {
     }
   }
   template <typename T>
-  Sophus::SE3<T> FK(const Eigen::Matrix<T, 6, 1>& joint_values,
-                    const Eigen::Matrix<T, 6, 1>& joint_offsets) const {
+  Sophus::SE3<T> FK(const Eigen::Matrix<T, 6, 1>& joint_values) const {
     Sophus::SE3<T> base_pose_ee = Sophus::SE3<T>::rotX(T(0));  // identity
     for (size_t i = 0; i < links_.size(); ++i) {
-      base_pose_ee =
-          base_pose_ee * links_[i].FK(joint_values(i) + joint_offsets(i));
+      base_pose_ee = base_pose_ee * links_[i].FK(joint_values(i));
     }
     return base_pose_ee;
   }
 
-  RobotArm ToProto() const {
+  template <typename T>
+  Sophus::SE3<T> FK(const Eigen::Matrix<T, 6, 1>& joint_values,
+                    const Eigen::Matrix<T, 6, 1>& joint_offsets) const {
+    return FK<T>(joint_values + joint_offsets);
+  }
+
+    RobotArm ToProto() const {
     RobotArm robot_arm;
     for (auto link : links_) {
       robot_arm.add_links()->CopyFrom(link.ToProto());

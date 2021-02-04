@@ -13,6 +13,7 @@
 #include "farm_ng/calibration/camera_rig_apriltag_rig_cost_functor.h"
 #include "farm_ng/calibration/local_parameterization.h"
 #include "farm_ng/calibration/multi_view_apriltag_rig_calibrator.h"
+#include "farm_ng/calibration/robot_hal_client.h"
 
 #include "farm_ng/perception/apriltag.h"
 #include "farm_ng/perception/camera_model.h"
@@ -30,6 +31,8 @@ DEFINE_bool(interactive, false, "receive program args via eventbus");
 DEFINE_string(dataset, "", "CaptureRobotExtrinsicsResult");
 DEFINE_string(initial, "", "Start from an initial model");
 DEFINE_bool(joint_offsets, false, "Set true to solve for joint offsets");
+DEFINE_bool(submit, false,
+            "If true, this will submit the results to the server.");
 using farm_ng::core::MakeEvent;
 using farm_ng::core::MakeTimestampNow;
 using farm_ng::core::ReadProtobufFromJsonFile;
@@ -94,11 +97,11 @@ RobotArmExtrinsicsModel RobotArmExtrinsicsModelFromDatasetResult(
     }
 
     if (event.data().UnpackTo(&pose_req)) {
-      LOG(INFO) << "Request:\n" << pose_req.ShortDebugString();
+      VLOG(2) << "Request:\n" << pose_req.ShortDebugString();
     }
     CapturePoseResponse pose_response;
     if (event.data().UnpackTo(&pose_response)) {
-      LOG(INFO) << "Response:\n" << pose_response.ShortDebugString();
+      VLOG(2) << "Response:\n" << pose_response.ShortDebugString();
       RobotArmExtrinsicsModel::Measurement* measurement =
           model.add_measurements();
       measurement->mutable_poses()->CopyFrom(pose_response.poses());
@@ -107,15 +110,7 @@ RobotArmExtrinsicsModel RobotArmExtrinsicsModelFromDatasetResult(
 
       for (Image image : pose_response.images()) {
         std::string camera_frame_name = image.camera_model().frame_name();
-        if (image.camera_model().image_width() == 1) {
-          // TODO remove this hack as after dataset is fixed.
-          LOG_FIRST_N(WARNING, 10)
-              << "Malformed camera model, defaulting to width=1920 "
-                 "height=1080";
-          perception::CameraModel* camera_model = image.mutable_camera_model();
-          camera_model->set_image_width(1920);
-          camera_model->set_image_height(1080);
-        }
+        CHECK_GT(image.camera_model().image_width(), 1);
 
         if (!per_camera_model.count(camera_frame_name)) {
           per_camera_model[camera_frame_name] = image.camera_model();
@@ -646,9 +641,26 @@ RobotArmExtrinsicsModel SolveRobotArmExtrinsicsModel2(
       core::ArchiveProtobufAsJsonResource("apriltag_rig_solved",
                                           rig_model->apriltag_rig()));
 
+  for (int i = 0; i < model.measurements(0).joint_states_size(); ++i) {
+    perception::JointState* joint_offset = model.add_estimated_joint_offsets();
+    joint_offset->CopyFrom(model.measurements(0).joint_states(i));
+    joint_offset->set_value(joint_offsets(i));
+  }
+
   // TODO some how save the result in the archive directory as well, so its
   // self contained.
   core::ArchiveProtobufAsJsonResource("multiview_rig", result);
+
+  core::ArchiveProtobufAsJsonResource("robot_arm_extrinsics_model_solved",
+                                      model);
+
+  SE3d link_pose_link_offset =
+      fk.FK<double>(Eigen::Matrix<double, 6, 1>::Zero()).inverse() *
+      fk.FK(joint_offsets);
+
+  LOG(INFO)
+      << "link_pose_link_offset at home position (based on estimated offset):\n"
+      << link_pose_link_offset.matrix3x4();
 
   LOG(INFO) << "Joint offsets (degrees): "
             << (180.0 / M_PI) * joint_offsets.transpose();
@@ -750,7 +762,22 @@ class CalibrateRobotExtrinsicsProgram {
 
     model = SolveRobotArmExtrinsicsModel(model);
     SolveRobotArmExtrinsicsModel2(model);
-
+    if (FLAGS_submit) {
+      RobotHalClient client(
+          dataset_result.configuration().hal_service_address());
+      CalibrationResultRequest request;
+      request.mutable_model()->CopyFrom(model);
+      auto [status, response] = client.CalibrationResultSync(request);
+      if (!status.ok()) {
+        LOG(ERROR) << status.error_message();
+        return -1;
+      }
+      if (response.status() != CalibrationResultResponse::STATUS_SUCCESS) {
+        LOG(ERROR) << "CalibrationResultResponse: "
+                   << response.ShortDebugString();
+        return -1;
+      }
+    }
     return 0;
   }
 

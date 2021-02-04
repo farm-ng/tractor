@@ -47,6 +47,15 @@ struct PoseEdge {
   std::string frame_a;
   std::string frame_b;
 
+  bool HasFrames(const std::string& frame_a, const std::string& frame_b) const {
+    if (frame_a == this->frame_a && frame_b == this->frame_b) {
+      return true;
+    }
+    if (frame_a == this->frame_b && frame_b == this->frame_a) {
+      return true;
+    }
+    return false;
+  }
   Sophus::SE3d& GetAPoseB() {
     if (!a_pose_b) {
       auto o_pose = Sophus::average(a_poses_b);
@@ -57,6 +66,14 @@ struct PoseEdge {
   }
   const Sophus::SE3d& GetAPoseB() const {
     return const_cast<PoseEdge*>(this)->GetAPoseB();
+  }
+
+  // Averages the poses and collapse the vector of poses.
+  void Collapse() {
+    GetAPoseB();
+    CHECK(a_pose_b);
+    a_poses_b.clear();
+    a_poses_b.push_back(*a_pose_b);
   }
 
   SE3Map GetAPoseBMap(const std::string& frame_a,
@@ -318,7 +335,8 @@ class PoseGraph {
     return b_pose_a.inverse();
   }
 
-  std::optional<SE3d> AverageAPoseB(std::string frame_a, std::string frame_b,
+  std::optional<SE3d> AverageAPoseB(const std::string& frame_a,
+                                    const std::string& frame_b,
                                     const std::vector<size_t>& p) const {
     if (frame_a == frame_b) {
       return SE3d::rotX(0);
@@ -328,6 +346,31 @@ class PoseGraph {
     size_t id_b = name_id_.at(frame_b);
     size_t id_a = name_id_.at(frame_b);
     return AverageAPoseB(id_a, id_b, p);
+  }
+
+  SE3d CheckAverageAPoseB(const std::string& frame_a,
+                          const std::string& frame_b) const {
+    auto o_pose = AverageAPoseB(frame_a, frame_b);
+    CHECK(o_pose) << "No pose between :" << frame_a << " <- " << frame_b;
+    return *o_pose;
+  }
+
+  std::optional<NamedSE3Pose> AverageNamedSE3Pose(
+      const std::string& frame_a, const std::string& frame_b) const {
+    auto o_a_pose_b = AverageAPoseB(frame_a, frame_b);
+    if (!o_a_pose_b) {
+      return std::nullopt;
+    }
+    NamedSE3Pose pose;
+    SophusToProto(*o_a_pose_b, frame_a, frame_b, &pose);
+    return pose;
+  }
+
+  NamedSE3Pose CheckAverageNamedSE3Pose(const std::string& frame_a,
+                                        const std::string& frame_b) const {
+    auto o_pose = AverageNamedSE3Pose(frame_a, frame_b);
+    CHECK(o_pose) << "No pose between :" << frame_a << " <- " << frame_b;
+    return *o_pose;
   }
 
   // This function computes the shortest path (weighted inversely by number of

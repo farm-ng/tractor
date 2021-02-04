@@ -1,20 +1,17 @@
 #include <gflags/gflags.h>
 #include <glog/logging.h>
-#include <grpc/grpc.h>
-#include <grpcpp/channel.h>
-#include <grpcpp/client_context.h>
-#include <grpcpp/create_channel.h>
-#include <grpcpp/security/credentials.h>
 #include <opencv2/imgcodecs.hpp>
 #include <sophus/se3.hpp>
 
 #include "farm_ng/calibration/capture_robot_extrinsics_dataset.pb.h"
-#include "farm_ng/calibration/robot_hal.grpc.pb.h"
+#include "farm_ng/calibration/robot_hal_client.h"
+
 #include "farm_ng/core/blobstore.h"
 #include "farm_ng/core/event_log.h"
 #include "farm_ng/core/init.h"
 #include "farm_ng/core/ipc.h"
 
+#include "farm_ng/perception/image_loader.h"
 #include "farm_ng/perception/pose_utils.h"
 #include "farm_ng/perception/sophus_protobuf.h"
 
@@ -32,79 +29,6 @@ using farm_ng::perception::NamedSE3Pose;
 typedef farm_ng::core::Event EventPb;
 
 namespace farm_ng::calibration {
-class RobotHalClient {
- public:
-  RobotHalClient(std::shared_ptr<grpc::Channel> channel)
-      : stub_(RobotHALService::NewStub(channel)) {}
-
-  std::tuple<grpc::Status, CapturePoseResponse> CapturePoseSync(
-      const CapturePoseRequest& request) {
-    grpc::ClientContext context;
-
-    std::shared_ptr<
-        grpc::ClientReaderWriter<CapturePoseRequest, CapturePoseResponse> >
-        stream(stub_->CapturePose(&context));
-
-    stream->Write(request);
-    stream->WritesDone();
-
-    // Block waiting for response
-    CapturePoseResponse response;
-    stream->Read(&response);
-    return {stream->Finish(), response};
-  }
-
- private:
-  std::unique_ptr<RobotHALService::Stub> stub_;
-};
-
-void ImageResourcePayloadToPath(core::Resource* resource,
-                                const std::string& name) {
-  if (resource->payload_case() != core::Resource::kData) {
-    CHECK_EQ(resource->payload_case(), core::Resource::kPath)
-        << resource->ShortDebugString();
-    return;
-  }
-
-  std::string ext;
-  if (resource->content_type() == "image/png") {
-    ext = "png";
-  } else if (resource->content_type() == "image/jpeg") {
-    ext = "jpg";
-  }
-  CHECK(!ext.empty())
-      << "Could not determine image extension (jpg, png supported): "
-      << resource->content_type();
-
-  auto resource_path =
-      core::GetUniqueArchiveResource(name, ext, resource->content_type());
-  {
-    LOG(INFO) << "Writing to: " << resource_path.second.string();
-    std::ofstream outf(resource_path.second.string(), std::ofstream::binary);
-    CHECK(outf) << "Could not open : " << resource_path.second.string() << "\n"
-                << resource_path.first.ShortDebugString();
-    outf << resource->data();
-  }
-  CHECK(boost::filesystem::exists(resource_path.second.string()))
-      << "Did not write to: " << resource_path.second.string();
-  resource->CopyFrom(resource_path.first);
-  CHECK_EQ(resource->payload_case(), core::Resource::kPath)
-      << resource->ShortDebugString();
-}
-
-void ImageDataToResource(Image* image, int frame_number) {
-  ImageResourcePayloadToPath(
-      image->mutable_resource(),
-      perception::FrameNameNumber(image->camera_model().frame_name(),
-                                  frame_number));
-
-  if (image->has_depthmap()) {
-    ImageResourcePayloadToPath(
-        image->mutable_depthmap()->mutable_resource(),
-        perception::FrameNameNumber(image->camera_model().frame_name(),
-                                    frame_number, "_depthmap"));
-  }
-}
 
 class CaptureRobotExtrinsicsDatasetProgram {
  public:
@@ -175,14 +99,8 @@ class CaptureRobotExtrinsicsDatasetProgram {
     CaptureRobotExtrinsicsDatasetResult result;
     result.mutable_stamp_begin()->CopyFrom(MakeTimestampNow());
 
-    grpc::ChannelArguments ch_args;
-    ch_args.SetMaxReceiveMessageSize(100000000);
-    ch_args.SetMaxSendMessageSize(100000000);
-    auto credentials = grpc::InsecureChannelCredentials();
-    auto channel = grpc::CreateCustomChannel(
-        configuration_.hal_service_address(), credentials, ch_args);
-
-    farm_ng::calibration::RobotHalClient client(channel);
+    farm_ng::calibration::RobotHalClient client(
+        configuration_.hal_service_address());
 
     std::string log_path = (core::GetBucketRelativePath(core::BUCKET_LOGS) /
                             boost::filesystem::path(configuration_.name()))
@@ -212,9 +130,15 @@ class CaptureRobotExtrinsicsDatasetProgram {
       }
 
       for (Image& image : *response.mutable_images()) {
-        ImageDataToResource(&image, frame_number);
+        image.mutable_frame_number()->set_value(frame_number);
+
+        perception::ImageResourceDataToPath(&image);
       }
-      log_writer.Write(core::MakeEvent("capture/response", response));
+      auto stamp = core::MakeTimestampNow();
+      if (response.has_stamp()) {
+        stamp = response.stamp();
+      }
+      log_writer.Write(core::MakeEvent("capture/response", response, stamp));
       status_.set_latest_request_index(frame_number);
       status_.mutable_latest_response()->CopyFrom(response);
       send_status();

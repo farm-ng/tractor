@@ -25,6 +25,10 @@ target_link_libraries(farm_ng_calibration
   ${CERES_LIBRARIES}
 )
 
+add_library(farm_ng_calibration_robot_hal_client robot_hal_client.h robot_hal_client.cc)
+target_include_directories(farm_ng_calibration_robot_hal_client PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../..)
+
+target_link_libraries(farm_ng_calibration_robot_hal_client farm_ng_calibration_grpc)
 
 # TODO add tests!
 # add_executable(farm_ng_calibration_test
