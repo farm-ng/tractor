@@ -2,9 +2,9 @@
 import * as React from "react";
 import { SingleElementVisualizerProps } from "../../../registry/visualization";
 import {
-  StandardComponentOptions,
-  StandardComponent,
-} from "./StandardComponent";
+  StandardMultiElementOptions,
+  StandardMultiElement,
+} from "./StandardMultiElement";
 import { Card } from "./Card";
 import { KeyValueTable } from "./KeyValueTable";
 import {
@@ -41,7 +41,7 @@ const CameraModelElement: React.FC<SingleElementVisualizerProps<
 export const CameraModelVisualizer = {
   id: "CameraModel",
   types: ["type.googleapis.com/farm_ng.perception.CameraModel"],
-  options: StandardComponentOptions,
-  Component: StandardComponent(CameraModelElement),
+  options: StandardMultiElementOptions,
+  MultiElement: StandardMultiElement(CameraModelElement),
   Element: CameraModelElement,
 };

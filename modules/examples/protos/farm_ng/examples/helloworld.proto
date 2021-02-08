@@ -1,0 +1,14 @@
+// A demonstration "Countdown" program
+
+syntax = "proto3";
+
+package farm_ng.examples;
+option go_package = "github.com/farm-ng/genproto/examples";
+
+message HelloWorldStatus {
+  string message = 1;
+}
+
+message HelloWorldCommand {
+  string message = 1;
+}

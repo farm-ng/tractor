@@ -5,9 +5,9 @@ import { KeyValueTable } from "./KeyValueTable";
 import { Card } from "./Card";
 import { CaptureRobotExtrinsicsDatasetConfiguration } from "@farm-ng/genproto-calibration/farm_ng/calibration/capture_robot_extrinsics_dataset";
 import {
-  StandardComponent,
-  StandardComponentOptions,
-} from "./StandardComponent";
+  StandardMultiElement,
+  StandardMultiElementOptions,
+} from "./StandardMultiElement";
 import { ApriltagRigVisualizer } from "./ApriltagRig";
 import { Scene } from "./Scene";
 import { MultiViewCameraRigVisualizer } from "./MultiViewCameraRig";
@@ -30,19 +30,19 @@ const CaptureRobotExtrinsicsDatasetConfigurationElement: React.FC<SingleElementV
   } = value;
 
   const baseCameraRig = value.baseCameraRig && (
-    <MultiViewCameraRigVisualizer.Marker3D value={[0, value.baseCameraRig]} />
+    <MultiViewCameraRigVisualizer.Element3D value={[0, value.baseCameraRig]} />
   );
 
   const baseTagRig = value.baseTagRig && (
-    <ApriltagRigVisualizer.Marker3D value={[0, value.baseTagRig]} />
+    <ApriltagRigVisualizer.Element3D value={[0, value.baseTagRig]} />
   );
 
   const linkCameraRig = value.linkCameraRig && (
-    <MultiViewCameraRigVisualizer.Marker3D value={[0, value.linkCameraRig]} />
+    <MultiViewCameraRigVisualizer.Element3D value={[0, value.linkCameraRig]} />
   );
 
   const linkTagRig = value.linkTagRig && (
-    <ApriltagRigVisualizer.Marker3D value={[0, value.linkTagRig]} />
+    <ApriltagRigVisualizer.Element3D value={[0, value.linkTagRig]} />
   );
 
   return (
@@ -94,8 +94,8 @@ export const CaptureRobotExtrinsicsDatasetConfigurationVisualizer = {
   types: [
     "type.googleapis.com/farm_ng.calibration.CaptureRobotExtrinsicsDatasetConfiguration",
   ],
-  options: StandardComponentOptions,
-  Component: StandardComponent(
+  options: StandardMultiElementOptions,
+  MultiElement: StandardMultiElement(
     CaptureRobotExtrinsicsDatasetConfigurationElement
   ),
   Element: CaptureRobotExtrinsicsDatasetConfigurationElement,

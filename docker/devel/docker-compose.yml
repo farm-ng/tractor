@@ -1,0 +1,19 @@
+version: "3.3"
+
+services:
+  workspace:
+    build:
+      context: ./
+      dockerfile: user_devel.Dockerfile
+      args:
+        USERNAME: ${USER}
+        USER_UID: ${uid}
+        FARM_NG_DEVEL_IMAGE: ${FARM_NG_DEVEL_IMAGE}
+    command: /workspace/tractor/docker/devel/loop_forever.sh
+    environment:
+      - BLOBSTORE_ROOT=/blobstore
+    volumes:
+      - ../../.devel_home:/home/${USER}
+      - ${BLOBSTORE_ROOT}:/blobstore
+      - ../..:/workspace/tractor
+    working_dir: /workspace/tractor

@@ -14,10 +14,10 @@ import Form from "./Form";
 import { SE3PoseVisualizer } from "./SE3Pose";
 import { Html } from "drei";
 import {
-  Standard3DComponent,
-  Standard3DComponentOptions,
-  Standard3DElement,
-} from "./StandardComponent";
+  StandardMultiElement3D,
+  StandardMultiElement3DOptions,
+  StandardElement3D,
+} from "./StandardMultiElement";
 
 interface IProps extends SingleElementVisualizerProps<NamedSE3Pose> {
   showFrameA?: boolean;
@@ -98,9 +98,9 @@ const NamedSE3PoseForm: React.FC<FormProps<NamedSE3Pose>> = (props) => {
 export const NamedSE3PoseVisualizer = {
   id: "NamedSE3Pose",
   types: ["type.googleapis.com/farm_ng.perception.NamedSE3Pose"],
-  options: Standard3DComponentOptions,
-  Component: Standard3DComponent(NamedSE3Pose3DElement),
-  Element: Standard3DElement(NamedSE3Pose3DElement),
+  options: StandardMultiElement3DOptions,
+  MultiElement: StandardMultiElement3D(NamedSE3Pose3DElement),
+  Element: StandardElement3D(NamedSE3Pose3DElement),
   Form: NamedSE3PoseForm,
-  Marker3D: NamedSE3Pose3DElement,
+  Element3D: NamedSE3Pose3DElement,
 };

@@ -15,7 +15,7 @@ import { CreateVideoDatasetConfigurationVisualizer } from "../scope/visualizers/
 
 const programId = "create_video_dataset";
 
-const Component: React.FC<ProgramProps<Configuration>> = ({
+const MultiElement: React.FC<ProgramProps<Configuration>> = ({
   inputRequired,
 }) => {
   const { busClient } = useStores();
@@ -63,5 +63,5 @@ export const CreateVideoDatasetProgram = {
     }
     return (data as Status).inputRequiredConfiguration || null;
   },
-  Component,
+  MultiElement,
 };

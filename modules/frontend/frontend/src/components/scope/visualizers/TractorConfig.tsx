@@ -5,9 +5,9 @@ import {
   SingleElementVisualizerProps,
 } from "../../../registry/visualization";
 import {
-  StandardComponentOptions,
-  StandardComponent,
-} from "./StandardComponent";
+  StandardMultiElementOptions,
+  StandardMultiElement,
+} from "./StandardMultiElement";
 import { Card } from "./Card";
 import {
   TractorConfig,
@@ -180,8 +180,8 @@ const TractorConfigElement: React.FC<SingleElementVisualizerProps<
 export const TractorConfigVisualizer = {
   id: "TractorConfig",
   types: ["type.googleapis.com/farm_ng.tractor.TractorConfig"],
-  options: StandardComponentOptions,
-  Component: StandardComponent(TractorConfigElement),
+  options: StandardMultiElementOptions,
+  MultiElement: StandardMultiElement(TractorConfigElement),
   Element: TractorConfigElement,
   Form: TractorConfigForm,
 };

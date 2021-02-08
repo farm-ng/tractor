@@ -15,7 +15,7 @@ import { decodeAnyEvent } from "../../models/decodeAnyEvent";
 
 const programId = "capture_video_dataset";
 
-const Component: React.FC<ProgramProps<Configuration>> = ({
+const MultiElement: React.FC<ProgramProps<Configuration>> = ({
   inputRequired,
 }) => {
   const { busClient } = useStores();
@@ -63,5 +63,5 @@ export const CaptureVideoDatasetProgram = {
     }
     return (data as Status).inputRequiredConfiguration || null;
   },
-  Component,
+  MultiElement,
 };

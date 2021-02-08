@@ -4,9 +4,9 @@ import { SingleElementVisualizerProps } from "../../../registry/visualization";
 import { Card } from "./Card";
 import { LogPlaybackStatus } from "@farm-ng/genproto-core/farm_ng/core/log_playback";
 import {
-  StandardComponent,
-  StandardComponentOptions,
-} from "./StandardComponent";
+  StandardMultiElement,
+  StandardMultiElementOptions,
+} from "./StandardMultiElement";
 import { KeyValueTable } from "./KeyValueTable";
 import { LogPlaybackConfigurationVisualizer } from "./LogPlaybackConfiguration";
 
@@ -67,7 +67,7 @@ const LogPlaybackStatusElement: React.FC<SingleElementVisualizerProps<
 export const LogPlaybackStatusVisualizer = {
   id: "LogPlaybackStatus",
   types: ["type.googleapis.com/farm_ng.core.LogPlaybackStatus"],
-  options: StandardComponentOptions,
-  Component: StandardComponent(LogPlaybackStatusElement),
+  options: StandardMultiElementOptions,
+  MultiElement: StandardMultiElement(LogPlaybackStatusElement),
   Element: LogPlaybackStatusElement,
 };

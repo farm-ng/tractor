@@ -6,9 +6,9 @@ import {
   capturePoseResponse_StatusToJSON,
 } from "@farm-ng/genproto-calibration/farm_ng/calibration/robot_hal";
 import {
-  StandardComponentOptions,
-  StandardComponent,
-} from "./StandardComponent";
+  StandardMultiElementOptions,
+  StandardMultiElement,
+} from "./StandardMultiElement";
 import { Card } from "./Card";
 import { KeyValueTable } from "./KeyValueTable";
 import { NamedSE3PoseVisualizer } from "./NamedSE3Pose";
@@ -30,7 +30,7 @@ const CapturePoseResponseElement: React.FC<SingleElementVisualizerProps<
 
   const poses = value.poses.map((pose, index) => {
     return (
-      <NamedSE3PoseVisualizer.Marker3D
+      <NamedSE3PoseVisualizer.Element3D
         key={`${pose.frameA}:${pose.frameB}:${index}`}
         showFrameA={index === 0}
         value={[0, pose]}
@@ -90,7 +90,7 @@ const CapturePoseResponseElement: React.FC<SingleElementVisualizerProps<
 export const CapturePoseResponseVisualizer = {
   id: "CapturePoseResponse",
   types: ["type.googleapis.com/farm_ng.calibration.CapturePoseResponse"],
-  options: StandardComponentOptions,
-  Component: StandardComponent(CapturePoseResponseElement),
+  options: StandardMultiElementOptions,
+  MultiElement: StandardMultiElement(CapturePoseResponseElement),
   Element: CapturePoseResponseElement,
 };

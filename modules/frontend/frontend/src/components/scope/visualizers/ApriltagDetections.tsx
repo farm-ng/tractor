@@ -8,9 +8,9 @@ import { ApriltagDetections } from "@farm-ng/genproto-perception/farm_ng/percept
 import { autorun } from "mobx";
 import { drawAprilTagDetections } from "../../../utils/drawApriltagDetections";
 import {
-  StandardComponentOptions,
-  StandardComponent,
-} from "./StandardComponent";
+  StandardMultiElementOptions,
+  StandardMultiElement,
+} from "./StandardMultiElement";
 import { EmbeddableImage } from "./Image";
 
 const ApriltagDetectionsElement: React.FC<SingleElementVisualizerProps<
@@ -93,7 +93,7 @@ const ApriltagDetectionsElement: React.FC<SingleElementVisualizerProps<
 export const ApriltagDetectionsVisualizer = {
   id: "ApriltagDetections",
   types: ["type.googleapis.com/farm_ng.perception.ApriltagDetections"],
-  options: StandardComponentOptions,
-  Component: StandardComponent(ApriltagDetectionsElement),
+  options: StandardMultiElementOptions,
+  MultiElement: StandardMultiElement(ApriltagDetectionsElement),
   Element: ApriltagDetectionsElement,
 };

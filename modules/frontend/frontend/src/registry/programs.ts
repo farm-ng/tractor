@@ -14,7 +14,7 @@ export interface Program<T extends EventType = EventType> {
   programIds: readonly string[];
   inputRequired: (e: BusEvent) => T | null;
   eventLogPredicate: (e: BusEvent) => boolean;
-  Component: React.FC<ProgramProps<T>>;
+  MultiElement: React.FC<ProgramProps<T>>;
 }
 
 export interface ProgramProps<T extends EventType = EventType> {

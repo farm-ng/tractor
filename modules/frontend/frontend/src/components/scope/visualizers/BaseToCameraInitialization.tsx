@@ -13,9 +13,9 @@ import { CalibrationParameterVisualizer } from "./CalibrationParameter";
 import { CalibrationParameterTable } from "./CalibrationParameterTable";
 import { Card } from "./Card";
 import {
-  StandardComponentOptions,
-  StandardComponent,
-} from "./StandardComponent";
+  StandardMultiElementOptions,
+  StandardMultiElement,
+} from "./StandardMultiElement";
 import { ViewInitializationVisualizer } from "./ViewInitialization";
 
 const BaseToCameraInitializationForm: React.FC<FormProps<
@@ -79,8 +79,8 @@ const BaseToCameraInitializationElement: React.FC<SingleElementVisualizerProps<
 export const BaseToCameraInitializationVisualizer = {
   id: "BaseToCameraInitialization",
   types: ["type.googleapis.com/farm_ng.calibration.BaseToCameraInitialization"],
-  options: StandardComponentOptions,
-  Component: StandardComponent(BaseToCameraInitializationElement),
+  options: StandardMultiElementOptions,
+  MultiElement: StandardMultiElement(BaseToCameraInitializationElement),
   Element: BaseToCameraInitializationElement,
   Form: BaseToCameraInitializationForm,
 };

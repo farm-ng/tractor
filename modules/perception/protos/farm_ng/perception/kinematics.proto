@@ -1,5 +1,7 @@
 syntax = "proto3";
 
+import "farm_ng/perception/geometry.proto";
+
 package farm_ng.perception;
 option go_package = "github.com/farm-ng/genproto/perception";
 
@@ -16,3 +18,19 @@ message JointState {
   double value = 2;
   Units units = 3;
 };
+
+message RobotLink {
+  enum JointAxis {
+    JOINT_AXIS_UNSPECIFIED = 0;
+    JOINT_AXIS_RX = 1;
+    JOINT_AXIS_RY = 2;
+    JOINT_AXIS_RZ = 3;
+  }
+  farm_ng.perception.NamedSE3Pose parent_pose_self = 1;
+  string joint_name = 2;
+  JointAxis joint_axis = 3;
+}
+
+message RobotArm {
+  repeated RobotLink links = 1;
+}

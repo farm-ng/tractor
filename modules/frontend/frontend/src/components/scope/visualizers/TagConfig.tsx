@@ -5,9 +5,9 @@ import {
   SingleElementVisualizerProps,
 } from "../../../registry/visualization";
 import {
-  StandardComponentOptions,
-  StandardComponent,
-} from "./StandardComponent";
+  StandardMultiElementOptions,
+  StandardMultiElement,
+} from "./StandardMultiElement";
 import { Card } from "./Card";
 import { TagConfig } from "@farm-ng/genproto-perception/farm_ng/perception/apriltag";
 import { KeyValueTable } from "./KeyValueTable";
@@ -75,8 +75,8 @@ const TagConfigElement: React.FC<SingleElementVisualizerProps<TagConfig>> = (
 export const TagConfigVisualizer = {
   id: "TagConfig",
   types: ["type.googleapis.com/farm_ng.perception.TagConfig"],
-  options: StandardComponentOptions,
-  Component: StandardComponent(TagConfigElement),
+  options: StandardMultiElementOptions,
+  MultiElement: StandardMultiElement(TagConfigElement),
   Element: TagConfigElement,
   Form: TagConfigForm,
 };

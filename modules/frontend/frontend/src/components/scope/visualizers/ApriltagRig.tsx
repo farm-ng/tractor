@@ -12,12 +12,12 @@ import { SingleElementVisualizerProps } from "../../../registry/visualization";
 import { getDagTransform } from "../../../utils/geometry";
 import { NamedSE3PoseVisualizer } from "./NamedSE3Pose";
 import {
-  Standard3DComponent,
-  Standard3DComponentOptions,
-  Standard3DElement,
-} from "./StandardComponent";
+  StandardMultiElement3D,
+  StandardMultiElement3DOptions,
+  StandardElement3D,
+} from "./StandardMultiElement";
 
-const ApriltagRigNodeMarker3D: React.FC<{ value: ApriltagRigNode }> = ({
+const ApriltagRigNodeElement3D: React.FC<{ value: ApriltagRigNode }> = ({
   value,
 }) => {
   const paddedId = String(value.id).padStart(5, "0");
@@ -76,11 +76,11 @@ const ApriltagRig3DElement: React.FC<SingleElementVisualizerProps<
     };
 
     return (
-      <NamedSE3PoseVisualizer.Marker3D key={node.id} value={[0, pose]}>
+      <NamedSE3PoseVisualizer.Element3D key={node.id} value={[0, pose]}>
         <Suspense fallback={null}>
-          <ApriltagRigNodeMarker3D value={node} />
+          <ApriltagRigNodeElement3D value={node} />
         </Suspense>
-      </NamedSE3PoseVisualizer.Marker3D>
+      </NamedSE3PoseVisualizer.Element3D>
     );
   });
   return <group>{markers}</group>;
@@ -89,8 +89,8 @@ const ApriltagRig3DElement: React.FC<SingleElementVisualizerProps<
 export const ApriltagRigVisualizer = {
   id: "ApriltagRig",
   types: ["type.googleapis.com/farm_ng.perception.ApriltagRig"],
-  options: Standard3DComponentOptions,
-  Component: Standard3DComponent(ApriltagRig3DElement),
-  Element: Standard3DElement(ApriltagRig3DElement),
-  Marker3D: ApriltagRig3DElement,
+  options: StandardMultiElement3DOptions,
+  MultiElement: StandardMultiElement3D(ApriltagRig3DElement),
+  Element: StandardElement3D(ApriltagRig3DElement),
+  Element3D: ApriltagRig3DElement,
 };

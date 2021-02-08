@@ -5,9 +5,9 @@ import {
   SingleElementVisualizerProps,
 } from "../../../registry/visualization";
 import {
-  StandardComponentOptions,
-  StandardComponent,
-} from "./StandardComponent";
+  StandardMultiElementOptions,
+  StandardMultiElement,
+} from "./StandardMultiElement";
 import { KeyValueTable } from "./KeyValueTable";
 import { Card } from "./Card";
 import { CalibrateBaseToCameraConfiguration } from "@farm-ng/genproto-calibration/farm_ng/calibration/calibrate_base_to_camera";
@@ -141,8 +141,8 @@ export const CalibrateBaseToCameraConfigurationVisualizer = {
   types: [
     "type.googleapis.com/farm_ng.calibration.CalibrateBaseToCameraConfiguration",
   ],
-  options: StandardComponentOptions,
-  Component: StandardComponent(CalibrateBaseToCameraConfigurationElement),
+  options: StandardMultiElementOptions,
+  MultiElement: StandardMultiElement(CalibrateBaseToCameraConfigurationElement),
   Element: CalibrateBaseToCameraConfigurationElement,
   Form: CalibrateBaseToCameraConfigurationForm,
 };

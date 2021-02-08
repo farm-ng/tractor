@@ -2,9 +2,9 @@
 import * as React from "react";
 import { SingleElementVisualizerProps } from "../../../registry/visualization";
 import {
-  StandardComponentOptions,
-  StandardComponent,
-} from "./StandardComponent";
+  StandardMultiElementOptions,
+  StandardMultiElement,
+} from "./StandardMultiElement";
 import { CalibrateIntrinsicsResult } from "@farm-ng/genproto-calibration/farm_ng/calibration/calibrate_intrinsics";
 import { Card } from "./Card";
 import { CalibrateIntrinsicsConfigurationVisualizer } from "./CalibrateIntrinsicsConfiguration";
@@ -113,7 +113,7 @@ const CalibrateIntrinsicsResultElement: React.FC<SingleElementVisualizerProps<
 export const CalibrateIntrinsicsResultVisualizer = {
   id: "CalibrateIntrinsicsResult",
   types: ["type.googleapis.com/farm_ng.calibration.CalibrateIntrinsicsResult"],
-  options: StandardComponentOptions,
-  Component: StandardComponent(CalibrateIntrinsicsResultElement),
+  options: StandardMultiElementOptions,
+  MultiElement: StandardMultiElement(CalibrateIntrinsicsResultElement),
   Element: CalibrateIntrinsicsResultElement,
 };

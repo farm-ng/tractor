@@ -12,8 +12,9 @@ act --platform ubuntu-latest=nektos/act-environments-ubuntu:18.04 --secret GITHU
 
 ```
 # Build a devel docker image locally
-cd docker
-docker build -f devel.Dockerfile -t farmng/devel:`git rev-parse --short HEAD` ..
+cd docker/devel
+./build_devel.sh
+
 # Push to Dockerhub
 docker login --username=<username>
 docker push farmng/devel:`git rev-parse --short HEAD`
@@ -25,7 +26,7 @@ When you push a new ``farmng/devel``, make sure to reference it in the ``base.Do
 ```
 # Build a docker image locally
 cd docker
-docker build -f base.Dockerfile -t farmng/base:`git rev-parse --short HEAD` ..
+./build_base.sh
 
 # Push to Dockerhub
 docker login --username=<username>

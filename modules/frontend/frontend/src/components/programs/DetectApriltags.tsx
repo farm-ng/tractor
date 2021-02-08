@@ -15,7 +15,7 @@ import { decodeAnyEvent } from "../../models/decodeAnyEvent";
 
 const programId = "detect_apriltags";
 
-const Component: React.FC<ProgramProps<Configuration>> = ({
+const MultiElement: React.FC<ProgramProps<Configuration>> = ({
   inputRequired,
 }) => {
   const { busClient } = useStores();
@@ -63,5 +63,5 @@ export const DetectApriltagsProgram = {
     }
     return (data as Status).inputRequiredConfiguration || null;
   },
-  Component,
+  MultiElement,
 };

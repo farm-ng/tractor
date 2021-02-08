@@ -6,7 +6,7 @@ version: "3.3"
 
 services:
   ipc_logger:
-    image: farmng/base:edge
+    image: farmng/base:latest
     build:
       context: ..
       dockerfile: docker/base.Dockerfile
@@ -17,8 +17,8 @@ services:
       - "${BLOBSTORE_ROOT:?err}:/blobstore"
     network_mode: host
   programd:
-    entrypoint: ./env.sh python -m farm_ng.core.programd
-    image: farmng/base:edge
+    entrypoint: python -m farm_ng.core.programd
+    image: farmng/base:latest
     build:
       context: ..
       dockerfile: docker/base.Dockerfile
@@ -28,12 +28,12 @@ services:
       - "${BLOBSTORE_ROOT:?err}:/blobstore"
     network_mode: host
   webservices:
-    image: farmng/webservices:edge
+    image: farmng/base:latest
     build:
       context: ..
-      dockerfile: docker/webservices.Dockerfile
+      dockerfile: docker/base.Dockerfile
+    entrypoint: build/go/farm_ng_webservices
     environment:
-      - FARM_NG_ROOT=/farm_ng
       - BLOBSTORE_ROOT=/blobstore
       - PORT=8989
     volumes:

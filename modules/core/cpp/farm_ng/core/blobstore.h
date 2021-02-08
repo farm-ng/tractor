@@ -111,13 +111,15 @@ ProtobufT ReadProtobufFromBinaryFile(const boost::filesystem::path& path) {
 
 template <typename ProtobufT>
 ProtobufT ReadProtobufFromResource(const farm_ng::core::Resource& resource) {
+  boost::filesystem::path resource_path(resource.path());
+  if (!boost::filesystem::exists(resource_path)) {
+    resource_path = GetBlobstoreRoot() / resource_path;
+  }
   if (ContentTypeProtobufJson<ProtobufT>() == resource.content_type()) {
-    return ReadProtobufFromJsonFile<ProtobufT>(GetBlobstoreRoot() /
-                                               resource.path());
+    return ReadProtobufFromJsonFile<ProtobufT>(resource_path);
   }
   if (ContentTypeProtobufBinary<ProtobufT>() == resource.content_type()) {
-    return ReadProtobufFromBinaryFile<ProtobufT>(GetBlobstoreRoot() /
-                                                 resource.path());
+    return ReadProtobufFromBinaryFile<ProtobufT>(resource_path);
   }
   throw std::runtime_error(
       std::string("The content_type doesn't match expected: ") +

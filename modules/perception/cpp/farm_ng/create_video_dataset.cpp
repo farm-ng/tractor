@@ -11,6 +11,7 @@
 #include <boost/algorithm/string.hpp>
 
 #include "farm_ng/core/blobstore.h"
+#include "farm_ng/core/event_log.h"
 #include "farm_ng/core/init.h"
 #include "farm_ng/core/ipc.h"
 
@@ -42,6 +43,8 @@ typedef farm_ng::core::Event EventPb;
 using farm_ng::core::ArchiveProtobufAsJsonResource;
 using farm_ng::core::BUCKET_VIDEO_DATASETS;
 using farm_ng::core::EventBus;
+using farm_ng::core::EventLogWriter;
+using farm_ng::core::GetUniqueArchiveResource;
 using farm_ng::core::LoggingStatus;
 using farm_ng::core::MakeEvent;
 using farm_ng::core::MakeTimestampNow;
@@ -61,7 +64,7 @@ class CreateVideoDatasetProgram {
     } else {
       set_configuration(configuration);
     }
-    bus_.AddSubscriptions({bus_.GetName(), "logger/command", "logger/status"});
+    bus_.AddSubscriptions({bus_.GetName()});
 
     bus_.GetEventSignal()->connect(std::bind(
         &CreateVideoDatasetProgram::on_event, this, std::placeholders::_1));
@@ -72,8 +75,6 @@ class CreateVideoDatasetProgram {
     while (status_.has_input_required_configuration()) {
       bus_.get_io_service().run_one();
     }
-
-    WaitForServices(bus_, {"ipc_logger"});
 
     CreateVideoDatasetResult result;
 
@@ -92,7 +93,12 @@ class CreateVideoDatasetProgram {
       }
     }
 
-    LoggingStatus log = StartLogging(bus_, configuration_.name());
+    core::SetArchivePath(
+        (core::GetBucketRelativePath(core::BUCKET_LOGS) / configuration_.name())
+            .string());
+    auto resource_path = GetUniqueArchiveResource("events", "log", "");
+
+    core::EventLogWriter log_writer(resource_path.second);
     CameraPipelineCommand tracking_camera_command;
 
     CHECK_EQ(1, configuration_.video_file_cameras_size());
@@ -137,7 +143,7 @@ class CreateVideoDatasetProgram {
         gray = image.clone();
       }
       auto stamp = core::MakeTimestampNow();
-      bus_.Send(
+      log_writer.Write(
           MakeEvent(camera_model->frame_name() + "/image", image_pb, stamp));
 
       bool first_frame_for_camera = true;
@@ -157,8 +163,8 @@ class CreateVideoDatasetProgram {
       if (configuration_.detect_apriltags()) {
         auto detections = detector->Detect(gray, stamp);
         detections.mutable_image()->CopyFrom(image_pb);
-        bus_.Send(MakeEvent(camera_model->frame_name() + "/apriltags",
-                            detections, stamp));
+        log_writer.Write(MakeEvent(camera_model->frame_name() + "/apriltags",
+                                   detections, stamp));
 
         for (auto const& detection : detections.detections()) {
           bool first_time_seen = true;
@@ -191,7 +197,7 @@ class CreateVideoDatasetProgram {
         status_.per_tag_id_num_frames());
 
     result.mutable_stamp_end()->CopyFrom(MakeTimestampNow());
-    result.mutable_dataset()->set_path(log.recording().archive_path());
+    result.mutable_dataset()->set_path(resource_path.first.path());
 
     // TODO some how save the result in the archive directory as well, so its
     // self contained.
@@ -279,10 +285,7 @@ int Main(farm_ng::core::EventBus& bus) {
   return program.run();
 }
 
-void Cleanup(farm_ng::core::EventBus& bus) {
-  farm_ng::core::RequestStopLogging(bus);
-  LOG(INFO) << "Requested Stop logging";
-}
+void Cleanup(farm_ng::core::EventBus& bus) {}
 
 int main(int argc, char* argv[]) {
   return farm_ng::core::Main(argc, argv, &Main, &Cleanup);

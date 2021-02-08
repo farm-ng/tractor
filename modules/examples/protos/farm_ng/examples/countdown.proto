@@ -1,0 +1,43 @@
+// A demonstration "Countdown" program
+
+syntax = "proto3";
+
+import "farm_ng/core/resource.proto";
+import "google/protobuf/timestamp.proto";
+
+package farm_ng.examples;
+option go_package = "github.com/farm-ng/genproto/examples";
+
+message CountdownConfiguration {
+  // A name for the result
+  string name = 1;
+
+  // The starting number for the countdown
+  uint32 start = 2;
+}
+
+message CountdownStatus {
+  // Serialized CountdownResult
+  farm_ng.core.Resource result = 1;
+
+  oneof input_required {
+    CountdownConfiguration input_required_configuration = 2;
+  }
+
+  // Current count
+  uint32 count = 3;
+}
+
+message CountdownResult {
+  // Configuration which initiated the countdown
+  CountdownConfiguration configuration = 1;
+
+  // The time the countdown started
+  google.protobuf.Timestamp stamp_begin = 2;
+
+  // The time the countdown completed
+  google.protobuf.Timestamp stamp_end = 3;
+
+  // The contents of the countdown, saved to disk as a text file
+  farm_ng.core.Resource dataset = 4;
+}

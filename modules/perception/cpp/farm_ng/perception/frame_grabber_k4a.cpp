@@ -6,6 +6,7 @@
 
 #include <k4a/k4a.hpp>
 #include <thread>
+#include <iostream>
 
 #include "farm_ng/core/ipc.h"
 #include "farm_ng/perception/camera_model.h"

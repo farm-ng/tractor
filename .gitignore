@@ -43,3 +43,6 @@ build/
 
 # virtual env
 env/
+
+# local go packages
+.go

@@ -1,0 +1,33 @@
+syntax = "proto3";
+import "farm_ng/perception/tensor.proto";
+
+package farm_ng.perception;
+option go_package = "github.com/farm-ng/genproto/perception";
+
+// Point cloud, typically captured from a LIDAR or populated from photogrammetry solver.
+message PointCloud {
+     // The reference frame that the point_data is in.
+     string frame_name = 1;
+
+    // Point cloud data, as a tensor, conventions:
+    // shape 3xN,  (x,y,z)
+    // shape 4xN,  (x,y,z,stamp)
+    // shape 6xN,  (x,y,z,nx,ny,nz)
+    // shape 7xN,  (x,y,z,nx,ny,nz,stamp)
+    // shape 7xN,  (x,y,z,nx,ny,nz,intensity)
+    // shape 8xN,  (x,y,z,nx,ny,nz,intensity,stamp)
+    //
+    // Dimensions will use the following string labels.
+    enum Dim {
+        DIM_UNSPECIFIED=0;
+        DIM_X=1;
+        DIM_Y=2;
+        DIM_Z=3;
+        DIM_NX=4;
+        DIM_NY=5;
+        DIM_NZ=6;
+        DIM_INTENSITY=7;
+        DIM_STAMP=100;
+    }
+    repeated farm_ng.perception.Tensor point_data = 2;
+}

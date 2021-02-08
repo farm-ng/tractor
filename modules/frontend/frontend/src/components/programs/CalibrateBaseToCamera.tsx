@@ -15,7 +15,7 @@ import Form from "../scope/visualizers/Form";
 
 const programId = "calibrate_base_to_camera";
 
-const Component: React.FC<ProgramProps<Configuration>> = ({
+const MultiElement: React.FC<ProgramProps<Configuration>> = ({
   inputRequired,
 }) => {
   const { busClient } = useStores();
@@ -63,5 +63,5 @@ export const CalibrateBaseToCameraProgram = {
     }
     return (data as Status).inputRequiredConfiguration || null;
   },
-  Component,
+  MultiElement,
 };
