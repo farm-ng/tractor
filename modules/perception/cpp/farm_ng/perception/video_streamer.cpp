@@ -54,6 +54,7 @@ void VideoStreamer::ResetVideoStreamer(bool is_color) {
         " mp4mux ! filesink location=" + resource_path.second.string();
     image_pb_.mutable_resource()->CopyFrom(resource_path.first);
     image_pb_.mutable_frame_number()->set_value(0);
+
   } else {
     LOG(FATAL) << "Unsupported mode: " << mode_;
   }
@@ -99,7 +100,9 @@ Image VideoStreamer::AddFrame(const cv::Mat& image,
   return image_sent;
 }
 
-void VideoStreamer::Close() { writer_.reset(); }
+void VideoStreamer::Close() {
+  writer_.reset();
+}
 
 }  // namespace perception
 }  // namespace farm_ng

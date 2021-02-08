@@ -17,8 +17,16 @@ class VideoStreamer {
   enum Mode {
     MODE_UNDEFINED = 0,
     MODE_PNG_SEQUENCE = 1,
-    MODE_MP4_FILE = 2,
-    MODE_MP4_UDP = 3
+    MODE_JPG_SEQUENCE = 2,
+    MODE_MP4_FILE = 3,
+    MODE_MP4_UDP = 4,
+    MODE_DEPTH = 5
+  };
+  enum DepthMode {
+    DEPTH_MODE_UNDEFINED = 0,
+    DEPTH_MODE_LINEAR_16BIT_PNG = 1,
+    DEPTH_MODE_INVERSE_16BIT_PNG = 2,
+    DEPTH_MODE_INVERSE_8BIT_JPG = 3
   };
 
   VideoStreamer(farm_ng::core::EventBus& bus, const CameraModel& camera_model,
@@ -26,6 +34,7 @@ class VideoStreamer {
 
   Image AddFrame(const cv::Mat& image,
                  const google::protobuf::Timestamp& stamp);
+
   void Close();
 
  private:

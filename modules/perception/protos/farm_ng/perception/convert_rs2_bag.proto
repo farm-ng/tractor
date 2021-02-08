@@ -1,0 +1,45 @@
+syntax = "proto3";
+
+import "farm_ng/core/resource.proto";
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/wrappers.proto";
+
+package farm_ng.perception;
+option go_package = "github.com/farm-ng/genproto/perception";
+
+message ConvertRS2BagConfiguration {
+
+  // Name of the resulting resource
+  string name = 1;
+
+  string camera_frame_name = 2;
+
+  // This resource will store the path to the input
+  // bag file.
+  farm_ng.core.Resource rs2_bag = 3;
+}
+
+
+message ConvertRS2BagStatus {
+  oneof input_required {
+    ConvertRS2BagConfiguration input_required_configuration = 1;
+  }
+
+  // The number of bag file frames converted
+  int32 num_frames = 2;
+}
+
+message ConvertRS2BagResult {
+  // Configuration which initiated the conversion
+  ConvertRS2BagConfiguration configuration = 1;
+
+  // The time the capture began
+  google.protobuf.Timestamp stamp_begin = 2;
+
+  // The time the capture completed
+  google.protobuf.Timestamp stamp_end = 3;
+
+  // A log of the bag file data, saved to disk in protobuf binary format.
+  farm_ng.core.Resource dataset = 4;
+}
