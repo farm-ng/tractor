@@ -394,26 +394,12 @@ GetUniqueArchiveResource(const std::string& prefix, const std::string& ext,
                          const std::string& content_type) {
   farm_ng::core::Resource resource;
   resource.set_content_type(content_type);
-
-  pid_t pid = getpid();
-  uint64_t id = get_archive().NewResourceId();
-  char buffer[1024];
-  if (std::snprintf(buffer, sizeof(buffer), "%s-%05d-%05ld.%s", prefix.c_str(),
-                    pid, id, ext.c_str()) > int(sizeof(buffer) - 1)) {
-    throw std::runtime_error("path is too long.");
-  }
-  auto path = GetArchivePath() / buffer;
-
-  resource.set_path(path.string());
-  boost::filesystem::path writable_path = GetArchiveRoot() / path;
-  if (!boost::filesystem::exists(writable_path.parent_path())) {
-    if (!boost::filesystem::create_directories(writable_path.parent_path())) {
-      throw std::runtime_error(std::string("Could not create directory: ") +
-                               writable_path.parent_path().string());
-    }
-  }
-
-  return std::make_pair(resource, writable_path);
+  auto blobstore_dir = GetArchivePath() / fs::path(prefix).parent_path();
+  auto filename = MakePathUnique(GetArchiveRoot() / blobstore_dir,
+                                 fs::basename(prefix) + "." + ext);
+  resource.set_path((blobstore_dir / filename).string());
+  return std::make_pair(resource,
+                        GetBlobstoreRoot() / blobstore_dir / filename);
 }
 
 google::protobuf::Timestamp MakeTimestampNow() {

@@ -33,6 +33,9 @@ DEFINE_string(initial, "", "Start from an initial model");
 DEFINE_bool(joint_offsets, false, "Set true to solve for joint offsets");
 DEFINE_bool(submit, false,
             "If true, this will submit the results to the server.");
+DEFINE_bool(disable_reprojection_images, false,
+            "Don't write reprojection images.");
+
 using farm_ng::core::MakeEvent;
 using farm_ng::core::MakeTimestampNow;
 using farm_ng::core::ReadProtobufFromJsonFile;
@@ -624,7 +627,7 @@ RobotArmExtrinsicsModel SolveRobotArmExtrinsicsModel2(
         rig_model->add_camera_rig_poses_apriltag_rig());
   }
 
-  ModelError(rig_model);
+  ModelError(rig_model, !FLAGS_disable_reprojection_images);
 
   CalibrateMultiViewApriltagRigResult result;
   result.mutable_multi_view_apriltag_rig_solved()->CopyFrom(

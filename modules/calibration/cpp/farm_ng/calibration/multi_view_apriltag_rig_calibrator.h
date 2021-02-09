@@ -16,7 +16,8 @@ void CameraRigFromMultiViewDetections(std::string camera_rig_name,
                                       const perception::PoseGraph& tag_rig,
                                       MultiViewApriltagRigModel* model);
 
-void ModelError(MultiViewApriltagRigModel* model);
+void ModelError(MultiViewApriltagRigModel* model,
+                bool output_reprojection_images);
 MultiViewApriltagRigModel SolveMultiViewApriltagModel(
     MultiViewApriltagRigModel model);
 

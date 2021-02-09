@@ -30,6 +30,13 @@ class EventLogReaderImpl {
     }
     farm_ng::core::Event event;
     event.ParseFromString(ss);
+
+    core::Resource resource;
+    if (event.data().UnpackTo(&resource)) {
+      if (resource.content_type() == ContentTypeProtobufBinary<Event>()) {
+        event = ReadProtobufFromResource<core::Event>(resource);
+      }
+    }
     return event;
   }
   std::string log_path_;
@@ -41,7 +48,7 @@ EventLogReader::EventLogReader(std::string log_path)
 
 EventLogReader::EventLogReader(farm_ng::core::Resource resource)
     : impl_(new EventLogReaderImpl(
-          (GetBlobstoreRoot() / resource.path()).string())) {}
+          NativePathFromResourcePath(resource).string())) {}
 
 EventLogReader::~EventLogReader() { impl_.reset(nullptr); }
 

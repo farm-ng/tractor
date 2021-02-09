@@ -19,6 +19,9 @@
 #include "farm_ng/perception/time_series.h"
 
 DEFINE_bool(interactive, false, "receive program args via eventbus");
+DEFINE_string(output_config, "", "Output the config to a file.");
+DEFINE_string(config, "", "Load config from a file rather than args.");
+
 DEFINE_string(video_dataset, "",
               "The path to a serialized CaptureVideoDatasetResult");
 
@@ -33,8 +36,13 @@ DEFINE_int32(
 DEFINE_bool(filter_stable_tags, true, "Run filter for stable tags.");
 DEFINE_string(root_camera_name, "tracking_camera/front/left",
               "Which camera to treat as the root.");
+DEFINE_string(include_cameras, "",
+              "A comma seperated list of cameras to include in the rig. If "
+              "empty all cameras in the dataset will be used.");
 
 typedef farm_ng::core::Event EventPb;
+
+namespace fs = boost::filesystem;
 using farm_ng::core::ArchiveProtobufAsBinaryResource;
 using farm_ng::core::ArchiveProtobufAsJsonResource;
 using farm_ng::core::BUCKET_APRILTAG_RIG_MODELS;
@@ -79,7 +87,6 @@ class CalibrateMultiViewApriltagRigProgram {
     result.mutable_stamp_begin()->CopyFrom(MakeTimestampNow());
     result.mutable_configuration()->CopyFrom(configuration_);
 
-
     if (configuration_.tag_ids_size() == 0) {
       LOG(INFO) << "No tag_ids set.";
       return -1;
@@ -88,20 +95,33 @@ class CalibrateMultiViewApriltagRigProgram {
       configuration_.set_root_tag_id(configuration_.tag_ids().Get(0));
     }
 
-    auto dataset_result = ReadProtobufFromResource<CaptureVideoDatasetResult>(
-        configuration_.video_dataset());
-    LOG(INFO) << "dataset_result:\n" << dataset_result.DebugString();
-
-    auto output_dir =
-        boost::filesystem::path(dataset_result.dataset().path()).parent_path();
-
+    fs::path output_dir;
+    switch (configuration_.input_case()) {
+      case CalibrateMultiViewApriltagRigConfiguration::InputCase::
+          kVideoDataset: {
+        auto dataset_result =
+            ReadProtobufFromResource<CaptureVideoDatasetResult>(
+                configuration_.video_dataset());
+        LOG(INFO) << "dataset_result:\n" << dataset_result.DebugString();
+        output_dir = fs::path(dataset_result.dataset().path()).parent_path();
+        break;
+      }
+      case CalibrateMultiViewApriltagRigConfiguration::InputCase::kEventLog: {
+        output_dir = fs::path(configuration_.event_log().path()).parent_path();
+        break;
+      }
+      default:
+        LOG(ERROR) << "No input provided in config.";
+        return -1;
+    }
     // Output under the same directory as the dataset.
-    SetArchivePath((output_dir / "multiview_apriltag_rig_model").string());
+    SetArchivePath((output_dir / "multi_view_apriltag_rig_model").string());
 
     MultiViewApriltagRigModel initial_model_pb =
         InitialMultiViewApriltagModelFromConfig(configuration_);
+    ModelError(&initial_model_pb,
+               !configuration_.disable_reprojection_images());
     LOG(INFO) << "Initial model computed.";
-
 
     result.mutable_multi_view_apriltag_rig_initial()->CopyFrom(
         ArchiveProtobufAsBinaryResource("initial", initial_model_pb));
@@ -114,6 +134,7 @@ class CalibrateMultiViewApriltagRigProgram {
 
     MultiViewApriltagRigModel final_model_pb =
         SolveMultiViewApriltagModel(initial_model_pb);
+    ModelError(&final_model_pb, !configuration_.disable_reprojection_images());
     result.mutable_multi_view_apriltag_rig_solved()->CopyFrom(
         ArchiveProtobufAsBinaryResource("solved", final_model_pb));
     result.set_rmse(final_model_pb.rmse());
@@ -121,12 +142,11 @@ class CalibrateMultiViewApriltagRigProgram {
     result.mutable_stamp_end()->CopyFrom(MakeTimestampNow());
 
     // Write out json rigs for down stream consumption.
-    result.mutable_camera_rig_solved()->CopyFrom(
-              ArchiveProtobufAsJsonResource("camera_rig_solved", final_model_pb.camera_rig()));
+    result.mutable_camera_rig_solved()->CopyFrom(ArchiveProtobufAsJsonResource(
+        "camera_rig_solved", final_model_pb.camera_rig()));
     result.mutable_apriltag_rig_solved()->CopyFrom(
-              ArchiveProtobufAsJsonResource("apriltag_rig_solved", final_model_pb.apriltag_rig()));
-
-
+        ArchiveProtobufAsJsonResource("apriltag_rig_solved",
+                                      final_model_pb.apriltag_rig()));
 
     // TODO some how save the result in the archive directory as well, so its
     // self contained.
@@ -198,20 +218,29 @@ void Cleanup(farm_ng::core::EventBus& bus) { LOG(INFO) << "Cleanup."; }
 
 int Main(farm_ng::core::EventBus& bus) {
   farm_ng::calibration::CalibrateMultiViewApriltagRigConfiguration config;
-  std::stringstream ss(FLAGS_tag_ids);
-  std::string token;
-  while (std::getline(ss, token, ',')) {
-    config.add_tag_ids(stoi(token));
+  if (!FLAGS_config.empty()) {
+    config = farm_ng::core::ReadProtobufFromJsonFile<
+        farm_ng::calibration::CalibrateMultiViewApriltagRigConfiguration>(
+        FLAGS_config);
+  } else {
+    std::stringstream ss(FLAGS_tag_ids);
+    std::string token;
+    while (std::getline(ss, token, ',')) {
+      config.add_tag_ids(stoi(token));
+    }
+    config.mutable_video_dataset()->set_path(FLAGS_video_dataset);
+    config.mutable_video_dataset()->set_content_type(
+        ContentTypeProtobufJson<CaptureVideoDatasetResult>());
+    config.set_root_tag_id(FLAGS_root_tag_id);
+    config.set_root_camera_name(FLAGS_root_camera_name);
+    config.set_name(FLAGS_name);
+    config.set_tag_rig_name(FLAGS_tag_rig_name);
+    config.set_filter_stable_tags(FLAGS_filter_stable_tags);
   }
-  config.mutable_video_dataset()->set_path(FLAGS_video_dataset);
-  config.mutable_video_dataset()->set_content_type(
-      ContentTypeProtobufJson<CaptureVideoDatasetResult>());
-  config.set_root_tag_id(FLAGS_root_tag_id);
-  config.set_root_camera_name(FLAGS_root_camera_name);
-  config.set_name(FLAGS_name);
-  config.set_tag_rig_name(FLAGS_tag_rig_name);
-  config.set_filter_stable_tags(FLAGS_filter_stable_tags);
-
+  if (!FLAGS_output_config.empty()) {
+    farm_ng::core::WriteProtobufToJsonFile(FLAGS_output_config, config);
+    return 0;
+  }
   farm_ng::calibration::CalibrateMultiViewApriltagRigProgram program(
       bus, config, FLAGS_interactive);
   return program.run();

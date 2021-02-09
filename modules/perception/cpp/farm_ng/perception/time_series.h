@@ -39,13 +39,13 @@ class TimeSeries {
   RangeT find_range(google::protobuf::Timestamp begin_stamp,
                     google::protobuf::Timestamp end_stamp) const {
     auto begin_it = lower_bound(begin_stamp);
-    VLOG(2) << "begin delta milliseconds: "
-            << google::protobuf::util::TimeUtil::DurationToMilliseconds(
+    VLOG(2) << "begin delta nanoseconds: "
+            << google::protobuf::util::TimeUtil::DurationToNanoseconds(
                    begin_it->stamp() - begin_stamp);
     auto end_it = upper_bound(end_stamp);
     if (end_it != series_.end()) {
-      VLOG(2) << "end delta milliseconds: "
-              << google::protobuf::util::TimeUtil::DurationToMilliseconds(
+      VLOG(2) << "end delta nanoseconds: "
+              << google::protobuf::util::TimeUtil::DurationToNanoseconds(
                      end_it->stamp() - end_stamp);
     }
 
@@ -84,8 +84,9 @@ class TimeSeries {
     auto closest = range.first;
     double score = 1e10;
     while (range.first != range.second) {
-      double score_i = google::protobuf::util::TimeUtil::DurationToMilliseconds(
-          range.first->stamp() - stamp);
+      double score_i =
+          std::abs(google::protobuf::util::TimeUtil::DurationToNanoseconds(
+              range.first->stamp() - stamp));
       if (score_i < score) {
         score = score_i;
         closest = range.first;

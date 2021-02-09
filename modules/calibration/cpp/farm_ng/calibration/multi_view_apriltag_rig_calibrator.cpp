@@ -99,7 +99,8 @@ void UpdateModelFromPoseGraph(const PoseGraph& pose_graph,
       model->mutable_camera_rig_poses_apriltag_rig());
 }
 
-void ModelError(MultiViewApriltagRigModel* model) {
+void ModelError(MultiViewApriltagRigModel* model,
+                bool output_reprojection_images) {
   model->set_rmse(0.0);
   model->clear_reprojection_images();
   model->clear_tag_stats();
@@ -131,48 +132,55 @@ void ModelError(MultiViewApriltagRigModel* model) {
     PoseEdge* camera_rig_to_tag_rig_view =
         pose_graph.MutablePoseEdge(camera_rig_frame, tag_rig_view_frame);
     std::vector<cv::Mat> images;
+
     for (const auto& detections_per_view :
          mv_detections.detections_per_view()) {
-      cv::Mat image = image_loader.LoadImage(detections_per_view.image());
-      if (image.channels() == 1) {
-        cv::Mat color;
-        cv::cvtColor(image, color, cv::COLOR_GRAY2BGR);
-        image = color;
-      }
       const auto& camera_model = detections_per_view.image().camera_model();
-
       std::string camera_frame = camera_model.frame_name();
 
       PoseEdge* camera_to_camera_rig =
           pose_graph.MutablePoseEdge(camera_frame, camera_rig_frame);
 
-      for (const auto& node : model->apriltag_rig().nodes()) {
-        PoseEdge* tag_to_tag_rig =
-            pose_graph.MutablePoseEdge(node.frame_name(), tag_rig_frame);
+      if (output_reprojection_images) {
+        cv::Mat image = image_loader.LoadImage(detections_per_view.image());
+        if (image.channels() == 1) {
+          cv::Mat color;
+          cv::cvtColor(image, color, cv::COLOR_GRAY2BGR);
+          image = color;
+        }
 
-        auto camera_pose_tag =
-            camera_to_camera_rig->GetAPoseBMapped(camera_frame,
-                                                  camera_rig_frame) *
-            camera_rig_to_tag_rig_view->GetAPoseBMapped(camera_rig_frame,
-                                                        tag_rig_view_frame) *
-            tag_to_tag_rig->GetAPoseBMapped(tag_rig_frame, node.frame_name());
-        for (int i = 0; i < 4; ++i) {
-          Eigen::Vector3d point_tag(node.points_tag().Get(i).x(),
-                                    node.points_tag().Get(i).y(),
-                                    node.points_tag().Get(i).z());
-          Eigen::Vector3d point_camera = camera_pose_tag * point_tag;
-          if (point_camera.z() > 0.001) {
-            Eigen::Vector2d rp =
-                ProjectPointToPixel(camera_model, point_camera);
-            cv::circle(image, cv::Point(rp.x(), rp.y()), 3,
-                       cv::Scalar(0, 0, 255), -1);
+        for (const auto& node : model->apriltag_rig().nodes()) {
+          PoseEdge* tag_to_tag_rig =
+              pose_graph.MutablePoseEdge(node.frame_name(), tag_rig_frame);
+
+          auto camera_pose_tag =
+              camera_to_camera_rig->GetAPoseBMapped(camera_frame,
+                                                    camera_rig_frame) *
+              camera_rig_to_tag_rig_view->GetAPoseBMapped(camera_rig_frame,
+                                                          tag_rig_view_frame) *
+              tag_to_tag_rig->GetAPoseBMapped(tag_rig_frame, node.frame_name());
+          for (int i = 0; i < 4; ++i) {
+            Eigen::Vector3d point_tag(node.points_tag().Get(i).x(),
+                                      node.points_tag().Get(i).y(),
+                                      node.points_tag().Get(i).z());
+            Eigen::Vector3d point_camera = camera_pose_tag * point_tag;
+            if (point_camera.z() > 0.001) {
+              Eigen::Vector2d rp =
+                  ProjectPointToPixel(camera_model, point_camera);
+              cv::circle(image, cv::Point(rp.x(), rp.y()), 3,
+                         cv::Scalar(0, 0, 255), -1);
+            }
+          }
+          for (const auto& detection : detections_per_view.detections()) {
+            auto points_image = PointsImage(detection);
+            for (size_t i = 0; i < points_image.size(); ++i) {
+              cv::circle(image,
+                         cv::Point(points_image[i].x(), points_image[i].y()), 5,
+                         cv::Scalar(255, 0, 0));
+            }
           }
         }
-      }
-
-      if (detections_per_view.detections_size() < 1) {
         images.push_back(image);
-        continue;
       }
 
       for (const auto& detection : detections_per_view.detections()) {
@@ -195,8 +203,6 @@ void ModelError(MultiViewApriltagRigModel* model) {
         double depth_error = 0;
         int depth_count = 0;
         for (int i = 0; i < 4; ++i) {
-          cv::circle(image, cv::Point(points_image[i].x(), points_image[i].y()),
-                     5, cv::Scalar(255, 0, 0));
           double d2 = residuals(i, 2) * residuals(i, 2);
           if (d2 > 0.0) {
             depth_error += residuals(i, 2);
@@ -229,26 +235,33 @@ void ModelError(MultiViewApriltagRigModel* model) {
               (depth_error / depth_count));
         }
       }
-      images.push_back(image);
-      // cv::imshow("reprojection", image);
-      // cv::waitKey(0);
     }
-    Image& reprojection_image = *model->add_reprojection_images();
-    int image_width = 1280 * 3;
-    int image_height = 720 * 2;
-    reprojection_image.mutable_camera_model()->set_image_width(image_width);
-    reprojection_image.mutable_camera_model()->set_image_height(image_height);
-    auto resource_path = GetUniqueArchiveResource(
-        FrameNameNumber(
-            "reprojection-" + SolverStatus_Name(model->solver_status()),
-            frame_num),
-        "png", "image/png");
-    reprojection_image.mutable_resource()->CopyFrom(resource_path.first);
-    LOG(INFO) << resource_path.second.string();
-    CHECK(cv::imwrite(
-        resource_path.second.string(),
-        ConstructGridImage(images, cv::Size(image_width, image_height), 3)))
-        << "Could not write: " << resource_path.second;
+    if (output_reprojection_images && !images.empty()) {
+      Image& reprojection_image = *model->add_reprojection_images();
+      int n_cols = 3;
+      int n_rows = std::ceil(float(images.size()) / n_cols);
+      if (n_cols > int(images.size())) {
+        n_cols = images.size();
+        n_rows = 1;
+      }
+
+      int image_width = images[0].size().width * n_cols;
+      int image_height = images[0].size().height * n_rows;
+      reprojection_image.mutable_camera_model()->set_image_width(image_width);
+      reprojection_image.mutable_camera_model()->set_image_height(image_height);
+      auto resource_path = GetUniqueArchiveResource(
+          FrameNameNumber(
+              "reprojection-" + SolverStatus_Name(model->solver_status()),
+              frame_num),
+          "jpg", "image/jpeg");
+      reprojection_image.mutable_resource()->CopyFrom(resource_path.first);
+      LOG(INFO) << resource_path.second.string();
+      CHECK(
+          cv::imwrite(resource_path.second.string(),
+                      ConstructGridImage(
+                          images, cv::Size(image_width, image_height), n_cols)))
+          << "Could not write: " << resource_path.second;
+    }
   }
   std::stringstream summary;
   summary << "# tag_id frame_number camera_name rmse depth_error\n";
@@ -289,11 +302,17 @@ std::vector<MultiViewApriltagDetections> LoadMultiViewApriltagDetections(
     const CalibrateMultiViewApriltagRigConfiguration& config) {
   EventLogReader log_reader(event_log);
 
+  std::set<std::string> allowed_cameras;
+
+  for (auto camera_name : config.include_cameras()) {
+    allowed_cameras.insert(camera_name);
+    LOG(INFO) << "allowed camera: " << camera_name;
+  }
   std::unordered_set<int> allowed_ids;
 
   for (auto id : config.tag_ids()) {
     allowed_ids.insert(id);
-    LOG(INFO) << "allowed: " << id;
+    LOG(INFO) << "allowed tag id: " << id;
   }
 
   CHECK(allowed_ids.count(config.root_tag_id()) == 1)
@@ -310,6 +329,13 @@ std::vector<MultiViewApriltagDetections> LoadMultiViewApriltagDetections(
     }
     ApriltagDetections unfiltered_detections;
     if (event.data().UnpackTo(&unfiltered_detections)) {
+      auto camera_name =
+          unfiltered_detections.image().camera_model().frame_name();
+      CHECK(!camera_name.empty()) << " camera_name is not set.";
+      if (!allowed_cameras.empty() && !allowed_cameras.count(camera_name)) {
+        LOG(INFO) << "skipping data from camera: " << camera_name;
+        continue;
+      }
       ApriltagDetections detections = unfiltered_detections;
       detections.clear_detections();
       for (const auto& detection : unfiltered_detections.detections()) {
@@ -339,12 +365,16 @@ std::vector<MultiViewApriltagDetections> LoadMultiViewApriltagDetections(
       google::protobuf::util::TimeUtil::MillisecondsToDuration(1000.0 / 2);
 
   std::map<std::string, int> detection_counts;
-
+  int steady_count = 5;
+  if (config.has_steady_count()) {
+    steady_count = config.steady_count().value();
+  }
+  LOG(INFO) << "Steady count is: " << steady_count;
   for (const Event& event : apriltag_series[root_camera_name + "/apriltags"]) {
     ApriltagDetections detections;
     CHECK(event.data().UnpackTo(&detections));
     if (!config.filter_stable_tags() ||
-        tag_filter.AddApriltags(detections, 5, 7)) {
+        tag_filter.AddApriltags(detections, steady_count, 7)) {
       MultiViewApriltagDetections mv_detections;
       for (auto name_series : apriltag_series) {
         auto nearest_event =
@@ -514,12 +544,24 @@ void CameraRigFromMultiViewDetections(std::string camera_rig_name,
 
 MultiViewApriltagRigModel InitialMultiViewApriltagModelFromConfig(
     const CalibrateMultiViewApriltagRigConfiguration& config) {
-  auto dataset_result = ReadProtobufFromResource<CaptureVideoDatasetResult>(
-      config.video_dataset());
+  core::Resource event_log;
+  switch (config.input_case()) {
+    case CalibrateMultiViewApriltagRigConfiguration::InputCase::kVideoDataset: {
+      auto dataset_result = ReadProtobufFromResource<CaptureVideoDatasetResult>(
+          config.video_dataset());
+      event_log = dataset_result.dataset();
+      break;
+    }
+    case CalibrateMultiViewApriltagRigConfiguration::InputCase::kEventLog: {
+      event_log = config.event_log();
+      break;
+    }
+    default:
+      LOG(FATAL) << "No input provided in config.";
+  }
   MultiViewApriltagRigModel model;
-
   for (const auto& mv_detections : LoadMultiViewApriltagDetections(
-           config.root_camera_name(), dataset_result.dataset(), config)) {
+           config.root_camera_name(), event_log, config)) {
     model.add_multi_view_detections()->CopyFrom(mv_detections);
   }
   auto tag_rig = TagRigFromMultiViewDetections(config.tag_rig_name(),
@@ -528,8 +570,6 @@ MultiViewApriltagRigModel InitialMultiViewApriltagModelFromConfig(
                                    tag_rig, &model);
 
   model.set_solver_status(SolverStatus::SOLVER_STATUS_INITIAL);
-  ModelError(&model);
-
   return model;
 }
 
@@ -630,8 +670,6 @@ MultiViewApriltagRigModel SolveMultiViewApriltagModel(
     model.set_solver_status(SolverStatus::SOLVER_STATUS_FAILED);
   }
   UpdateModelFromPoseGraph(pose_graph, &model);
-
-  // ModelError(&model);
   return model;
 }
 
@@ -701,7 +739,7 @@ EstimateMultiViewCameraRigPoseApriltagRig(
   double depth_weight = 100.0;
   ceres::Problem problem;
   for (PoseEdge* pose_edge : pose_graph.MutablePoseEdges()) {
-    LOG(INFO) << *pose_edge;
+    VLOG(2) << *pose_edge;
     problem.AddParameterBlock(pose_edge->GetAPoseB().data(),
                               SE3d::num_parameters,
                               new LocalParameterizationSE3);
@@ -774,10 +812,10 @@ EstimateMultiViewCameraRigPoseApriltagRig(
 
   // Solve
   ceres::Solver::Summary summary;
-  options.logging_type = ceres::PER_MINIMIZER_ITERATION;
-  options.minimizer_progress_to_stdout = true;
+  // options.logging_type = ceres::PER_MINIMIZER_ITERATION;
+  // options.minimizer_progress_to_stdout = true;
   ceres::Solve(options, &problem, &summary);
-  LOG(INFO) << summary.FullReport() << std::endl;
+  VLOG(2) << summary.FullReport() << std::endl;
   if (!summary.IsSolutionUsable()) {
     return std::nullopt;
   }

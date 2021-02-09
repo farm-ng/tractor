@@ -72,6 +72,39 @@ inline void ProtoToSophus(const SE3Pose& ppose, Sophus::SE3d* pose) {
   ProtoToEigen(ppose.position(), &(pose->translation()));
 }
 
+inline Sophus::SE3d ProtoToSophus(const SE3Pose& ppose) {
+  Sophus::SE3d pose;
+  ProtoToSophus(ppose, &pose);
+  return pose;
+}
+
+inline SE3Pose SophusToProto(const Sophus::SE3d& pose) {
+  SE3Pose ppose;
+  SophusToProto(pose, &ppose);
+  return ppose;
+}
+
+inline NamedSE3Pose Inverse(NamedSE3Pose ppose) {
+  SophusToProto(ProtoToSophus(ppose.a_pose_b()).inverse(),
+                ppose.mutable_a_pose_b());
+  std::string frame_a = ppose.frame_a();
+  ppose.set_frame_a(ppose.frame_b());
+  ppose.set_frame_b(frame_a);
+  return ppose;
+}
+
+inline NamedSE3Pose Multiply(const NamedSE3Pose& pose0,
+                             const NamedSE3Pose& pose1) {
+  CHECK_EQ(pose0.frame_b(), pose1.frame_a());
+  NamedSE3Pose out_pose;
+  SophusToProto(
+      ProtoToSophus(pose0.a_pose_b()) * ProtoToSophus(pose1.a_pose_b()),
+      out_pose.mutable_a_pose_b());
+  out_pose.set_frame_a(pose0.frame_a());
+  out_pose.set_frame_b(pose1.frame_b());
+  return out_pose;
+}
+
 }  // namespace perception
 }  // namespace farm_ng
 #endif  // FARM_NG_SOPHUS_PROTOBUF_H_

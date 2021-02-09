@@ -1,6 +1,8 @@
 syntax = "proto3";
 
 import "google/protobuf/timestamp.proto";
+import "google/protobuf/wrappers.proto";
+
 import "farm_ng/core/resource.proto";
 import "farm_ng/calibration/calibrator.proto";
 
@@ -8,19 +10,33 @@ package farm_ng.calibration;
 option go_package = "github.com/farm-ng/genproto/calibration";
 
 message CalibrateMultiViewApriltagRigConfiguration {
-  // Serialized CaptureVideoDatasetResult
-  farm_ng.core.Resource video_dataset = 1;
+  oneof input {
+    // Serialized CaptureVideoDatasetResult
+    farm_ng.core.Resource video_dataset = 1;
+    // If event_log is populated, looks for ApriltagDetections with event name
+    // <camera_nam>/apriltags.
+    farm_ng.core.Resource event_log = 10;
+  }
   // A list of tag ids to consider as one rigid object or "rig".
   repeated int32 tag_ids = 2;
   // This tag id will be considered the root coordinate system of the
   // rig, and all transforms will be estimated with respect to this tag.
   int32 root_tag_id = 3;
   string root_camera_name = 4;
+  // An inclusive list of cameras to use.  If the include_cameras is empty, then
+  // all cameras in dataset will be used.
+  repeated string include_cameras = 8;
 
   // name of the result.
   string name = 5;
   string tag_rig_name = 6;
   bool filter_stable_tags = 7;
+  // The threshold for number of frames that detection must be stationary.
+  // Defaults to 5 if not set.
+  google.protobuf.Int32Value steady_count = 9;
+
+  // Disable the output of reprojection images.
+  bool disable_reprojection_images = 11;
 }
 
 message CalibrateMultiViewApriltagRigStatus {

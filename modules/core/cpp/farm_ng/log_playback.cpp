@@ -133,14 +133,16 @@ class IpcLogPlayback {
       stats.mutable_last_stamp()->CopyFrom(next_message_->stamp());
 
       if (configuration_.send()) {
-	if(!next_message_->data().Is<LoggingCommand>()){
-	  next_message_->set_name(std::string("playback/")+next_message_->name());
-	  bus_.Send(*next_message_);
-	}
+        if (!next_message_->data().Is<LoggingCommand>()) {
+          next_message_->set_name(std::string("playback/") +
+                                  next_message_->name());
+          bus_.Send(*next_message_);
+        }
       }
     }
     try {
       next_message_ = log_reader_->ReadNext();
+      LOG(INFO) << next_message_->name();
     } catch (std::runtime_error& e) {
       if (configuration_.loop()) {
         log_reader_.reset(new EventLogReader(configuration_.log()));

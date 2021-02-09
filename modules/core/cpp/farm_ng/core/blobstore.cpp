@@ -3,8 +3,8 @@
 namespace farm_ng {
 namespace core {
 
-boost::filesystem::path GetBlobstoreRoot() {
-  boost::filesystem::path root;
+fs::path GetBlobstoreRoot() {
+  fs::path root;
   if (const char* env_root = std::getenv("BLOBSTORE_ROOT")) {
     root = env_root;
   } else {
@@ -13,18 +13,35 @@ boost::filesystem::path GetBlobstoreRoot() {
   return root;
 }
 
-boost::filesystem::path GetBucketRelativePath(Bucket id) {
+fs::path GetBucketRelativePath(Bucket id) {
   std::string path =
       Bucket_Name(id).substr(std::strlen("BUCKET_"), std::string::npos);
   std::transform(path.begin(), path.end(), path.begin(), ::tolower);
   return path;
 }
 
-boost::filesystem::path GetBucketAbsolutePath(Bucket id) {
+fs::path GetBucketAbsolutePath(Bucket id) {
   return GetBlobstoreRoot() / GetBucketRelativePath(id);
 }
 
-void WriteProtobufToJsonFile(const boost::filesystem::path& path,
+fs::path NativePathFromResourcePath(const farm_ng::core::Resource& resource) {
+  CHECK_EQ(resource.payload_case(),
+           farm_ng::core::Resource::PayloadCase::kPath);
+  fs::path resource_path(resource.path());
+  if (fs::exists(resource_path) || resource_path.is_absolute()) {
+    return resource_path;
+  }
+  return (GetBlobstoreRoot() / resource_path);
+}
+
+Resource EventLogResource(const fs::path& path) {
+  Resource resource;
+  resource.set_path(path.string());
+  resource.set_content_type("application/farm_ng.eventlog.v1");
+  return resource;
+}
+
+void WriteProtobufToJsonFile(const fs::path& path,
                              const google::protobuf::Message& proto) {
   google::protobuf::util::JsonPrintOptions print_options;
   print_options.add_whitespace = true;
@@ -35,7 +52,7 @@ void WriteProtobufToJsonFile(const boost::filesystem::path& path,
   outf << json_str;
 }
 
-void WriteProtobufToBinaryFile(const boost::filesystem::path& path,
+void WriteProtobufToBinaryFile(const fs::path& path,
                                const google::protobuf::Message& proto) {
   std::string binary_str;
   proto.SerializeToString(&binary_str);
@@ -46,19 +63,17 @@ void WriteProtobufToBinaryFile(const boost::filesystem::path& path,
 // Returns a bucket - relative path guaranteed to be unique,
 //  with a parent
 // directory created if necessary.
-boost::filesystem::path MakePathUnique(boost::filesystem::path root,
-                                       boost::filesystem::path path) {
-  boost::filesystem::path out_path = path;
+fs::path MakePathUnique(fs::path root, fs::path path) {
+  fs::path out_path = path;
   int suffix = 1;
-  while (boost::filesystem::exists(root / out_path)) {
+  while (fs::exists(root / out_path)) {
     out_path =
-        boost::filesystem::path(out_path.string() + std::to_string(suffix));
+        path.replace_extension(std::to_string(suffix) + fs::extension(path));
     suffix++;
   }
 
-  if (!boost::filesystem::exists((root / out_path).parent_path())) {
-    if (!boost::filesystem::create_directories(
-            (root / out_path).parent_path())) {
+  if (!fs::exists((root / out_path).parent_path())) {
+    if (!fs::create_directories((root / out_path).parent_path())) {
       throw std::runtime_error(std::string("Could not create directory: ") +
                                (root / out_path).parent_path().string());
     }

@@ -65,7 +65,7 @@ struct CameraRigApriltagRigCostFunctor {
         camera_pose_camera_rig_.Map(raw_camera_pose_camera_rig);
     auto tag_rig_pose_tag = tag_rig_pose_tag_.Map(raw_tag_rig_pose_tag);
     auto camera_rig_pose_tag_rig =
-        tag_rig_pose_tag_.Map(raw_camera_rig_pose_tag_rig);
+        camera_rig_pose_tag_rig_.Map(raw_camera_rig_pose_tag_rig);
     Sophus::SE3<T> camera_pose_tag =
         camera_pose_camera_rig * camera_rig_pose_tag_rig * tag_rig_pose_tag;
 
