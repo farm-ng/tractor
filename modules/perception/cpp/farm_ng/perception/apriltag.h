@@ -21,7 +21,7 @@ std::array<Eigen::Vector3d, 4> PointsTag(const ApriltagDetection& detection);
 
 std::array<Eigen::Vector2d, 4> PointsImage(const ApriltagDetection& detection);
 
-double TagSize(const TagLibrary& tag_library, int tag_id);
+std::optional<double> TagSize(const TagLibrary& tag_library, int tag_id);
 
 // Adds the tag id and sizes contained in ApriltagRig to the ApriltagConfig.
 void AddApriltagRigToApriltagConfig(const ApriltagRig& rig,

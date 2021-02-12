@@ -67,8 +67,8 @@ fs::path MakePathUnique(fs::path root, fs::path path) {
   fs::path out_path = path;
   int suffix = 1;
   while (fs::exists(root / out_path)) {
-    out_path =
-        path.replace_extension(std::to_string(suffix) + fs::extension(path));
+    out_path = path;
+    out_path.replace_extension(std::to_string(suffix) + fs::extension(path));
     suffix++;
   }
 

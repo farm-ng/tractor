@@ -38,7 +38,7 @@ std::array<Eigen::Vector2d, 4> PointsImage(const ApriltagDetection& detection) {
        Eigen::Vector2d(detection.p(3).x(), detection.p(3).y())});
 }
 
-double TagSize(const TagLibrary& tag_library, int tag_id) {
+std::optional<double> TagSize(const TagLibrary& tag_library, int tag_id) {
   auto it = std::find_if(tag_library.tags().begin(), tag_library.tags().end(),
                          [tag_id](const TagConfig& tag_config) {
                            return tag_config.id() == tag_id;
@@ -47,7 +47,7 @@ double TagSize(const TagLibrary& tag_library, int tag_id) {
   if (it != tag_library.tags().end()) {
     return it->size();
   }
-  return 1;
+  return std::nullopt;
 }
 
 void AddApriltagRigToApriltagConfig(const ApriltagRig& rig,
@@ -264,20 +264,24 @@ Sophus::SE3d ApriltagPoseToSE3d(const apriltag_pose_t& pose) {
 // https://github.com/IntelRealSense/librealsense/blob/master/examples/pose-apriltag/rs-pose-apriltag.cpp
 // Note this function mutates detection, by undistorting the points and
 // populating the homography
-boost::optional<Sophus::SE3d> EstimateCameraPoseTag(
+std::optional<Sophus::SE3d> EstimateCameraPoseTag(
     const CameraModel& camera_model, const TagLibrary& tag_library,
     apriltag_detection_t* detection) {
+  auto tag_size = TagSize(tag_library, detection->id);
+  if (!tag_size) {
+    return std::nullopt;
+  }
   apriltag_detection_info_t info;
   info.fx = info.fy = 1;  // undistorted image with focal length = 1
   info.cx = info.cy = 0;  // undistorted image with principal point at (0,0)
   info.det = detection;
-  info.tagsize = TagSize(tag_library, info.det->id);
+  info.tagsize = *tag_size;
 
   // recompute tag corners on an undistorted image focal
   // length = 1 this also populates the homography
   if (!undistort(*info.det, camera_model)) {
     LOG(WARNING) << "Tag with id: " << info.det->id << " can not compute pose.";
-    return boost::none;
+    return std::nullopt;
   }
   auto pose = std::shared_ptr<apriltag_pose_t>(new apriltag_pose_t(),
                                                apriltag_pose_destroy);
@@ -314,6 +318,7 @@ class ApriltagDetector::Impl {
     if (!apriltag_config_) {
       LoadApriltagConfig();
     }
+    CHECK(apriltag_config_.has_value());
 
     CHECK_EQ(gray.channels(), 1);
     CHECK_EQ(gray.type(), CV_8UC1);
@@ -337,16 +342,19 @@ class ApriltagDetector::Impl {
     for (int i = 0; i < zarray_size(detections.get()); i++) {
       apriltag_detection_t* det;
       zarray_get(detections.get(), i, &det);
-
+      auto tag_size = TagSize(apriltag_config_.value().tag_library(), det->id);
+      if (!tag_size) {
+        continue;
+      }
       ApriltagDetection* detection = pb_out.add_detections();
       for (int j = 0; j < 4; j++) {
         Vec2* p_j = detection->add_p();
         p_j->set_x(det->p[j][0]);
         p_j->set_y(det->p[j][1]);
       }
-      CHECK(apriltag_config_.has_value());
-      detection->set_tag_size(
-          TagSize(apriltag_config_.value().tag_library(), det->id));
+
+      detection->set_tag_size(*tag_size);
+
       detection->mutable_c()->set_x(det->c[0]);
       detection->mutable_c()->set_y(det->c[1]);
       detection->set_id(det->id);
