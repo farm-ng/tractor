@@ -764,7 +764,7 @@ class CalibrateRobotExtrinsicsProgram {
     }
 
     model = SolveRobotArmExtrinsicsModel(model);
-    SolveRobotArmExtrinsicsModel2(model);
+    model = SolveRobotArmExtrinsicsModel2(model);
     if (FLAGS_submit) {
       RobotHalClient client(
           dataset_result.configuration().hal_service_address());
