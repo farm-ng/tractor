@@ -17,10 +17,20 @@ class EventLogReaderImpl {
   }
 
   farm_ng::core::Event ReadNext() {
-    uint16_t n_bytes;
-    in_.read(reinterpret_cast<char*>(&n_bytes), sizeof(n_bytes));
+    uint16_t n_bytes_u16;
+    in_.read(reinterpret_cast<char*>(&n_bytes_u16), sizeof(n_bytes_u16));
+
     if (!in_) {
       throw std::runtime_error("Could not read packet length header");
+    }
+    uint64_t n_bytes;
+    if(n_bytes_u16 == 0) { // magic tell if we're larger than uint16 bytes.
+      in_.read(reinterpret_cast<char*>(&n_bytes), sizeof(n_bytes));
+      if (!in_) {
+        throw std::runtime_error("Could not read packet length header");
+      }
+    } else {
+      n_bytes = n_bytes_u16;
     }
     std::string ss;
     ss.resize(n_bytes);

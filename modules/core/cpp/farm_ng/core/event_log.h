@@ -16,8 +16,8 @@ class EventLogWriter {
  public:
   EventLogWriter(const boost::filesystem::path& log_path);
   ~EventLogWriter();
-  void Write(const farm_ng::core::Event& event);
-
+  void Write(const Event& event);
+  void WriteAsResource(const Event& event);
  private:
   std::unique_ptr<EventLogWriterImpl> impl_;
 };

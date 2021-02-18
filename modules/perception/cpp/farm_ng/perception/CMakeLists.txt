@@ -46,7 +46,11 @@ add_library(farm_ng_perception SHARED
   video_streamer.cpp
   eigen_cv.h
   pose_graph.h
+  point_cloud.h
+  point_cloud.cpp
   robot_arm_fk.h
+  tensor.h
+  tensor.cpp
   ${h_files}
   ${cpp_files}
   )

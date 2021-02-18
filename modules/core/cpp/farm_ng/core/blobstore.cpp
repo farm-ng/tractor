@@ -49,6 +49,7 @@ void WriteProtobufToJsonFile(const fs::path& path,
   std::string json_str;
   google::protobuf::util::MessageToJsonString(proto, &json_str, print_options);
   std::ofstream outf(path.string());
+  CHECK(outf.good()) << path.string();
   outf << json_str;
 }
 
