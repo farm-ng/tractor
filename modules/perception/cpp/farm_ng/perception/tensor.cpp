@@ -2,10 +2,9 @@
 #include <glog/logging.h>
 namespace farm_ng::perception {
 
-  void EigenToTensor(
-    const Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic,
-                        Eigen::ColMajor>& x,
-    std::string rows_name, std::string cols_name, Tensor* out) {
+void EigenToTensor(const Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic,
+                                       Eigen::ColMajor>& x,
+                   std::string rows_name, std::string cols_name, Tensor* out) {
   out->set_dtype(Tensor::DATA_TYPE_FLOAT64);
   auto dim1 = out->add_shape();
   dim1->set_size(x.rows());
@@ -19,7 +18,7 @@ namespace farm_ng::perception {
                 x.size() * sizeof(double));
 }
 
- Eigen::Map<const Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>>
+Eigen::Map<const Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>>
 TensorToEigenMapXd(const farm_ng::perception::Tensor& x) {
   CHECK_EQ(x.dtype(), Tensor::DATA_TYPE_FLOAT64);
   CHECK_EQ(x.shape_size(), 2);
@@ -29,9 +28,9 @@ TensorToEigenMapXd(const farm_ng::perception::Tensor& x) {
       const Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>>(
       reinterpret_cast<const double*>(x.data().data()), rows, cols);
 }
- void TensorToEigen(const farm_ng::perception::Tensor& x,
-                          Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic,
-                                        Eigen::ColMajor>* out) {
+void TensorToEigen(const farm_ng::perception::Tensor& x,
+                   Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic,
+                                 Eigen::ColMajor>* out) {
   *out = TensorToEigenMapXd(x);
 }
-}
+}  // namespace farm_ng::perception

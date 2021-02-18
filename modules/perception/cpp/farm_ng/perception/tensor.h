@@ -7,17 +7,16 @@
 
 namespace farm_ng::perception {
 
-void EigenToTensor(
-    const Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic,
-                        Eigen::ColMajor>& x,
-    std::string rows_name, std::string cols_name, Tensor* out);
+void EigenToTensor(const Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic,
+                                       Eigen::ColMajor>& x,
+                   std::string rows_name, std::string cols_name, Tensor* out);
 
 Eigen::Map<const Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>>
 TensorToEigenMapXd(const farm_ng::perception::Tensor& x);
 
 void TensorToEigen(const farm_ng::perception::Tensor& x,
-                          Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic,
-                                        Eigen::ColMajor>* out);
+                   Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic,
+                                 Eigen::ColMajor>* out);
 }  // namespace farm_ng::perception
 
 #endif
