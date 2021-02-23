@@ -3,8 +3,6 @@ import { Navbar, Nav } from "react-bootstrap";
 import { Switch, Route, Link } from "react-router-dom";
 import { Overview } from "./Overview";
 import { State } from "./State";
-import { Video } from "./Video";
-import { Map } from "./Map";
 import { Root as Scope } from "./scope/Root";
 import styles from "./App.module.scss";
 import { Programs } from "./Programs";
@@ -32,12 +30,6 @@ export const App: React.FC = () => {
             <Nav.Link as={Link} to="/state">
               State
             </Nav.Link>
-            <Nav.Link as={Link} to="/video">
-              Video
-            </Nav.Link>
-            <Nav.Link as={Link} to="/map">
-              Map
-            </Nav.Link>
             <Nav.Link as={Link} to="/programs">
               Programs
             </Nav.Link>
@@ -54,8 +46,6 @@ export const App: React.FC = () => {
         <Route exact path="/" component={Overview} />
         <Route exact path="/overview" component={Overview} />
         <Route exact path="/state" component={State} />
-        <Route exact path="/video" component={Video} />
-        <Route exact path="/map" component={Map} />
         <Route exact path="/programs" component={Programs} />
         <Route exact path="/scope" component={Scope} />
         <Route path={["/blobs/:blobPath+", "/blobs"]} component={Blobstore} />
