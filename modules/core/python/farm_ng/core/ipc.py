@@ -53,12 +53,12 @@ class EventBusQueue:
         self._event_bus = event_bus
 
     def __enter__(self):
-        logger.info('adding event queue')
+        logger.debug('adding event queue')
         self._queue = self._event_bus._queue()
         return self._queue
 
     def __exit__(self, type, value, traceback):
-        logger.info('removing event queue')
+        logger.debug('removing event queue')
         self._event_bus._remove_queue(self._queue)
 
 
@@ -67,12 +67,12 @@ class AnnounceQueue:
         self._event_bus = event_bus
 
     def __enter__(self):
-        logger.info('adding announce queue')
+        logger.debug('adding announce queue')
         self._queue = self._event_bus._announce_queue()
         return self._queue
 
     def __exit__(self, type, value, traceback):
-        logger.info('removing announce queue')
+        logger.debug('removing announce queue')
         self._event_bus._remove_announce_queue(self._queue)
 
 
@@ -123,6 +123,7 @@ class EventBus:
         self._announce_subscribers: Set[asyncio.Queue] = set()
 
     def _announce_service(self, n_periods):
+        logger.info('Announcing: %s n_periods: %d', self._name, n_periods)
         host, port = self._mc_send_sock.getsockname()
         announce = Announce()
         announce.stamp.GetCurrentTime()

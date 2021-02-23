@@ -242,6 +242,7 @@ func (bus *EventBus) handleAnnouncements() {
 
 		// Ignore self-announcements
 		if srcPort == bus.sendConn.LocalAddr().(*net.UDPAddr).Port {
+			// log.Println("Self announce.")
 			continue
 		}
 
@@ -267,6 +268,7 @@ func (bus *EventBus) handleAnnouncements() {
 		announce.RecvStamp = ptypes.TimestampNow()
 		// Very noisy.
 		// log.Println("received announcement: ", announce)
+
 		bus.announcementsMutex.Lock()
 		bus.Announcements[src.String()] = announce
 		bus.announcementsMutex.Unlock()

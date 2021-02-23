@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import os
+import sys
 
 import google.protobuf.json_format as json_format
 
@@ -100,6 +101,8 @@ class ProgramSupervisor:
 
 
 if __name__ == '__main__':
+    logging.basicConfig(stream=sys.stdout, level=logging.INFO)
+
     event_bus = get_event_bus('programd')
     supervisor = ProgramSupervisor(event_bus)
     event_bus.event_loop().run_until_complete(supervisor.run())
