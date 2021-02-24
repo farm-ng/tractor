@@ -19,7 +19,6 @@
 #include "farm_ng/calibration/capture_robot_extrinsics_dataset.pb.h"
 #include "farm_ng/calibration/robot_hal.grpc.pb.h"
 
-DEFINE_bool(interactive, false, "receive program args via eventbus");
 DEFINE_string(dataset, "", "CaptureRobotExtrinsicsResult");
 DEFINE_string(calibration, "", "RobotArmExtrinsicsModel model");
 
@@ -51,13 +50,8 @@ std::vector<CapturePoseResponse> CapturePoseResponses(
 
 class RobotHalServiceMock final : public RobotHALService::Service {
  public:
-  RobotHalServiceMock(core::EventBus& bus, bool interactive)
+  RobotHalServiceMock(core::EventBus& bus)
       : bus_(bus), timer_(bus_.get_io_service()) {
-    if (interactive) {
-      // status_.mutable_input_required_resource()->CopyFrom(resource);
-    } else {
-      // set_configuration(resource);
-    }
     bus_.AddSubscriptions({bus_.GetName()});
     bus_.GetEventSignal()->connect(
         std::bind(&RobotHalServiceMock::on_event, this, std::placeholders::_1));
@@ -68,6 +62,14 @@ class RobotHalServiceMock final : public RobotHALService::Service {
       grpc::ServerContext* context,
       grpc::ServerReaderWriter<CapturePoseResponse, CapturePoseRequest>* stream)
       override {
+    CapturePoseRequest req;
+    while (stream->Read(&req)) {
+      LOG(INFO) << req.ShortDebugString();
+      CapturePoseResponse response = responses_[index_];
+      response.mutable_stamp()->CopyFrom(core::MakeTimestampNow());
+      stream->Write(response);
+      index_ = (index_ + 1) % responses_.size();
+    }
     return grpc::Status::OK;
   }
 
@@ -153,9 +155,10 @@ class RobotHalServiceMock final : public RobotHALService::Service {
     dataset_result_ =
         core::ReadProtobufFromResource<CaptureRobotExtrinsicsDatasetResult>(
             dataset_resource);
-
-    calibration_ = core::ReadProtobufFromJsonFile<RobotArmExtrinsicsModel>(
-        FLAGS_calibration);
+    if (!FLAGS_calibration.empty()) {
+      calibration_ = core::ReadProtobufFromJsonFile<RobotArmExtrinsicsModel>(
+          FLAGS_calibration);
+    }
     responses_ = CapturePoseResponses(dataset_result_);
 
     auto output_dir =
@@ -164,7 +167,7 @@ class RobotHalServiceMock final : public RobotHALService::Service {
     // Output under the same directory as the dataset.
     core::SetArchivePath((output_dir / "mock").string());
 
-    std::string server_address("0.0.0.0:50051");
+    std::string server_address("0.0.0.0:50060");
 
     grpc::ServerBuilder builder;
     builder.AddListeningPort(server_address, grpc::InsecureServerCredentials());
@@ -190,7 +193,7 @@ class RobotHalServiceMock final : public RobotHALService::Service {
 }  // namespace farm_ng::calibration
 
 int Main(farm_ng::core::EventBus& bus) {
-  farm_ng::calibration::RobotHalServiceMock program(bus, FLAGS_interactive);
+  farm_ng::calibration::RobotHalServiceMock program(bus);
   return program.run();
 }
 

@@ -1,12 +1,11 @@
 import * as React from "react";
-import { ListGroup, Card, CardColumns, Table } from "react-bootstrap";
+import { Card, CardColumns, Table } from "react-bootstrap";
 import { useObserver } from "mobx-react-lite";
 import { formatValue } from "../utils/formatValue";
 import { useStores } from "../hooks/useStores";
 import styles from "./Overview.module.scss";
 
-const voltageWarningThreshold = 38; // v
-const processWarningThreshold = 5000; // ms
+const processWarningThreshold = 10000; // ms
 
 export const Overview: React.FC = () => {
   const { busEventStore } = useStores();

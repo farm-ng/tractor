@@ -627,6 +627,7 @@ RobotArmExtrinsicsModel SolveRobotArmExtrinsicsModel2(
         rig_model->add_camera_rig_poses_apriltag_rig());
   }
 
+
   ModelError(rig_model, !FLAGS_disable_reprojection_images);
 
   CalibrateMultiViewApriltagRigResult result;

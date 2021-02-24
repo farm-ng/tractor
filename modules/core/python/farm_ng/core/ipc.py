@@ -123,7 +123,7 @@ class EventBus:
         self._announce_subscribers: Set[asyncio.Queue] = set()
 
     def _announce_service(self, n_periods):
-        logger.info('Announcing: %s n_periods: %d', self._name, n_periods)
+        logger.debug('Announcing: %s n_periods: %d', self._name, n_periods)
         host, port = self._mc_send_sock.getsockname()
         announce = Announce()
         announce.stamp.GetCurrentTime()
@@ -167,18 +167,18 @@ class EventBus:
             self._quiet_count += 1
             if self._quiet_count == 3:
                 self._connect_recv_sock()
-                logger.info('Listening for services.')
+                logger.debug('Listening for services.')
                 self._quiet_count = 0
         else:
             self._close_recv_sock()
-            logger.info('Resting for services.')
+            logger.debug('Resting for services.')
             delete = []
             for key, service in self._services.items():
                 if (time.time() - service.recv_stamp.ToSeconds()) > 10:
-                    logger.info('Dropping service: %s', MessageToString(service, as_one_line=True))
+                    logger.debug('Dropping service: %s', MessageToString(service, as_one_line=True))
                     delete.append(key)
                 else:
-                    logger.info('Active service  : %s', MessageToString(service, as_one_line=True))
+                    logger.debug('Active service  : %s', MessageToString(service, as_one_line=True))
 
             for key in delete:
                 del self._services[key]
