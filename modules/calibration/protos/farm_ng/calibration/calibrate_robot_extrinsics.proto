@@ -1,0 +1,41 @@
+syntax = "proto3";
+
+import "google/protobuf/timestamp.proto";
+
+import "farm_ng/core/resource.proto";
+import "farm_ng/calibration/calibrator.proto";
+import "farm_ng/perception/geometry.proto";
+
+package farm_ng.calibration;
+option go_package = "github.com/farm-ng/genproto/calibration";
+
+message CalibrateRobotExtrinsicsConfiguration {
+  oneof input {
+    farm_ng.core.Resource dataset = 1;
+  }
+  // solve for joint offsets
+  bool joint_offsets = 2;
+  // Can speed things up
+  bool disable_reprojection_images = 3;
+  bool submit =  4;
+}
+
+message CalibrateRobotExtrinsicsStatus {
+  oneof input_required {
+    CalibrateRobotExtrinsicsConfiguration input_required_configuration = 1;
+  }
+  // Serialized CalibrateRobotExtrinsicsResult
+  farm_ng.core.Resource result = 2;
+
+  SolverIterationSummary iteration_summary = 3;
+}
+
+message CalibrateRobotExtrinsicsResult {
+  // Configuration which initiated the computation of this result.
+  CalibrateRobotExtrinsicsConfiguration configuration = 1;
+  farm_ng.core.Resource multi_view_lidar_model = 2;
+
+  SolverStatus solver_status = 3;
+  google.protobuf.Timestamp stamp_begin = 4;
+  google.protobuf.Timestamp stamp_end = 5;
+}
