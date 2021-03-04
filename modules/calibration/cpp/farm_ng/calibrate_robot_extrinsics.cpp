@@ -226,7 +226,8 @@ using Eigen::Quaterniond;
 using Eigen::Vector3d;
 using Sophus::SE3d;
 
-RobotArmExtrinsicsModel SolveRobotArmExtrinsicsModel(
+// This solves for the extrinscs using a pose based loss.  To be followed by reprojection based solution.
+RobotArmExtrinsicsModel InitializeArmExtrinsicsModel(
     RobotArmExtrinsicsModel model) {
   CalibrateMultiViewApriltagRigResult result;
 
@@ -432,7 +433,8 @@ struct CameraRigApriltagRig6dofRobotExtrinsicsCostFunctor {
   double depth_scale_;
 };
 
-RobotArmExtrinsicsModel SolveRobotArmExtrinsicsModel2(
+// Solves an initialized model using a reprojection error, and using the robot's FK.
+RobotArmExtrinsicsModel SolveRobotArmExtrinsicsModel(
     RobotArmExtrinsicsModel model,
     CalibrateRobotExtrinsicsConfiguration config) {
   RobotArmFK6dof fk(model.robot_arm());
@@ -772,8 +774,8 @@ class CalibrateRobotExtrinsicsProgram {
       // LOG(INFO) << model.ShortDebugString();
     }
 
-    model = SolveRobotArmExtrinsicsModel(model);
-    model = SolveRobotArmExtrinsicsModel2(model, configuration_);
+    model = InitializeArmExtrinsicsModel(model);
+    model = SolveRobotArmExtrinsicsModel(model, configuration_);
     result.mutable_multi_view_rig()->CopyFrom(SaveApriltagRigResult(model));
     result.mutable_robot_arm_extrinsics_model()->CopyFrom(
     core::ArchiveProtobufAsJsonResource("robot_arm_extrinsics_model_solved",
@@ -795,7 +797,7 @@ class CalibrateRobotExtrinsicsProgram {
         return -1;
       }
     }
-    result.mutable_stamp_begin()->CopyFrom(core::MakeTimestampNow());
+    result.mutable_stamp_end()->CopyFrom(core::MakeTimestampNow());
 
     core::ArchiveProtobufAsJsonResource("robot_extrinsics_result", result);
     status_.mutable_result()->CopyFrom(core::WriteProtobufAsJsonResource(
