@@ -46,6 +46,7 @@ import { CalibrateRobotExtrinsicsConfigurationVisualizer } from "../components/s
 import { MultiViewCameraRigVisualizer } from "../components/scope/visualizers/MultiViewCameraRig";
 import { LogPlaybackConfigurationVisualizer } from "../components/scope/visualizers/LogPlaybackConfiguration";
 import { LogPlaybackStatusVisualizer } from "../components/scope/visualizers/LogPlaybackStatus";
+import { ValidateRobotExtrinsicsConfigurationVisualizer } from "../components/scope/visualizers/ValidateRobotExtrinsicsConfiguration";
 
 export interface VisualizerOptionConfig {
   label: string;
@@ -119,6 +120,7 @@ export const visualizerRegistry: { [k: string]: Visualizer } = [
   CaptureRobotExtrinsicsDatasetResultVisualizer,
   CaptureRobotExtrinsicsDatasetStatusVisualizer,
   CalibrateRobotExtrinsicsConfigurationVisualizer,
+  ValidateRobotExtrinsicsConfigurationVisualizer,
   CaptureVideoDatasetConfigurationVisualizer,
   CaptureVideoDatasetResultVisualizer,
   CaptureVideoDatasetStatusVisualizer,

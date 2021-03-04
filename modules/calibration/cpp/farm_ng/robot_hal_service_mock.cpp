@@ -76,6 +76,8 @@ class RobotHalServiceMock final : public RobotHALService::Service {
   grpc::Status CalibrationResult(grpc::ServerContext* context,
                                  const CalibrationResultRequest* request,
                                  CalibrationResultResponse* response) override {
+    calibration_.CopyFrom(request->model());
+    response->set_status(CalibrationResultResponse::STATUS_SUCCESS);
     return grpc::Status::OK;
   }
 

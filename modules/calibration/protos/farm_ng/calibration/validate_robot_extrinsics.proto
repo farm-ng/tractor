@@ -1,0 +1,34 @@
+syntax = "proto3";
+
+import "google/protobuf/timestamp.proto";
+
+import "farm_ng/core/resource.proto";
+import "farm_ng/calibration/robot_hal.proto";
+
+package farm_ng.calibration;
+option go_package = "github.com/farm-ng/genproto/calibration";
+
+message ValidateRobotExtrinsicsConfiguration {
+  string name=1;
+  farm_ng.core.Resource apriltag_rig=2;
+  string hal_service_address =3;
+
+}
+
+message ValidateRobotExtrinsicsStatus {
+  oneof input_required {
+    ValidateRobotExtrinsicsConfiguration input_required_configuration = 1;
+    // submit through input required?
+  }
+  ValidateRobotExtrinsicsConfiguration configuration = 2;
+  ValidateRobotExtrinsicsResult result = 3;
+}
+
+message ValidateRobotExtrinsicsResult {
+  // Configuration which initiated the computation of this result.
+  ValidateRobotExtrinsicsConfiguration configuration = 1;
+  farm_ng.core.Resource event_log = 2;
+  ApriltagRigPoseEstimateRequest estimate = 3;
+  google.protobuf.Timestamp stamp_begin = 4;
+  google.protobuf.Timestamp stamp_end = 5;
+}

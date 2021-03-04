@@ -13,14 +13,16 @@
 #include "farm_ng/perception/image_loader.h"
 
 #include "farm_ng/calibration/calibrator.pb.h"
-#include "farm_ng/calibration/capture_robot_extrinsics_dataset.pb.h"
+#include "farm_ng/calibration/validate_robot_extrinsics.pb.h"
+
 #include "farm_ng/calibration/multi_view_apriltag_rig_calibrator.h"
 #include "farm_ng/calibration/robot_hal_client.h"
 
 DEFINE_bool(interactive, false, "receive program args via eventbus");
-DEFINE_string(hal_service_address, "", "Hal service address");
-DEFINE_string(apriltag_rig, "", "Apriltag rig json file.");
+
 DEFINE_string(name, "", "Log directory name.");
+DEFINE_string(apriltag_rig, "", "Apriltag rig json file.");
+DEFINE_string(hal_service_address, "", "Hal service address");
 
 namespace farm_ng::calibration {
 
@@ -77,12 +79,16 @@ class MultiViewApriltagDetector {
 
 class ValidateRobotExtrinsicsProgram {
  public:
-  ValidateRobotExtrinsicsProgram(core::EventBus& bus, bool interactive)
-      : bus_(bus), timer_(bus_.get_io_service()) {
+  ValidateRobotExtrinsicsProgram(
+      core::EventBus& bus, bool interactive,
+      calibration::ValidateRobotExtrinsicsConfiguration configuration)
+      : bus_(bus),
+        timer_(bus_.get_io_service()),
+        configuration_(configuration) {
     if (interactive) {
-      // status_.mutable_input_required_resource()->CopyFrom(resource);
+      status_.mutable_input_required_configuration()->CopyFrom(configuration);
     } else {
-      // set_configuration(resource);
+      set_configuration(configuration);
     }
     bus_.AddSubscriptions({bus_.GetName()});
     bus_.GetEventSignal()->connect(
@@ -92,7 +98,7 @@ class ValidateRobotExtrinsicsProgram {
   }
 
   void send_status() {
-    // bus_.Send(MakeEvent(bus_.GetName() + "/status", status_));
+    bus_.Send(core::MakeEvent(bus_.GetName() + "/status", status_));
   }
 
   void on_timer(const boost::system::error_code& error) {
@@ -108,33 +114,42 @@ class ValidateRobotExtrinsicsProgram {
   }
 
   bool on_configuration(const core::Event& event) {
-    core::Resource configuration_resource;
-    if (!event.data().UnpackTo(&configuration_resource)) {
+    ValidateRobotExtrinsicsConfiguration configuration;
+    if (!event.data().UnpackTo(&configuration)) {
       return false;
     }
-    LOG(INFO) << configuration_resource.ShortDebugString();
-    set_configuration(configuration_resource);
+    set_configuration(configuration);
     return true;
   }
 
-  void set_configuration(const core::Resource& resource) { send_status(); }
+  void set_configuration(
+      const calibration::ValidateRobotExtrinsicsConfiguration& configuration) {
+    LOG(INFO) << configuration.ShortDebugString();
+    configuration_ = configuration;
+    status_.clear_input_required_configuration();
+    status_.mutable_configuration()->CopyFrom(configuration_);
+    send_status();
+  }
 
   void on_event(const core::Event& event) {
+    LOG(INFO) << "Event: " << event.ShortDebugString();
     if (on_configuration(event)) {
       return;
     }
   }
 
   int run() {
-    // while (status_.has_input_required_resource()) {
-    //      bus_.get_io_service().run_one();
-    //}
+    while (status_.has_input_required_configuration()) {
+      bus_.get_io_service().run_one();
+    }
 
     WaitForServices(bus_, {});
-
+    ValidateRobotExtrinsicsResult program_result;
+    program_result.mutable_stamp_begin()->CopyFrom(core::MakeTimestampNow());
+    program_result.mutable_configuration()->CopyFrom(configuration_);
     perception::ApriltagRig apriltag_rig =
-        core::ReadProtobufFromJsonFile<perception::ApriltagRig>(
-            FLAGS_apriltag_rig);
+        core::ReadProtobufFromResource<perception::ApriltagRig>(
+            configuration_.apriltag_rig());
 
     perception::ApriltagConfig apriltag_config;
     AddApriltagRigToApriltagConfig(apriltag_rig, &apriltag_config);
@@ -142,16 +157,17 @@ class ValidateRobotExtrinsicsProgram {
     MultiViewApriltagDetector detector(apriltag_config);
 
     std::string log_path = (core::GetBucketRelativePath(core::BUCKET_LOGS) /
-                            boost::filesystem::path(FLAGS_name))
+                            boost::filesystem::path(configuration_.name()))
                                .string();
 
     core::SetArchivePath(log_path);
     auto resource_path = farm_ng::core::GetUniqueArchiveResource(
         "events", "log", "application/farm_ng.eventlog.v1");
-
+    program_result.mutable_event_log()->CopyFrom(resource_path.first);
     core::EventLogWriter log_writer(resource_path.second);
 
-    farm_ng::calibration::RobotHalClient client(FLAGS_hal_service_address);
+    farm_ng::calibration::RobotHalClient client(
+        configuration_.hal_service_address());
 
     CalibratedCaptureRequest capture_request;
     log_writer.Write(core::MakeEvent("capture/request", capture_request));
@@ -207,6 +223,9 @@ class ValidateRobotExtrinsicsProgram {
     }
 
     log_writer.Write(core::MakeEvent("estimate/request", estimate_request));
+    program_result.mutable_estimate()->CopyFrom(estimate_request);
+    status_.mutable_result()->CopyFrom(program_result);
+    send_status();
 
     auto [estimate_status, estimate_response] =
         client.ApriltagRigPoseEstimateSync(estimate_request);
@@ -215,32 +234,46 @@ class ValidateRobotExtrinsicsProgram {
       return -1;
     }
     log_writer.Write(core::MakeEvent("estimate/response", estimate_response));
+    program_result.mutable_stamp_end()->CopyFrom(core::MakeTimestampNow());
+    core::ArchiveProtobufAsJsonResource("validation_result", program_result);
+
+    status_.mutable_result()->CopyFrom(program_result);
+    send_status();
     return 0;
   }
 
  private:
   core::EventBus& bus_;
   boost::asio::deadline_timer timer_;
+  calibration::ValidateRobotExtrinsicsConfiguration configuration_;
+  calibration::ValidateRobotExtrinsicsStatus status_;
 };
 
 }  // namespace farm_ng::calibration
 
 int Main(farm_ng::core::EventBus& bus) {
-  if (FLAGS_hal_service_address.empty()) {
+  farm_ng::calibration::ValidateRobotExtrinsicsConfiguration configuration;
+  if (!FLAGS_interactive && FLAGS_hal_service_address.empty()) {
     LOG(ERROR) << "Please specify hal_service_address";
     return -1;
   }
-  if (FLAGS_apriltag_rig.empty()) {
+  configuration.set_hal_service_address(FLAGS_hal_service_address);
+  if (!FLAGS_interactive && FLAGS_apriltag_rig.empty()) {
     LOG(ERROR) << "Please specify apriltag_rig";
     return -1;
   }
-  if (FLAGS_name.empty()) {
+  configuration.mutable_apriltag_rig()->set_path(FLAGS_apriltag_rig);
+  configuration.mutable_apriltag_rig()->set_content_type(
+      farm_ng::core::ContentTypeProtobufJson<
+          farm_ng::perception::ApriltagRig>());
+  if (!FLAGS_interactive && FLAGS_name.empty()) {
     LOG(ERROR) << "Please specify name";
     return -1;
   }
+  configuration.set_name(FLAGS_name);
 
   farm_ng::calibration::ValidateRobotExtrinsicsProgram program(
-      bus, FLAGS_interactive);
+      bus, FLAGS_interactive, configuration);
   return program.run();
 }
 
