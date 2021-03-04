@@ -23,19 +23,19 @@ message CalibrateRobotExtrinsicsConfiguration {
 message CalibrateRobotExtrinsicsStatus {
   oneof input_required {
     CalibrateRobotExtrinsicsConfiguration input_required_configuration = 1;
+    // submit through input required?
   }
+  CalibrateRobotExtrinsicsConfiguration configuration = 2;
   // Serialized CalibrateRobotExtrinsicsResult
-  farm_ng.core.Resource result = 2;
-
-  SolverIterationSummary iteration_summary = 3;
+  farm_ng.core.Resource result = 3;
 }
 
 message CalibrateRobotExtrinsicsResult {
   // Configuration which initiated the computation of this result.
   CalibrateRobotExtrinsicsConfiguration configuration = 1;
-  farm_ng.core.Resource multi_view_lidar_model = 2;
-
-  SolverStatus solver_status = 3;
-  google.protobuf.Timestamp stamp_begin = 4;
-  google.protobuf.Timestamp stamp_end = 5;
+  farm_ng.core.Resource multi_view_rig = 2;
+  farm_ng.core.Resource robot_arm_extrinsics_model = 3;
+  SolverStatus solver_status = 4;
+  google.protobuf.Timestamp stamp_begin = 5;
+  google.protobuf.Timestamp stamp_end = 6;
 }

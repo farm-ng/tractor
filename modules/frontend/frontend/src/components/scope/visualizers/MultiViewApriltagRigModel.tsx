@@ -32,7 +32,7 @@ import { ImageVisualizer } from "./Image";
 import { ApriltagDetectionsVisualizer } from "./ApriltagDetections";
 import styles from "./MultiViewApriltagRigModel.module.scss";
 import { NamedSE3PoseVisualizer } from "./NamedSE3Pose";
-import { BoxWhiskerPlot } from "./BoxWhiskerPlot";
+//import { BoxWhiskerPlot } from "./BoxWhiskerPlot";
 
 const MultiViewApriltagRigModelElement: React.FC<SingleElementVisualizerProps<
   MultiViewApriltagRigModel
@@ -191,7 +191,8 @@ const MultiViewApriltagRigModelElement: React.FC<SingleElementVisualizerProps<
             ))}
           </tbody>
         </Table>
-        <div className={styles.boxWhisker}>
+
+        {/* <div className={styles.boxWhisker}>
           <BoxWhiskerPlot
             data={tagRmsesByImage}
             title="Tag RMSE by image"
@@ -211,7 +212,7 @@ const MultiViewApriltagRigModelElement: React.FC<SingleElementVisualizerProps<
             title="Tag RMSE by camera"
             xAxisLabel="Camera Name"
           />
-        </div>
+        </div> */}
       </Card>
 
       <Card title="Details">

@@ -32,6 +32,22 @@ export const Programs: React.FC = () => {
       ({ id, name, description }) => (
         <tr key={id}>
           <td>{name}</td>
+          <td>
+            <Button
+              disabled={store.runningProgram}
+              onClick={() => handleStart(id)}
+            >
+              Start
+            </Button>
+          </td>
+          <td>
+            <Button
+              disabled={store.runningProgram?.id !== id}
+              onClick={() => handleStop(id)}
+            >
+              Stop
+            </Button>
+          </td>
           <td>{description}</td>
           <td>
             {store.runningProgram?.id === id
@@ -62,22 +78,6 @@ export const Programs: React.FC = () => {
               ? formatValue(store.lastProgram?.stampEnd)
               : null}
           </td>
-          <td>
-            <Button
-              disabled={store.runningProgram}
-              onClick={() => handleStart(id)}
-            >
-              Start
-            </Button>
-          </td>
-          <td>
-            <Button
-              disabled={store.runningProgram?.id !== id}
-              onClick={() => handleStop(id)}
-            >
-              Stop
-            </Button>
-          </td>
         </tr>
       )
     );
@@ -100,14 +100,14 @@ export const Programs: React.FC = () => {
           <thead>
             <tr>
               <th>Name</th>
+              <th></th>
+              <th></th>
               <th>Description</th>
               <th>Status</th>
               <th>PID</th>
               <th>Exit Code</th>
               <th>Start</th>
               <th>End</th>
-              <th></th>
-              <th></th>
             </tr>
           </thead>
           <tbody>{rows}</tbody>

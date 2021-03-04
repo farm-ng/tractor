@@ -91,6 +91,16 @@
       "launchArgs": ["-interactive"]
     },
     {
+      "id": "validate_robot_extrinsics",
+      "name": "Validate Robot Extrinsics",
+      "description": "Validate calibration of cameras to robot arms.",
+      "launchPath": {
+        "path": "build/modules/calibration/cpp/farm_ng/validate_robot_extrinsics",
+        "rootEnvVar": "FARM_NG_ROOT"
+      },
+      "launchArgs": ["-interactive"]
+    },
+    {
       "id": "log_playback",
       "name": "Log Playback",
       "description": "Plays back farm-ng event log on the eventbus",

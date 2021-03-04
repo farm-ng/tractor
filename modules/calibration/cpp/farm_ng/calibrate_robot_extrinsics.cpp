@@ -24,6 +24,7 @@
 #include "farm_ng/perception/robot_arm_fk.h"
 #include "farm_ng/perception/sophus_protobuf.h"
 
+#include "farm_ng/calibration/calibrate_robot_extrinsics.pb.h"
 #include "farm_ng/calibration/calibrator.pb.h"
 #include "farm_ng/calibration/capture_robot_extrinsics_dataset.pb.h"
 
@@ -259,9 +260,9 @@ RobotArmExtrinsicsModel SolveRobotArmExtrinsicsModel(
   result.set_rmse(camera_tag_model.rmse());
   result.set_solver_status(camera_tag_model.solver_status());
   result.mutable_stamp_end()->CopyFrom(MakeTimestampNow());
-  core::ArchiveProtobufAsJsonResource(camera_rig.name(), result);
-  core::WriteProtobufAsJsonResource(core::BUCKET_APRILTAG_RIG_MODELS,
-                                    camera_rig.name(), result);
+  // core::ArchiveProtobufAsJsonResource(camera_rig.name(), result);
+  // core::WriteProtobufAsJsonResource(core::BUCKET_APRILTAG_RIG_MODELS,
+  //                                   camera_rig.name(), result);
   model.mutable_base_camera_rig_model()->CopyFrom(camera_tag_model);
 
   std::vector<Sophus::SE3d> camera_rig_poses_tag_rig, link_poses_base;
@@ -432,7 +433,8 @@ struct CameraRigApriltagRig6dofRobotExtrinsicsCostFunctor {
 };
 
 RobotArmExtrinsicsModel SolveRobotArmExtrinsicsModel2(
-    RobotArmExtrinsicsModel model) {
+    RobotArmExtrinsicsModel model,
+    CalibrateRobotExtrinsicsConfiguration config) {
   RobotArmFK6dof fk(model.robot_arm());
   perception::PoseGraph pose_graph;
   pose_graph.AddPoses(model.workspace_poses());
@@ -490,7 +492,7 @@ RobotArmExtrinsicsModel SolveRobotArmExtrinsicsModel2(
       joint_offsets.data(), joint_offsets.rows(),
       new ceres::SubsetParameterization(6, std::vector<int32_t>({0, 5})));
 
-  if (!FLAGS_joint_offsets) {
+  if (!config.joint_offsets()) {
     problem.SetParameterBlockConstant(joint_offsets.data());
   }
 
@@ -627,35 +629,13 @@ RobotArmExtrinsicsModel SolveRobotArmExtrinsicsModel2(
         rig_model->add_camera_rig_poses_apriltag_rig());
   }
 
-  ModelError(rig_model, !FLAGS_disable_reprojection_images);
-
-  CalibrateMultiViewApriltagRigResult result;
-  result.mutable_multi_view_apriltag_rig_solved()->CopyFrom(
-      core::ArchiveProtobufAsBinaryResource("solved", *rig_model));
-  result.set_rmse(rig_model->rmse());
-  result.set_solver_status(rig_model->solver_status());
-  result.mutable_stamp_end()->CopyFrom(MakeTimestampNow());
-
-  // Write out json rigs for down stream consumption.
-  result.mutable_camera_rig_solved()->CopyFrom(
-      core::ArchiveProtobufAsJsonResource("camera_rig_solved",
-                                          rig_model->camera_rig()));
-  result.mutable_apriltag_rig_solved()->CopyFrom(
-      core::ArchiveProtobufAsJsonResource("apriltag_rig_solved",
-                                          rig_model->apriltag_rig()));
-
   for (int i = 0; i < model.measurements(0).joint_states_size(); ++i) {
     perception::JointState* joint_offset = model.add_estimated_joint_offsets();
     joint_offset->CopyFrom(model.measurements(0).joint_states(i));
     joint_offset->set_value(joint_offsets(i));
   }
 
-  // TODO some how save the result in the archive directory as well, so its
-  // self contained.
-  core::ArchiveProtobufAsJsonResource("multiview_rig", result);
-
-  core::ArchiveProtobufAsJsonResource("robot_arm_extrinsics_model_solved",
-                                      model);
+  ModelError(rig_model, !config.disable_reprojection_images());
 
   SE3d link_pose_link_offset =
       fk.FK<double>(Eigen::Matrix<double, 6, 1>::Zero()).inverse() *
@@ -674,14 +654,39 @@ RobotArmExtrinsicsModel SolveRobotArmExtrinsicsModel2(
   return model;
 }
 
+core::Resource SaveApriltagRigResult(RobotArmExtrinsicsModel model) {
+  auto rig_model = model.base_camera_rig_model();
+  CalibrateMultiViewApriltagRigResult result;
+  result.mutable_multi_view_apriltag_rig_solved()->CopyFrom(
+      core::ArchiveProtobufAsBinaryResource("solved", model.base_camera_rig_model()));
+  result.set_rmse(rig_model.rmse());
+  result.set_solver_status(rig_model.solver_status());
+  result.mutable_stamp_end()->CopyFrom(MakeTimestampNow());
+
+  // Write out json rigs for down stream consumption.
+  result.mutable_camera_rig_solved()->CopyFrom(
+      core::ArchiveProtobufAsJsonResource("camera_rig_solved",
+                                          rig_model.camera_rig()));
+  result.mutable_apriltag_rig_solved()->CopyFrom(
+      core::ArchiveProtobufAsJsonResource("apriltag_rig_solved",
+                                          rig_model.apriltag_rig()));
+
+  core::WriteProtobufAsJsonResource(
+        core::BUCKET_APRILTAG_RIG_MODELS, "robot_extrinsics_rig", result);
+
+  return core::ArchiveProtobufAsJsonResource("multiview_rig", result);
+}
+
 class CalibrateRobotExtrinsicsProgram {
  public:
-  CalibrateRobotExtrinsicsProgram(core::EventBus& bus, bool interactive)
+  CalibrateRobotExtrinsicsProgram(
+      core::EventBus& bus, bool interactive,
+      CalibrateRobotExtrinsicsConfiguration configuration)
       : bus_(bus), timer_(bus_.get_io_service()) {
     if (interactive) {
-      // status_.mutable_input_required_resource()->CopyFrom(resource);
+      status_.mutable_input_required_configuration()->CopyFrom(configuration);
     } else {
-      // set_configuration(resource);
+      set_configuration(configuration);
     }
     bus_.AddSubscriptions({bus_.GetName()});
     bus_.GetEventSignal()->connect(
@@ -691,7 +696,7 @@ class CalibrateRobotExtrinsicsProgram {
   }
 
   void send_status() {
-    // bus_.Send(MakeEvent(bus_.GetName() + "/status", status_));
+    bus_.Send(MakeEvent(bus_.GetName() + "/status", status_));
   }
 
   void on_timer(const boost::system::error_code& error) {
@@ -707,16 +712,22 @@ class CalibrateRobotExtrinsicsProgram {
   }
 
   bool on_configuration(const EventPb& event) {
-    core::Resource configuration_resource;
-    if (!event.data().UnpackTo(&configuration_resource)) {
+    CalibrateRobotExtrinsicsConfiguration configuration;
+    if (!event.data().UnpackTo(&configuration)) {
       return false;
     }
-    LOG(INFO) << configuration_resource.ShortDebugString();
-    set_configuration(configuration_resource);
+    set_configuration(configuration);
     return true;
   }
 
-  void set_configuration(const core::Resource& resource) { send_status(); }
+  void set_configuration(
+      const CalibrateRobotExtrinsicsConfiguration& configuration) {
+    LOG(INFO) << configuration.ShortDebugString();
+    configuration_ = configuration;
+    status_.clear_input_required_configuration();
+    status_.mutable_configuration()->CopyFrom(configuration_);
+    send_status();
+  }
 
   void on_event(const EventPb& event) {
     if (on_configuration(event)) {
@@ -725,19 +736,17 @@ class CalibrateRobotExtrinsicsProgram {
   }
 
   int run() {
-    // while (status_.has_input_required_resource()) {
-    //      bus_.get_io_service().run_one();
-    //}
+    while (status_.has_input_required_configuration()) {
+      bus_.get_io_service().run_one();
+    }
 
     WaitForServices(bus_, {});
+    CalibrateRobotExtrinsicsResult result;
+    result.mutable_stamp_begin()->CopyFrom(core::MakeTimestampNow());
 
-    core::Resource dataset_resource;
-    dataset_resource.set_path(FLAGS_dataset);
-    dataset_resource.set_content_type(
-        core::ContentTypeProtobufJson<CaptureRobotExtrinsicsDatasetResult>());
     CaptureRobotExtrinsicsDatasetResult dataset_result =
         core::ReadProtobufFromResource<CaptureRobotExtrinsicsDatasetResult>(
-            dataset_resource);
+            configuration_.dataset());
     auto output_dir =
         boost::filesystem::path(dataset_result.dataset().path()).parent_path();
 
@@ -764,8 +773,13 @@ class CalibrateRobotExtrinsicsProgram {
     }
 
     model = SolveRobotArmExtrinsicsModel(model);
-    model = SolveRobotArmExtrinsicsModel2(model);
-    if (FLAGS_submit) {
+    model = SolveRobotArmExtrinsicsModel2(model, configuration_);
+    result.mutable_multi_view_rig()->CopyFrom(SaveApriltagRigResult(model));
+    result.mutable_robot_arm_extrinsics_model()->CopyFrom(
+    core::ArchiveProtobufAsJsonResource("robot_arm_extrinsics_model_solved",
+                                        model));
+    result.set_solver_status(model.base_camera_rig_model().solver_status());
+    if (configuration_.submit()) {
       RobotHalClient client(
           dataset_result.configuration().hal_service_address());
       CalibrationResultRequest request;
@@ -781,19 +795,38 @@ class CalibrateRobotExtrinsicsProgram {
         return -1;
       }
     }
+    result.mutable_stamp_begin()->CopyFrom(core::MakeTimestampNow());
+
+    core::ArchiveProtobufAsJsonResource("robot_extrinsics_result", result);
+    status_.mutable_result()->CopyFrom(core::WriteProtobufAsJsonResource(
+        core::BUCKET_ROBOT_EXTRINSICS_MODELS, "robot_extrinsics_result", result));
+    send_status();
     return 0;
   }
 
  private:
   core::EventBus& bus_;
   boost::asio::deadline_timer timer_;
+
+  CalibrateRobotExtrinsicsConfiguration configuration_;
+  CalibrateRobotExtrinsicsStatus status_;
 };
 
 }  // namespace farm_ng::calibration
 
 int Main(farm_ng::core::EventBus& bus) {
+  farm_ng::calibration::CalibrateRobotExtrinsicsConfiguration config;
+
+  config.set_joint_offsets(FLAGS_joint_offsets);
+  config.set_disable_reprojection_images(FLAGS_disable_reprojection_images);
+  config.set_submit(FLAGS_submit);
+
+  config.mutable_dataset()->set_path(FLAGS_dataset);
+  config.mutable_dataset()->set_content_type(
+      farm_ng::core::ContentTypeProtobufJson<
+          farm_ng::calibration::CaptureRobotExtrinsicsDatasetResult>());
   farm_ng::calibration::CalibrateRobotExtrinsicsProgram program(
-      bus, FLAGS_interactive);
+      bus, FLAGS_interactive, config);
   return program.run();
 }
 

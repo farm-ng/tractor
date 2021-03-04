@@ -1,3 +1,4 @@
+import argparse
 import asyncio
 import logging
 import os
@@ -22,12 +23,12 @@ farm_ng_root = os.environ['FARM_NG_ROOT']
 
 
 class ProgramSupervisor:
-    def __init__(self, event_bus: EventBus):
+    def __init__(self, event_bus: EventBus, programs: str):
         self._config = ProgramdConfig()
 
         # For now, load the core program config we check into the source tree.
         # In the future, could replace or augment, with program config from the blobstore.
-        with open(os.path.join(farm_ng_root, 'modules/core/config/programd/programs.json')) as f:
+        with open(programs) as f:
             json_format.Parse(f.read(), self._config)
 
         self._event_bus = event_bus
@@ -85,7 +86,7 @@ class ProgramSupervisor:
             os.environ.get(program_info.launch_path.root_env_var, ''),
             program_info.launch_path.path,
         )
-        logger.info('Launching ', launch_path, program_info.launch_args)
+        logger.info('Launching %s %s', launch_path, program_info.launch_args)
         self.child_process = await asyncio.create_subprocess_exec(launch_path, *program_info.launch_args)
         self.status.running.program.pid = self.child_process.pid
         self.status.running.program.stamp_start.GetCurrentTime()
@@ -102,7 +103,15 @@ class ProgramSupervisor:
 
 if __name__ == '__main__':
     logging.basicConfig(stream=sys.stdout, level=logging.INFO)
-
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        '--programs', help='A programs.json file declaring what programs to run.',
+        default=os.path.join(farm_ng_root, 'modules/core/config/programd/programs.json'),
+    )
+    args = parser.parse_args()
+    if not os.path.exists(args.programs):
+        print(f'--programs={args.programs} does not exist')
+        sys.exit(-1)
     event_bus = get_event_bus('programd')
-    supervisor = ProgramSupervisor(event_bus)
+    supervisor = ProgramSupervisor(event_bus, str(args.programs))
     event_bus.event_loop().run_until_complete(supervisor.run())

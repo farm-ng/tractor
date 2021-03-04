@@ -294,7 +294,7 @@ void ModelError(MultiViewApriltagRigModel* model,
         (total_depth_error / total_depth_count));
     summary << "model depth error (meters): " << model->depth_error() << "\n";
   }
-  LOG(INFO) << "Error Summary:\n" << summary.str();
+  // LOG(INFO) << "Error Summary:\n" << summary.str();
 }
 
 std::vector<MultiViewApriltagDetections> LoadMultiViewApriltagDetections(

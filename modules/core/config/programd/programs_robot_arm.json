@@ -1,0 +1,34 @@
+{
+  "programs": [
+    {
+      "id": "capture_robot_extrinsics_dataset",
+      "name": "Capture Robot Extrinsics Dataset",
+      "description": "Captures a robot extrinsics dataset, for use in other programs",
+      "launchPath": {
+        "path": "build/modules/calibration/cpp/farm_ng/capture_robot_extrinsics_dataset",
+        "rootEnvVar": "FARM_NG_ROOT"
+      },
+      "launchArgs": ["-interactive"]
+    },
+    {
+      "id": "calibrate_robot_extrinsics",
+      "name": "Calibrate Robot Extrinsics",
+      "description": "Calibrates cameras to robot arms.",
+      "launchPath": {
+        "path": "build/modules/calibration/cpp/farm_ng/calibrate_robot_extrinsics",
+        "rootEnvVar": "FARM_NG_ROOT"
+      },
+      "launchArgs": ["-interactive"]
+    },
+    {
+      "id": "validate_robot_extrinsics",
+      "name": "Validate Robot Extrinsics",
+      "description": "Validate calibration of cameras to robot arms.",
+      "launchPath": {
+        "path": "build/modules/calibration/cpp/farm_ng/validate_robot_extrinsics",
+        "rootEnvVar": "FARM_NG_ROOT"
+      },
+      "launchArgs": ["-interactive"]
+    }
+  ]
+}

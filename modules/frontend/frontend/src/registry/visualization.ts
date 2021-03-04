@@ -41,6 +41,8 @@ import { CapturePoseResponseVisualizer } from "../components/scope/visualizers/C
 import { CaptureRobotExtrinsicsDatasetConfigurationVisualizer } from "../components/scope/visualizers/CaptureRobotExtrinsicsDatasetConfiguration";
 import { CaptureRobotExtrinsicsDatasetResultVisualizer } from "../components/scope/visualizers/CaptureRobotExtrinsicsDatasetResult";
 import { CaptureRobotExtrinsicsDatasetStatusVisualizer } from "../components/scope/visualizers/CaptureRobotExtrinsicsDatasetStatus";
+import { CalibrateRobotExtrinsicsConfigurationVisualizer } from "../components/scope/visualizers/CalibrateRobotExtrinsicsConfiguration";
+
 import { MultiViewCameraRigVisualizer } from "../components/scope/visualizers/MultiViewCameraRig";
 import { LogPlaybackConfigurationVisualizer } from "../components/scope/visualizers/LogPlaybackConfiguration";
 import { LogPlaybackStatusVisualizer } from "../components/scope/visualizers/LogPlaybackStatus";
@@ -116,6 +118,7 @@ export const visualizerRegistry: { [k: string]: Visualizer } = [
   CaptureRobotExtrinsicsDatasetConfigurationVisualizer,
   CaptureRobotExtrinsicsDatasetResultVisualizer,
   CaptureRobotExtrinsicsDatasetStatusVisualizer,
+  CalibrateRobotExtrinsicsConfigurationVisualizer,
   CaptureVideoDatasetConfigurationVisualizer,
   CaptureVideoDatasetResultVisualizer,
   CaptureVideoDatasetStatusVisualizer,
