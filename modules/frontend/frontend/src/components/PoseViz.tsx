@@ -42,7 +42,7 @@ export const ReferenceFrameViz: React.FC<ReferenceFrameNode> = (props) => {
         <geometry
           attach="geometry"
           vertices={[new Vector3(0, 0, 0), position]}
-          onUpdate={(self) => (self.verticesNeedUpdate = true)}
+          onUpdate={(self: any) => (self.verticesNeedUpdate = true)}
         />
         <lineBasicMaterial attach="material" color="lightgray" />
       </line>

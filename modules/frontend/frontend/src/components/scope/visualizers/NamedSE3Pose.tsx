@@ -45,7 +45,7 @@ const NamedSE3Pose3DElement: React.FC<IProps> = ({
         <geometry
           attach="geometry"
           vertices={[toVector3(undefined), toVector3(value.aPoseB?.position)]}
-          onUpdate={(self) => (self.verticesNeedUpdate = true)}
+          onUpdate={(self : any) => (self.verticesNeedUpdate = true)}
         />
         <lineBasicMaterial attach="material" color="lightgray" />
       </line>
