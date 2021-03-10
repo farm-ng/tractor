@@ -18,6 +18,7 @@ class EventBus;
 namespace perception {
 
 std::array<Eigen::Vector3d, 4> PointsTag(const ApriltagDetection& detection);
+std::array<Eigen::Vector3d, 4> PointsTag(const ApriltagRig::Node& node);
 
 std::array<Eigen::Vector2d, 4> PointsImage(const ApriltagDetection& detection);
 

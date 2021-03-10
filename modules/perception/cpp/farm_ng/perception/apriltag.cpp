@@ -30,6 +30,14 @@ std::array<Eigen::Vector3d, 4> PointsTag(const ApriltagDetection& detection) {
        Eigen::Vector3d(-half_size, half_size, 0.0)});
 }
 
+std::array<Eigen::Vector3d, 4> PointsTag(const ApriltagRig::Node& node) {
+  CHECK_EQ(node.points_tag_size(),4);
+  return std::array<Eigen::Vector3d, 4>(
+      {ProtoToEigen(node.points_tag(0)), ProtoToEigen(node.points_tag(1)), ProtoToEigen(node.points_tag(2)),
+      ProtoToEigen(node.points_tag(3))});
+}
+
+
 std::array<Eigen::Vector2d, 4> PointsImage(const ApriltagDetection& detection) {
   return std::array<Eigen::Vector2d, 4>(
       {Eigen::Vector2d(detection.p(0).x(), detection.p(0).y()),

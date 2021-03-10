@@ -399,6 +399,11 @@ class CalibrateMultiViewLidarProgram {
     model = Solve(model);
     SavePlyFilesInTagRig(model, "/blobstore/scratch/solved_");
 
+ auto model_bin = core::GetUniqueArchiveResource(
+        "multi_view_lidar_model", "pb",
+        core::ContentTypeProtobufBinary<MultiViewLidarModel>());
+            core::WriteProtobufToBinaryFile(model_bin.second, model);
+
     auto temp_model = model;
     temp_model.clear_measurements();
 

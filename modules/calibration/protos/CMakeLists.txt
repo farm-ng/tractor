@@ -1,5 +1,6 @@
 farm_ng_add_protobufs(farm_ng_calibration_protobuf
   PROTO_FILES
+  ./farm_ng/calibration/align_sensor_rig.proto
   ./farm_ng/calibration/calibrate_apriltag_rig.proto
   ./farm_ng/calibration/calibrate_base_to_camera.proto
   ./farm_ng/calibration/calibrate_intrinsics.proto

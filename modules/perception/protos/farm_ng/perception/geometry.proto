@@ -35,6 +35,11 @@ message Quaternion {
   double w = 4;
 }
 
+message Plane {
+  Vec3 position = 1;
+  Vec3 normal = 2;
+}
+
 message SE3Pose {
   Vec3 position = 1;
   Quaternion rotation = 2;

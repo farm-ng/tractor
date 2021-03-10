@@ -1,0 +1,29 @@
+syntax = "proto3";
+
+import "farm_ng/core/resource.proto";
+import "farm_ng/perception/geometry.proto";
+
+package farm_ng.calibration;
+option go_package = "github.com/farm-ng/genproto/calibration";
+
+
+message AlignSensorRigConfiguration {
+  // Serialized calibration mdoel
+  farm_ng.core.Resource model = 1;
+
+  // set of tags on the ground, constrains the Z of the base frame
+  repeated int32 floor_tag_ids = 2;
+  double floor_distance_threshold = 3;
+
+  // base frame name
+  string base_frame = 4;
+
+  // set of poses (typically translation only) of sensors in the desired base frame.
+  // Will be best fit keeping the sensor rig rigid.
+  repeated farm_ng.perception.NamedSE3Pose base_pose_sensor_measured = 5;
+}
+
+message AlignSensorRigResult {
+  string base_frame = 1;
+  repeated farm_ng.perception.NamedSE3Pose base_pose_sensor=2;
+}

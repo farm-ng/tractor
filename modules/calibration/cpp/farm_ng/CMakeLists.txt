@@ -23,3 +23,8 @@ target_link_libraries(validate_robot_extrinsics farm_ng_calibration farm_ng_cali
 
 add_executable(robot_hal_service_mock robot_hal_service_mock.cpp)
 target_link_libraries(robot_hal_service_mock farm_ng_core farm_ng_perception farm_ng_calibration_protobuf farm_ng_calibration_grpc)
+
+
+
+add_executable(align_sensor_rig align_sensor_rig.cpp)
+target_link_libraries(align_sensor_rig farm_ng_core farm_ng_perception farm_ng_calibration)

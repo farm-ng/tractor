@@ -57,6 +57,10 @@ inline void ProtoToEigen(const Vec3& pt, Sophus::SE3d::TranslationType* t) {
   t->z() = pt.z();
 }
 
+inline Eigen::Vector3d ProtoToEigen(const Vec3& pt) {
+  return Eigen::Vector3d(pt.x(), pt.y(), pt.z());
+}
+
 inline void ProtoToEigen(const Quaternion& pq,
                          Sophus::SE3d::QuaternionType* q) {
   q->x() = pq.x();
