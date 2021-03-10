@@ -33,7 +33,7 @@ Eigen::Matrix3Xd SelectPoints(const Eigen::MatrixXd& points,
 
   for (int i = 0; i < out.cols(); ++i) {
     CHECK_LT(indices[i], points.cols());
-    CHECK_GT(indices[i], 0);
+    CHECK_GE(indices[i], 0);
     out.col(i) = points.col(indices[i]);
   }
   return out;
