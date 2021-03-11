@@ -53,7 +53,11 @@ void AddApriltagRigToApriltagConfig(const ApriltagRig& rig,
 //   other frame.
 class ApriltagsFilter {
  public:
-  ApriltagsFilter();
+   enum FilterType{
+    FILTER_STABLE=1,
+    FILTER_NOVEL=2
+  };
+  ApriltagsFilter(FilterType filter=FILTER_STABLE);
   void Reset();
   bool AddApriltags(const ApriltagDetections& detections, int steady_count = 5,
                     int window_size = 7);
@@ -64,6 +68,7 @@ class ApriltagsFilter {
     std::array<Eigen::Vector2d, 4> last_points_image;
     int count;
   };
+  FilterType filter_;
   std::map<int, DetectionHistory> detection_history;
   cv::Mat mask_;
   bool once_;

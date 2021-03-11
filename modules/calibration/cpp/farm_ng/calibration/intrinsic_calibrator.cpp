@@ -400,7 +400,7 @@ IntrinsicModel InitialIntrinsicModelFromConfig(
   }
 
   core::EventLogReader log_reader(dataset_result.dataset());
-  perception::ApriltagsFilter filter;
+  perception::ApriltagsFilter filter(perception::ApriltagsFilter::FILTER_NOVEL);
     int window_size = 7;
     int steady_count =5;
     if(config.has_steady_count()) {

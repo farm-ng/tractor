@@ -445,7 +445,7 @@ ApriltagDetections ApriltagDetector::Detect(
   return detections;
 }
 
-ApriltagsFilter::ApriltagsFilter() : once_(false) {}
+ApriltagsFilter::ApriltagsFilter(FilterType filter) : filter_(filter), once_(false){}
 void ApriltagsFilter::Reset() {
   mask_ = cv::Mat();
   once_ = false;
@@ -470,9 +470,20 @@ bool ApriltagsFilter::AddApriltags(const ApriltagDetections& detections,
 
       Eigen::Map<const Eigen::Matrix2Xd> m1(points_image[0].data(), 2, points_image.size());
       Eigen::Map<const Eigen::Matrix2Xd> m2(x.last_points_image[0].data(), 2, x.last_points_image.size());
-      if((m1-m2).norm() < window_size) {
+      double dist = (m1-m2).norm();
+      bool keep = false;
+      switch(filter_) {
+        case FILTER_STABLE:
+          keep = dist < window_size;
+        break;
+        case FILTER_NOVEL:
+          x.count = 0;
+          keep=  dist > window_size;
+          break;
+      }
+      if( keep) {
         x.count++;
-        mean_count+= x.count;
+        mean_count += x.count;
         new_history[x.id] = x;
       }
     } else {
@@ -488,16 +499,22 @@ bool ApriltagsFilter::AddApriltags(const ApriltagDetections& detections,
     Reset();
     return false;
   }
-  mean_count /= new_history.size();
-  const int kThresh = steady_count;
-  if (mean_count > kThresh && !once_) {
-    once_ = true;
-    return true;
+  detection_history = new_history;  
+  if(filter_ == FILTER_STABLE) {
+    mean_count /= new_history.size();
+    const int kThresh = steady_count;
+    if (mean_count > kThresh && !once_) {
+      once_ = true;
+      return true;
+    }
+    if (mean_count < kThresh) {
+     once_ = false;
+    }
+  } else if (filter_ == FILTER_NOVEL) {
+    if(int(detection_history.size()) > steady_count) {
+      return true;
+    }
   }
-  if (mean_count < kThresh) {
-    once_ = false;
-  }
-  detection_history = new_history;
   return false;
 }
 
