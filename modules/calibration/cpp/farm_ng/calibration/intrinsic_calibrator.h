@@ -7,6 +7,9 @@
 namespace farm_ng {
 namespace calibration {
 
+
+void ModelError(IntrinsicModel* model, bool disable_reprojection_images);
+
 IntrinsicModel SolveIntrinsicsModel(IntrinsicModel model);
 
 IntrinsicModel InitialIntrinsicModelFromConfig(

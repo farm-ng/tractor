@@ -1,6 +1,8 @@
 syntax = "proto3";
 
 import "google/protobuf/timestamp.proto";
+import "google/protobuf/wrappers.proto";
+
 import "farm_ng/core/resource.proto";
 import "farm_ng/calibration/calibrator.proto";
 import "farm_ng/perception/camera_model.proto";
@@ -17,6 +19,9 @@ message CalibrateIntrinsicsConfiguration {
 
   string camera_name = 3;
   bool filter_stable_tags = 4;
+  google.protobuf.Int32Value steady_count = 9;
+  google.protobuf.Int32Value steady_window_size = 12;
+
 }
 
 message CalibrateIntrinsicsStatus {

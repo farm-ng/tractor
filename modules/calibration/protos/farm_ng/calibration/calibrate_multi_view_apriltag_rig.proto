@@ -34,6 +34,7 @@ message CalibrateMultiViewApriltagRigConfiguration {
   // The threshold for number of frames that detection must be stationary.
   // Defaults to 5 if not set.
   google.protobuf.Int32Value steady_count = 9;
+  google.protobuf.Int32Value steady_window_size = 12;
 
   // Disable the output of reprojection images.
   bool disable_reprojection_images = 11;

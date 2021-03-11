@@ -1,10 +1,12 @@
 #ifndef FARM_NG_CALIBRATION_APRILTAG_H_
 #define FARM_NG_CALIBRATION_APRILTAG_H_
 #include <array>
+#include <map>
 
 #include <glog/logging.h>
 #include <Eigen/Dense>
 #include <opencv2/core.hpp>
+
 
 #include "farm_ng/perception/apriltag.pb.h"
 #include "farm_ng/perception/camera_model.pb.h"
@@ -57,6 +59,12 @@ class ApriltagsFilter {
                     int window_size = 7);
 
  private:
+  struct DetectionHistory {
+    int id;
+    std::array<Eigen::Vector2d, 4> last_points_image;
+    int count;
+  };
+  std::map<int, DetectionHistory> detection_history;
   cv::Mat mask_;
   bool once_;
 };

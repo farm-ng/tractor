@@ -211,7 +211,6 @@ class CreateVideoDatasetProgram {
   }
 
   void send_status() {
-    LOG(INFO) << status_.ShortDebugString();
     bus_.Send(MakeEvent(bus_.GetName() + "/status", status_));
   }
 

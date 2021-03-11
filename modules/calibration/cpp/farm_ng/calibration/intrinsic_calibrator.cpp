@@ -174,7 +174,7 @@ std::tuple<PoseGraph, ApriltagRigIdMap> PoseGraphFromModel(
   return {pose_graph, id_map};
 }
 
-void ModelError(IntrinsicModel* model) {
+void ModelError(IntrinsicModel* model, bool disable_reprojection_images) {
   model->set_rmse(0.0);
   model->clear_reprojection_images();
   model->clear_tag_stats();
@@ -192,11 +192,15 @@ void ModelError(IntrinsicModel* model) {
   for (int i = 0; i < model->detections_size(); ++i) {
     std::string camera_frame =
         FrameNameNumber(model->camera_model().frame_name(), i);
-    cv::Mat image = image_loader.LoadImage(model->detections(i).image());
-    if (image.channels() == 1) {
-      cv::Mat color;
-      cv::cvtColor(image, color, cv::COLOR_GRAY2BGR);
-      image = color;
+
+    cv::Mat image;
+    if (!disable_reprojection_images) {
+      image = image_loader.LoadImage(model->detections(i).image());
+      if (image.channels() == 1) {
+        cv::Mat color;
+        cv::cvtColor(image, color, cv::COLOR_GRAY2BGR);
+        image = color;
+      }
     }
 
     for (const auto& detection : model->detections(i).detections()) {
@@ -221,16 +225,20 @@ void ModelError(IntrinsicModel* model) {
       auto points_tag = PointsTag(detection);
       double tag_rmse = 0;
       for (int i = 0; i < 4; ++i) {
-        cv::circle(image, cv::Point(points_image[i].x(), points_image[i].y()),
-                   5, cv::Scalar(255, 0, 0));
+        if (!disable_reprojection_images) {
+          cv::circle(image, cv::Point(points_image[i].x(), points_image[i].y()),
+                     5, cv::Scalar(255, 0, 0));
+        }
         Eigen::Vector2d point_image_proj = perception::ProjectPointToPixel(
             model->camera_model(), camera_pose_tag * points_tag[i]);
 
         double rmse = (point_image_proj - points_image[i]).squaredNorm();
         tag_rmse += rmse;
-
-        cv::circle(image, cv::Point(point_image_proj.x(), point_image_proj.y()),
-                   3, cv::Scalar(0, 0, 255), -1);
+        if (!disable_reprojection_images) {
+          cv::circle(image,
+                     cv::Point(point_image_proj.x(), point_image_proj.y()), 3,
+                     cv::Scalar(0, 0, 255), -1);
+        }
       }
       total_rmse += tag_rmse;
       total_count += 8;  // 4*2 residuals
@@ -244,33 +252,38 @@ void ModelError(IntrinsicModel* model) {
       image_rmse->set_frame_number(i);
       image_rmse->set_camera_name(model->camera_model().frame_name());
 
-      cv::Point dc(detection.c().x(), detection.c().y());
-      std::string id_str = std::to_string(detection.id());
+      if (!disable_reprojection_images) {
+        cv::Point dc(detection.c().x(), detection.c().y());
+        std::string id_str = std::to_string(detection.id());
 
-      int baseline;
-      cv::Size text_size =
+        int baseline;
+        cv::Size text_size =
 
-          cv::getTextSize(id_str, cv::FONT_HERSHEY_PLAIN, 1.0, 1, &baseline);
-      cv::rectangle(
-          image,
-          cv::Rect(dc + cv::Point(-1, 1),
-                   dc + cv::Point(text_size.width + 1, -text_size.height - 1)),
+            cv::getTextSize(id_str, cv::FONT_HERSHEY_PLAIN, 1.0, 1, &baseline);
+        cv::rectangle(image,
+                      cv::Rect(dc + cv::Point(-1, 1),
+                               dc + cv::Point(text_size.width + 1,
+                                              -text_size.height - 1)),
 
-          cv::Scalar(0, 0, 0), -1);
+                      cv::Scalar(0, 0, 0), -1);
 
-      cv::putText(image, id_str, dc, cv::FONT_HERSHEY_PLAIN, 1.0,
-                  cv::Scalar(125, 255, 125));
+        cv::putText(image, id_str, dc, cv::FONT_HERSHEY_PLAIN, 1.0,
+                    cv::Scalar(125, 255, 125));
+      }
     }
-    Image& reprojection_image = *model->add_reprojection_images();
-    reprojection_image.mutable_camera_model()->CopyFrom(model->camera_model());
-    auto resource_path = core::GetUniqueArchiveResource(
-        FrameNameNumber(
-            "reprojection-" + SolverStatus_Name(model->solver_status()), i),
-        "jpg", "image/jpg");
-    reprojection_image.mutable_resource()->CopyFrom(resource_path.first);
-    LOG(INFO) << resource_path.second.string();
-    CHECK(cv::imwrite(resource_path.second.string(), image))
-        << "Could not write: " << resource_path.second;
+    if (!disable_reprojection_images) {
+      Image& reprojection_image = *model->add_reprojection_images();
+      reprojection_image.mutable_camera_model()->CopyFrom(
+          model->camera_model());
+      auto resource_path = core::GetUniqueArchiveResource(
+          FrameNameNumber(
+              "reprojection-" + SolverStatus_Name(model->solver_status()), i),
+          "jpg", "image/jpg");
+      reprojection_image.mutable_resource()->CopyFrom(resource_path.first);
+      LOG(INFO) << resource_path.second.string();
+      CHECK(cv::imwrite(resource_path.second.string(), image))
+          << "Could not write: " << resource_path.second;
+    }
   }
   for (auto& stats : tag_stats) {
     stats.second.set_tag_rig_rmse(
@@ -363,7 +376,6 @@ IntrinsicModel SolveIntrinsicsModel(IntrinsicModel model) {
     model.mutable_camera_model()->CopyFrom(camera_model_param.GetCameraModel());
     pose_graph.UpdateNamedSE3Poses(model.mutable_camera_poses_rig());
     model.set_solver_status(SolverStatus::SOLVER_STATUS_CONVERGED);
-    ModelError(&model);
   } else {
     model.set_solver_status(SolverStatus::SOLVER_STATUS_FAILED);
   }
@@ -389,6 +401,14 @@ IntrinsicModel InitialIntrinsicModelFromConfig(
 
   core::EventLogReader log_reader(dataset_result.dataset());
   perception::ApriltagsFilter filter;
+    int window_size = 7;
+    int steady_count =5;
+    if(config.has_steady_count()) {
+      steady_count = config.steady_count().value();
+    }
+    if(config.has_steady_window_size()) {
+      window_size = config.steady_window_size().value();
+    }
 
   while (true) {
     core::Event event;
@@ -404,11 +424,11 @@ IntrinsicModel InitialIntrinsicModelFromConfig(
         continue;
       }
       if (config.filter_stable_tags() &&
-          !filter.AddApriltags(detections, 5, 7)) {
+          !filter.AddApriltags(detections, steady_count, window_size)) {
         continue;
       }
       intrinsic_model.add_detections()->CopyFrom(detections);
-      LOG(INFO) << intrinsic_model.detections_size();
+      LOG(INFO) << "N detections: " << intrinsic_model.detections_size();
       if (!intrinsic_model.camera_model().image_height()) {
         LOG(INFO) << "Initial model: "
                   << detections.image().camera_model().ShortDebugString();

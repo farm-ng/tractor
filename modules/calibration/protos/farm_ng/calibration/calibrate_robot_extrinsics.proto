@@ -4,7 +4,6 @@ import "google/protobuf/timestamp.proto";
 
 import "farm_ng/core/resource.proto";
 import "farm_ng/calibration/calibrator.proto";
-import "farm_ng/perception/geometry.proto";
 
 package farm_ng.calibration;
 option go_package = "github.com/farm-ng/genproto/calibration";

@@ -31,12 +31,11 @@ std::array<Eigen::Vector3d, 4> PointsTag(const ApriltagDetection& detection) {
 }
 
 std::array<Eigen::Vector3d, 4> PointsTag(const ApriltagRig::Node& node) {
-  CHECK_EQ(node.points_tag_size(),4);
+  CHECK_EQ(node.points_tag_size(), 4);
   return std::array<Eigen::Vector3d, 4>(
-      {ProtoToEigen(node.points_tag(0)), ProtoToEigen(node.points_tag(1)), ProtoToEigen(node.points_tag(2)),
-      ProtoToEigen(node.points_tag(3))});
+      {ProtoToEigen(node.points_tag(0)), ProtoToEigen(node.points_tag(1)),
+       ProtoToEigen(node.points_tag(2)), ProtoToEigen(node.points_tag(3))});
 }
-
 
 std::array<Eigen::Vector2d, 4> PointsImage(const ApriltagDetection& detection) {
   return std::array<Eigen::Vector2d, 4>(
@@ -314,9 +313,9 @@ class ApriltagDetector::Impl {
         apriltag_detector_create(), &apriltag_detector_destroy);
 
     apriltag_detector_add_family(tag_detector_.get(), tag_family_.get());
-    tag_detector_->quad_decimate = 1.0;
+    tag_detector_->quad_decimate = 4.0;
     tag_detector_->quad_sigma = 0.8;
-    tag_detector_->nthreads = 1;
+    tag_detector_->nthreads = 4;
     tag_detector_->debug = false;
     tag_detector_->refine_edges = true;
   }
@@ -450,38 +449,46 @@ ApriltagsFilter::ApriltagsFilter() : once_(false) {}
 void ApriltagsFilter::Reset() {
   mask_ = cv::Mat();
   once_ = false;
+  detection_history.clear();
+
 }
 bool ApriltagsFilter::AddApriltags(const ApriltagDetections& detections,
                                    int steady_count, int window_size) {
-  const int n_tags = detections.detections_size();
+ const int n_tags = detections.detections_size();
   if (n_tags == 0) {
     Reset();
     return false;
   }
+  std::map<int, DetectionHistory> new_history;
+  double mean_count = 0;
 
-  if (mask_.empty()) {
-    mask_ =
-        cv::Mat::zeros(GetCvSize(detections.image().camera_model()), CV_8UC1);
-  }
-  CHECK(!mask_.empty());
-  cv::Mat new_mask = cv::Mat::zeros(mask_.size(), CV_8UC1);
-  double mean_count = 0.0;
-  cv::Rect mask_roi(0, 0, mask_.size().width, mask_.size().height);
-  for (const ApriltagDetection& detection : detections.detections()) {
-    for (const auto& p : detection.p()) {
-      cv::Rect roi(p.x() - window_size / 2, p.y() - window_size / 2,
-                   window_size, window_size);
-      roi = roi & mask_roi;
-      if (roi.empty()) {
-        continue;
+  for (const auto& detection : detections.detections()) {
+    auto it = detection_history.find(detection.id());
+    auto points_image = PointsImage(detection);
+    if(it != detection_history.end()) {
+      DetectionHistory x = it->second;
+
+      Eigen::Map<const Eigen::Matrix2Xd> m1(points_image[0].data(), 2, points_image.size());
+      Eigen::Map<const Eigen::Matrix2Xd> m2(x.last_points_image[0].data(), 2, x.last_points_image.size());
+      if((m1-m2).norm() < window_size) {
+        x.count++;
+        mean_count+= x.count;
+        new_history[x.id] = x;
       }
-      new_mask(roi) = mask_(roi) + 1;
-      double max_val = 0.0;
-      cv::minMaxLoc(new_mask(roi), nullptr, &max_val);
-      mean_count += max_val / (4 * n_tags);
+    } else {
+      DetectionHistory x;
+      x.count = 1;
+      x.last_points_image = points_image;
+      x.id = detection.id();
+      new_history[x.id] = x;
+      mean_count += x.count;
     }
   }
-  mask_ = new_mask;
+  if(new_history.empty()) {
+    Reset();
+    return false;
+  }
+  mean_count /= new_history.size();
   const int kThresh = steady_count;
   if (mean_count > kThresh && !once_) {
     once_ = true;
@@ -490,6 +497,7 @@ bool ApriltagsFilter::AddApriltags(const ApriltagDetections& detections,
   if (mean_count < kThresh) {
     once_ = false;
   }
+  detection_history = new_history;
   return false;
 }
 
