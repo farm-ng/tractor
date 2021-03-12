@@ -34,7 +34,7 @@
     "postcss-normalize": "^9.0.0",
     "postcss-preset-env": "^6.7.0",
     "prettier": "^2.0.5",
-    "react-dev-utils": "^10.2.1",
+    "react-dev-utils": "^11.0.4",
     "resolve-url-loader": "^3.1.1",
     "sass-loader": "^10.0.2",
     "source-map-loader": "^0.2.4",
