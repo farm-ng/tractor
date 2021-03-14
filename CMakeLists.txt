@@ -9,6 +9,13 @@ endif(CCACHE_FOUND)
 
 project(farm_ng_root)
 
+execute_process(COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/version.sh OUTPUT_VARIABLE farm_ng_VERSION OUTPUT_STRIP_TRAILING_WHITESPACE)
+message(STATUS "farm_ng_VERSION: -- ${farm_ng_VERSION} --")
+string(REPLACE "." ";" VERSION_LIST ${farm_ng_VERSION})
+list(GET VERSION_LIST 0 farm_ng_VERSION_MAJOR)
+list(GET VERSION_LIST 1 farm_ng_VERSION_MINOR)
+list(GET VERSION_LIST 2 farm_ng_VERSION_PATCH)
+
 include(CMakeToolsHelpers OPTIONAL)
 
 set(PKG_CONFIG_USE_CMAKE_PREFIX_PATH ON)
@@ -39,7 +46,7 @@ if(BUILD_ONLY_PROTO)
   endforeach()
   return()
 endif()
-
+set(INSTALL_GTEST OFF)
 add_subdirectory(third_party/googletest)
 
 farm_ng_find_base_packages()

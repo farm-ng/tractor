@@ -1,4 +1,5 @@
 cmake_minimum_required(VERSION 3.10)
-project(farm_ng_frontend)
+farm_ng_project(frontend)
 
 add_subdirectory(protos)
+farm_ng_export_module()
