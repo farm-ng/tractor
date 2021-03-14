@@ -444,78 +444,111 @@ ApriltagDetections ApriltagDetector::Detect(
   }
   return detections;
 }
+ApriltagsHistory::Entry ApriltagsHistory::GetEntry(
+    const ApriltagDetection& detection) const {
+  auto it = entries_.find(detection.id());
+  ApriltagsHistory::Entry x;
+  auto points_image = PointsImage(detection);
+  if (it != entries_.end()) {
+    x = it->second;
 
-ApriltagsFilter::ApriltagsFilter(FilterType filter) : filter_(filter), once_(false){}
-void ApriltagsFilter::Reset() {
-  mask_ = cv::Mat();
-  once_ = false;
-  detection_history.clear();
+    Eigen::Map<const Eigen::Matrix2Xd> m1(points_image[0].data(), 2,
+                                          points_image.size());
+    Eigen::Map<const Eigen::Matrix2Xd> m2(x.first_points_image[0].data(), 2,
+                                          x.first_points_image.size());
+    Eigen::Map<const Eigen::Matrix2Xd> m3(x.last_points_image[0].data(), 2,
+                                          x.last_points_image.size());
 
+    x.distance_to_first = (m1 - m2).norm();
+    x.distance_to_last = (m1 - m3).norm();
+    x.last_points_image = points_image;
+    x.count++;
+  } else {
+    x.count = 1;
+    x.distance_to_first = 0.0;
+    x.distance_to_last = 0.0;
+    x.first_points_image = points_image;
+    x.last_points_image = points_image;
+    x.id = detection.id();
+  }
+  return x;
 }
+void ApriltagsHistory::StoreEntry(const ApriltagsHistory::Entry& entry) {
+  entries_[entry.id] = entry;
+}
+
+ApriltagsFilter::ApriltagsFilter() : once_(false) {}
+
+void ApriltagsFilter::Reset() {
+  once_ = false;
+  history_ = ApriltagsHistory();
+}
+
 bool ApriltagsFilter::AddApriltags(const ApriltagDetections& detections,
                                    int steady_count, int window_size) {
- const int n_tags = detections.detections_size();
+  const int n_tags = detections.detections_size();
   if (n_tags == 0) {
     Reset();
     return false;
   }
-  std::map<int, DetectionHistory> new_history;
+  ApriltagsHistory new_history;
   double mean_count = 0;
-
+  double n_counts = 0;
   for (const auto& detection : detections.detections()) {
-    auto it = detection_history.find(detection.id());
-    auto points_image = PointsImage(detection);
-    if(it != detection_history.end()) {
-      DetectionHistory x = it->second;
-
-      Eigen::Map<const Eigen::Matrix2Xd> m1(points_image[0].data(), 2, points_image.size());
-      Eigen::Map<const Eigen::Matrix2Xd> m2(x.last_points_image[0].data(), 2, x.last_points_image.size());
-      double dist = (m1-m2).norm();
-      bool keep = false;
-      switch(filter_) {
-        case FILTER_STABLE:
-          keep = dist < window_size;
-        break;
-        case FILTER_NOVEL:
-          x.count = 0;
-          keep=  dist > window_size;
-          break;
-      }
-      if( keep) {
-        x.count++;
-        mean_count += x.count;
-        new_history[x.id] = x;
-      }
-    } else {
-      DetectionHistory x;
-      x.count = 1;
-      x.last_points_image = points_image;
-      x.id = detection.id();
-      new_history[x.id] = x;
-      mean_count += x.count;
+    auto entry = history_.GetEntry(detection);
+    if (entry.distance_to_first < window_size) {
+      new_history.StoreEntry(entry);
+      mean_count += entry.count;
+      n_counts += 1;
     }
   }
-  if(new_history.empty()) {
+
+  if (new_history.empty()) {
     Reset();
     return false;
   }
-  detection_history = new_history;  
-  if(filter_ == FILTER_STABLE) {
-    mean_count /= new_history.size();
-    const int kThresh = steady_count;
-    if (mean_count > kThresh && !once_) {
-      once_ = true;
-      return true;
-    }
-    if (mean_count < kThresh) {
-     once_ = false;
-    }
-  } else if (filter_ == FILTER_NOVEL) {
-    if(int(detection_history.size()) > steady_count) {
-      return true;
-    }
+  history_ = new_history;
+
+  LOG(INFO) << mean_count / n_counts << " n_counts " << n_counts;
+
+  mean_count /= n_counts;
+  if (mean_count > steady_count && !once_) {
+    once_ = true;
+    return true;
+  }
+  if (mean_count < steady_count) {
+    once_ = false;
+    return false;
   }
   return false;
+}
+
+ApriltagsFilterNovel::ApriltagsFilterNovel() {}
+void ApriltagsFilterNovel::Reset() {
+  history_ = ApriltagsHistory();
+}
+bool ApriltagsFilterNovel::AddApriltags(const ApriltagDetections& detections,
+                                        int window_size) {
+  const int n_tags = detections.detections_size();
+  if (n_tags == 0) {
+    Reset();
+    return false;
+  }
+  ApriltagsHistory new_history;
+  double mean_distance = 0;
+  double mean_distance_to_last = 0.0;
+  for (const auto& detection : detections.detections()) {
+    auto entry = history_.GetEntry(detection);
+    mean_distance += entry.distance_to_first;
+    new_history.StoreEntry(entry);
+  }
+
+  history_ = new_history;
+  mean_distance = mean_distance / n_tags;
+  LOG(INFO) << "mean_distance: " << mean_distance << " n_tags: " << n_tags;
+  bool add_tag = mean_distance > window_size;
+  if(add_tag) { Reset();}
+  return add_tag;
 }
 
 }  // namespace perception

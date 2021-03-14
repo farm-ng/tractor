@@ -30,6 +30,28 @@ std::optional<double> TagSize(const TagLibrary& tag_library, int tag_id);
 void AddApriltagRigToApriltagConfig(const ApriltagRig& rig,
                                     ApriltagConfig* config);
 
+class ApriltagsHistory {
+  public:
+   struct Entry {
+    int id;
+    std::array<Eigen::Vector2d, 4> first_points_image;
+    std::array<Eigen::Vector2d, 4> last_points_image;
+    int count;
+    double distance_to_first;
+    double distance_to_last;
+  };
+
+  Entry GetEntry(const ApriltagDetection& detection) const;
+  void StoreEntry(const Entry& entry);
+  bool empty() const {
+    return entries_.empty();
+  }
+
+private:
+
+  std::map<int, Entry> entries_;
+};
+
 // This class is meant to help filter apriltags, returning true once after the
 // camera becomes relatively stationary.  To allow for a capture program which
 // automatically captures a sparse set of unique view points for calibration
@@ -53,25 +75,25 @@ void AddApriltagRigToApriltagConfig(const ApriltagRig& rig,
 //   other frame.
 class ApriltagsFilter {
  public:
-   enum FilterType{
-    FILTER_STABLE=1,
-    FILTER_NOVEL=2
-  };
-  ApriltagsFilter(FilterType filter=FILTER_STABLE);
+  ApriltagsFilter();
   void Reset();
   bool AddApriltags(const ApriltagDetections& detections, int steady_count = 5,
                     int window_size = 7);
 
  private:
-  struct DetectionHistory {
-    int id;
-    std::array<Eigen::Vector2d, 4> last_points_image;
-    int count;
-  };
-  FilterType filter_;
-  std::map<int, DetectionHistory> detection_history;
-  cv::Mat mask_;
+
+  ApriltagsHistory history_;
   bool once_;
+};
+
+class ApriltagsFilterNovel {
+ public:
+  ApriltagsFilterNovel();
+  void Reset();
+  bool AddApriltags(const ApriltagDetections& detections, int window_size = 7);
+
+ private:
+   ApriltagsHistory history_;
 };
 
 class ApriltagDetector {

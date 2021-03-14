@@ -33,6 +33,8 @@ DEFINE_int32(steady_count, 0, "Number of frames to hold steady.");
 DEFINE_int32(steady_window_size, 0,
              "Size of window for stable tag detection in pixels.");
 
+DEFINE_int32(novel_window_size, 0, "Size of window to determine if detection is novel.");
+
 typedef farm_ng::core::Event EventPb;
 using farm_ng::core::ArchiveProtobufAsBinaryResource;
 using farm_ng::core::ArchiveProtobufAsJsonResource;
@@ -184,6 +186,9 @@ int Main(farm_ng::core::EventBus& bus) {
     config.mutable_steady_count()->set_value(FLAGS_steady_count);
   }
 
+  if(FLAGS_novel_window_size > 0) {
+config.mutable_novel_window_size()->set_value(FLAGS_novel_window_size);
+  }
   farm_ng::calibration::CalibrateIntrinsicsProgram program(bus, config,
                                                            FLAGS_interactive);
   return program.run();

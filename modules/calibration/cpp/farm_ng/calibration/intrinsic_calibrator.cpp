@@ -400,15 +400,21 @@ IntrinsicModel InitialIntrinsicModelFromConfig(
   }
 
   core::EventLogReader log_reader(dataset_result.dataset());
-  perception::ApriltagsFilter filter(perception::ApriltagsFilter::FILTER_NOVEL);
-    int window_size = 7;
-    int steady_count =5;
-    if(config.has_steady_count()) {
-      steady_count = config.steady_count().value();
-    }
-    if(config.has_steady_window_size()) {
-      window_size = config.steady_window_size().value();
-    }
+  perception::ApriltagsFilter filter_stable;
+  perception::ApriltagsFilterNovel filter_novel;
+
+  int steady_window_size = 7;
+  int steady_count = 5;
+  int novel_window_size = 0;
+  if (config.has_steady_count()) {
+    steady_count = config.steady_count().value();
+  }
+  if (config.has_steady_window_size()) {
+    steady_window_size = config.steady_window_size().value();
+  }
+  if(config.has_novel_window_size()) {
+    novel_window_size = config.novel_window_size().value();
+  }
 
   while (true) {
     core::Event event;
@@ -423,8 +429,15 @@ IntrinsicModel InitialIntrinsicModelFromConfig(
           config.camera_name()) {
         continue;
       }
-      if (config.filter_stable_tags() &&
-          !filter.AddApriltags(detections, steady_count, window_size)) {
+      bool add_tag = true;
+      if (config.filter_stable_tags()) {
+        add_tag = filter_stable.AddApriltags(detections, steady_count,
+                                             steady_window_size);
+      }
+      if (add_tag && novel_window_size > 0) {
+          add_tag = filter_novel.AddApriltags(detections, novel_window_size);
+      }
+      if (!add_tag) {
         continue;
       }
       intrinsic_model.add_detections()->CopyFrom(detections);

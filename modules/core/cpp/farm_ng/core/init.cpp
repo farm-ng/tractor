@@ -26,7 +26,7 @@ boost::asio::io_service& _get_io_service() {
 }
 
 boost::asio::signal_set& _get_signal_set() {
-  static boost::asio::signal_set signals(_get_io_service(), SIGTERM, SIGINT);
+  static boost::asio::signal_set signals(_get_io_service(), SIGTERM);
   return signals;
 }
 
