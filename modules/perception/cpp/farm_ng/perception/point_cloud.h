@@ -33,5 +33,7 @@ Eigen::Map<const Eigen::MatrixXd> PointCloudGetData(
 
 // Save a 3xN point cloud as a ply file at the given path.
 void SavePly(const std::string& ply_path, const Eigen::MatrixXd& points);
+void SavePly(const std::string& ply_path, const Eigen::MatrixXd& points, const Eigen::MatrixXd& colors_bgr);
+
 }  // namespace farm_ng::perception
 #endif
