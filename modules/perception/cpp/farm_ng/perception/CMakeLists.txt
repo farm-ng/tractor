@@ -62,6 +62,7 @@ farm_ng_add_library(farm_ng_perception
     opencv_imgcodecs
     ${OpenCV_LIBS}
     Sophus::Sophus
+  PRIVATE_LINK_LIBRARIES
     ${grabber_deps}
   PUBLIC_INCLUDE_DIRS
     ${EIGEN3_INCLUDE_DIRS}

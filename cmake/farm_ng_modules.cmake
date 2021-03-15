@@ -1,68 +1,77 @@
 macro(farm_ng_project name)
-project(farm_ng_${name})
-set(FARM_NG_MODULE_NAME ${name})
-set(FARM_NG_PROJECT_NAME farm_ng_${name})
+  project(farm_ng_${name})
+  set(FARM_NG_MODULE_NAME ${name})
+  set(FARM_NG_PROJECT_NAME farm_ng_${name})
 endmacro()
 
 macro(farm_ng_add_library target)
+  set(one_value_args BUILD_INCLUDE_PATH)
 
-set(one_value_args BUILD_INCLUDE_PATH)
+  set(multi_value_args
+    SOURCES
+    HEADERS
+    LINK_LIBRARIES
+    PUBLIC_INCLUDE_DIRS
+    PRIVATE_LINK_LIBRARIES)
 
-set(multi_value_args SOURCES HEADERS LINK_LIBRARIES PUBLIC_INCLUDE_DIRS)
-cmake_parse_arguments(FARM_NG_ADD_LIBRARY "" "BUILD_INCLUDE_PATH" "${multi_value_args}" ${ARGN})
+  cmake_parse_arguments(FARM_NG_ADD_LIBRARY "" "BUILD_INCLUDE_PATH" "${multi_value_args}" ${ARGN})
 
-if(NOT DEFINED FARM_NG_ADD_LIBRARY_BUILD_INCLUDE_PATH)
-  set(FARM_NG_ADD_LIBRARY_BUILD_INCLUDE_PATH ${CMAKE_CURRENT_LIST_DIR}/../../ )
-endif()
+  if(NOT DEFINED FARM_NG_ADD_LIBRARY_BUILD_INCLUDE_PATH)
+    set(FARM_NG_ADD_LIBRARY_BUILD_INCLUDE_PATH ${CMAKE_CURRENT_LIST_DIR}/../../ )
+  endif()
 
 
-add_library(${target} SHARED
-  ${FARM_NG_ADD_LIBRARY_SOURCES}
-  ${FARM_NG_ADD_LIBRARY_HEADERS}
-  )
-add_library(farm_ng::${target} ALIAS ${target})
-
-target_include_directories(${target} PUBLIC INTERFACE
-$<BUILD_INTERFACE:${FARM_NG_ADD_LIBRARY_BUILD_INCLUDE_PATH}>
-  $<INSTALL_INTERFACE:include>
-)
-target_include_directories(${target} PRIVATE
-${FARM_NG_ADD_LIBRARY_BUILD_INCLUDE_PATH}
-)
-if(DEFINED FARM_NG_ADD_LIBRARY_PUBLIC_INCLUDE_DIRS)
-target_include_directories(${target} PUBLIC
-${FARM_NG_ADD_LIBRARY_PUBLIC_INCLUDE_DIRS}
-)
-endif()
-
-set_property(TARGET ${target} PROPERTY VERSION ${farm_ng_VERSION})
-set_property(TARGET ${target} PROPERTY SOVERSION ${farm_ng_MAJOR_VERSION})
-set_property(TARGET ${target} PROPERTY
-  INTERFACE_${target}_MAJOR_VERSION ${farm_ng_MAJOR_VERSION})
-set_property(TARGET ${target} APPEND PROPERTY
-  COMPATIBLE_INTERFACE_STRING farm_ng_MAJOR_VERSION
-)
-
-target_link_libraries(
-  ${target}
-  ${FARM_NG_ADD_LIBRARY_LINK_LIBRARIES}
-)
-
-install(TARGETS ${target} EXPORT ${FARM_NG_PROJECT_NAME}Targets
-  LIBRARY DESTINATION lib
-  ARCHIVE DESTINATION lib
-  RUNTIME DESTINATION bin
-  INCLUDES DESTINATION include
-  )
-
-install(
-  FILES
+  add_library(${target} SHARED
+    ${FARM_NG_ADD_LIBRARY_SOURCES}
     ${FARM_NG_ADD_LIBRARY_HEADERS}
-  DESTINATION
-  include/farm_ng/${FARM_NG_MODULE_NAME}
-  COMPONENT
-    Devel
-)
+    )
+  add_library(farm_ng::${target} ALIAS ${target})
+
+  target_include_directories(${target} PUBLIC INTERFACE
+    $<BUILD_INTERFACE:${FARM_NG_ADD_LIBRARY_BUILD_INCLUDE_PATH}>
+    $<INSTALL_INTERFACE:include>
+    )
+
+  target_include_directories(${target} PRIVATE
+    ${FARM_NG_ADD_LIBRARY_BUILD_INCLUDE_PATH}
+    )
+
+  if(DEFINED FARM_NG_ADD_LIBRARY_PUBLIC_INCLUDE_DIRS)
+    target_include_directories(${target} PUBLIC
+      ${FARM_NG_ADD_LIBRARY_PUBLIC_INCLUDE_DIRS}
+      )
+  endif()
+
+  set_property(TARGET ${target} PROPERTY VERSION ${farm_ng_VERSION})
+  set_property(TARGET ${target} PROPERTY SOVERSION ${farm_ng_MAJOR_VERSION})
+  set_property(TARGET ${target} PROPERTY
+    INTERFACE_${target}_MAJOR_VERSION ${farm_ng_MAJOR_VERSION})
+  set_property(TARGET ${target} APPEND PROPERTY
+    COMPATIBLE_INTERFACE_STRING farm_ng_MAJOR_VERSION
+    )
+
+  target_link_libraries(
+    ${target} PUBLIC
+    ${FARM_NG_ADD_LIBRARY_LINK_LIBRARIES}
+    )
+
+  target_link_libraries(
+    ${target} PRIVATE
+    ${FARM_NG_ADD_LIBRARY_PRIVATE_LINK_LIBRARIES}
+    )
+
+  install(TARGETS ${target} EXPORT ${FARM_NG_PROJECT_NAME}Targets
+    LIBRARY DESTINATION lib
+    ARCHIVE DESTINATION lib
+    RUNTIME DESTINATION bin
+    INCLUDES DESTINATION include
+    )
+
+  install(
+    FILES ${FARM_NG_ADD_LIBRARY_HEADERS}
+    DESTINATION include/farm_ng/${FARM_NG_MODULE_NAME}
+    COMPONENT Devel
+    )
 endmacro()
 
 macro(farm_ng_add_protobufs target)
@@ -223,7 +232,7 @@ write_basic_package_version_file(
 )
 
 export(EXPORT ${module_name}Targets
-  FILE "${_EXPORT_DIR}/{module_name}Targets.cmake"
+  FILE "${_EXPORT_DIR}/${module_name}Targets.cmake"
   NAMESPACE farm_ng::
 )
 
