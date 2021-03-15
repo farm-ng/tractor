@@ -46,7 +46,7 @@ if(BUILD_ONLY_PROTO)
   endforeach()
   return()
 endif()
-set(INSTALL_GTEST OFF)
+option(INSTALL_GTEST "" OFF)
 add_subdirectory(third_party/googletest)
 
 farm_ng_find_base_packages()

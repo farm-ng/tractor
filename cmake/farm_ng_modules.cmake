@@ -138,7 +138,7 @@ macro(farm_ng_add_protobufs target)
     # The fully qualified directory structure isn't necessary for Go modules,
     # but the Twirp generator doesn't yet support --go_opt=module
     # (https://github.com/twitchtv/twirp/issues/226).
-    set("_protoc_args_go" "--go_out=${_proto_output_dir_go}" "--twirp_out=${_proto_output_dir_go}")
+    set("_protoc_args_go" "--plugin=/farm_ng/env/go/bin/protoc-gen-go" "--plugin=/farm_ng/env/go/bin/protoc-gen-twirp" "--go_out=${_proto_output_dir_go}" "--twirp_out=${_proto_output_dir_go}")
     SET(_go_out_go "${_proto_output_dir_go}/github.com/farm-ng/genproto/${_module}/${_file_we}.pb.go")
     SET(_go_out_twirp "${_proto_output_dir_go}/github.com/farm-ng/genproto/${_module}/${_file_we}.twirp.go")
     list(APPEND _go_out_all ${_go_out_go} ${_go_out_twirp})
