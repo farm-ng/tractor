@@ -39,6 +39,9 @@ DEFINE_string(apriltag_rigs,
 
 DEFINE_bool(detect_apriltags, true, "Detect apriltags.");
 
+DEFINE_int32(skip_frames, 0, "Number of frames to skip between detections.");
+DEFINE_double(detection_scale, 0, "Scale the image before detection.");
+
 typedef farm_ng::core::Event EventPb;
 using farm_ng::core::ArchiveProtobufAsJsonResource;
 using farm_ng::core::BUCKET_VIDEO_DATASETS;
@@ -118,11 +121,15 @@ class CreateVideoDatasetProgram {
         configuration_.video_file_cameras(0).video_file_resource());
 
     while (true) {
+      
+      capture.set(cv::CAP_PROP_POS_FRAMES, image_pb.frame_number().value());
+            
       cv::Mat image;
       capture >> image;
       if (image.empty()) {
         break;
       }
+      LOG(INFO) << configuration_.video_file_cameras(0).camera_frame_name() << " Frame: " <<  image_pb.frame_number().value();
       if (!camera_model) {
         camera_model = DefaultCameraModel(
             configuration_.video_file_cameras(0).camera_frame_name(),
@@ -161,7 +168,11 @@ class CreateVideoDatasetProgram {
       }
 
       if (configuration_.detect_apriltags()) {
-        auto detections = detector->Detect(gray, stamp);
+        double scale = 0.0;
+        if(configuration_.has_detection_scale()) {
+            scale = configuration_.detection_scale().value();
+        } 
+        auto detections = detector->Detect(gray, stamp, scale);
         detections.mutable_image()->CopyFrom(image_pb);
         log_writer.Write(MakeEvent(camera_model->frame_name() + "/apriltags",
                                    detections, stamp));
@@ -183,9 +194,12 @@ class CreateVideoDatasetProgram {
       }
 
       bus_.get_io_service().poll();
-
+      int next = 1;
+      if(configuration_.has_skip_frames()){
+        next = configuration_.skip_frames().value();
+      }
       image_pb.mutable_frame_number()->set_value(
-          image_pb.frame_number().value() + 1);
+          image_pb.frame_number().value() + next);
     }
 
     bus_.get_io_service().poll();
@@ -278,7 +292,12 @@ int Main(farm_ng::core::EventBus& bus) {
     resource->set_content_type(farm_ng::core::ContentTypeProtobufJson<
                                farm_ng::perception::ApriltagRig>());
   }
-
+  if(FLAGS_detection_scale > 0) {
+    config.mutable_detection_scale()->set_value(FLAGS_detection_scale);
+  }
+  if(FLAGS_skip_frames > 0) {
+    config.mutable_skip_frames()->set_value(FLAGS_skip_frames);
+  }
   farm_ng::perception::CreateVideoDatasetProgram program(bus, config,
                                                          FLAGS_interactive);
   return program.run();

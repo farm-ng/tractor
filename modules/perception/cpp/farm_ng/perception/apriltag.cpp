@@ -5,6 +5,7 @@
 #include <glog/logging.h>
 #include <tag36h11.h>
 #include <sophus/se3.hpp>
+#include <opencv2/imgproc.hpp>
 
 #include "farm_ng/core/blobstore.h"
 #include "farm_ng/core/ipc.h"
@@ -313,15 +314,15 @@ class ApriltagDetector::Impl {
         apriltag_detector_create(), &apriltag_detector_destroy);
 
     apriltag_detector_add_family(tag_detector_.get(), tag_family_.get());
-    tag_detector_->quad_decimate = 4.0;
+    tag_detector_->quad_decimate = 1.0;
     tag_detector_->quad_sigma = 0.8;
-    tag_detector_->nthreads = 4;
+    tag_detector_->nthreads = 1;
     tag_detector_->debug = false;
     tag_detector_->refine_edges = true;
   }
 
   ApriltagDetections Detect(const cv::Mat& gray,
-                            const google::protobuf::Timestamp& stamp) {
+                            const google::protobuf::Timestamp& stamp, double scale) {
     if (!apriltag_config_) {
       LoadApriltagConfig();
     }
@@ -332,11 +333,22 @@ class ApriltagDetector::Impl {
 
     auto start = std::chrono::high_resolution_clock::now();
 
+  cv::Mat image;
+    if(scale > 0.0 && scale != 1.0) {
+      int interp = cv::INTER_AREA;
+      if(scale > 1.0) {
+        interp = cv::INTER_LINEAR;
+      }
+      cv::resize(gray, image, cv::Size(), scale, scale, interp);
+    } else {
+      image = gray;
+    }
+
     // Make an image_u8_t header for the Mat data
-    image_u8_t im = {.width = gray.cols,
-                     .height = gray.rows,
-                     .stride = gray.cols,
-                     .buf = gray.data};
+    image_u8_t im = {.width = image.cols,
+                     .height = image.rows,
+                     .stride = image.cols,
+                     .buf = image.data};
 
     std::shared_ptr<zarray_t> detections(
         apriltag_detector_detect(tag_detector_.get(), &im),
@@ -349,6 +361,14 @@ class ApriltagDetector::Impl {
     for (int i = 0; i < zarray_size(detections.get()); i++) {
       apriltag_detection_t* det;
       zarray_get(detections.get(), i, &det);
+      if(scale > 0.0 && scale != 1.0) {
+        det->c[0] /= scale;
+        det->c[1] /= scale;
+      for (int j = 0; j < 4; j++) {
+          det->p[j][0] /= scale;
+          det->p[j][1] /= scale;
+        }
+      }        
       auto tag_size = TagSize(apriltag_config_.value().tag_library(), det->id);
       if (!tag_size) {
         continue;
@@ -387,8 +407,7 @@ class ApriltagDetector::Impl {
     auto duration =
         std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
     LOG_EVERY_N(INFO, 100) << "april tag detection took: " << duration.count()
-                           << " milliseconds\n"
-                           << pb_out.ShortDebugString();
+                           << " milliseconds";
     return pb_out;
   }
   void LoadApriltagConfig() {
@@ -417,17 +436,17 @@ ApriltagDetector::~ApriltagDetector() {}
 void ApriltagDetector::Close() { impl_->apriltag_config_.reset(); }
 
 ApriltagDetections ApriltagDetector::Detect(
-    const cv::Mat& gray, const google::protobuf::Timestamp& stamp) {
-  return impl_->Detect(gray, stamp);
+    const cv::Mat& gray, const google::protobuf::Timestamp& stamp, double scale) {
+  return impl_->Detect(gray, stamp, scale);
 }
 
 ApriltagDetections ApriltagDetector::Detect(
     const cv::Mat& gray, const cv::Mat& depthmap,
-    const google::protobuf::Timestamp& stamp) {
+    const google::protobuf::Timestamp& stamp, double scale) {
   CHECK_EQ(depthmap.size().width, gray.size().width);
   CHECK_EQ(depthmap.size().height, gray.size().height);
   CHECK_EQ(depthmap.type(), CV_32FC1);
-  ApriltagDetections detections = Detect(gray, stamp);
+  ApriltagDetections detections = Detect(gray, stamp, scale);
   cv::Rect depthmap_bounds(0, 0, depthmap.size().width, depthmap.size().height);
   for (ApriltagDetection& detection : *detections.mutable_detections()) {
     for (int i = 0; i < detection.p_size(); ++i) {

@@ -107,13 +107,13 @@ class ApriltagDetector {
   void Close();
 
   ApriltagDetections Detect(const cv::Mat& gray,
-                            const google::protobuf::Timestamp& stamp);
+                            const google::protobuf::Timestamp& stamp, double scale=1.0);
 
   // Detects apriltags, and looks up the depth value at each point.
   // Precondition: the depthmap is the same size as gray
   // Precondition: the depthmap is of type CV_32FC1.
   ApriltagDetections Detect(const cv::Mat& gray, const cv::Mat& depthmap,
-                            const google::protobuf::Timestamp& stamp);
+                            const google::protobuf::Timestamp& stamp, double scale=1.0);
 
  private:
   class Impl;

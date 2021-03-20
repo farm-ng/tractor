@@ -14,7 +14,7 @@ macro(farm_ng_add_library target)
     PUBLIC_INCLUDE_DIRS
     PRIVATE_LINK_LIBRARIES)
 
-  cmake_parse_arguments(FARM_NG_ADD_LIBRARY "" "BUILD_INCLUDE_PATH" "${multi_value_args}" ${ARGN})
+  cmake_parse_arguments(FARM_NG_ADD_LIBRARY "" "${one_value_args}" "${multi_value_args}" ${ARGN})
 
   if(NOT DEFINED FARM_NG_ADD_LIBRARY_BUILD_INCLUDE_PATH)
     set(FARM_NG_ADD_LIBRARY_BUILD_INCLUDE_PATH ${CMAKE_CURRENT_LIST_DIR}/../../ )
@@ -71,6 +71,17 @@ macro(farm_ng_add_library target)
     FILES ${FARM_NG_ADD_LIBRARY_HEADERS}
     DESTINATION include/farm_ng/${FARM_NG_MODULE_NAME}
     COMPONENT Devel
+    )
+endmacro()
+
+macro(farm_ng_add_executable target)
+  add_executable(${target} ${target}.cpp)
+      
+  install(TARGETS ${target} EXPORT ${FARM_NG_PROJECT_NAME}Targets
+    LIBRARY DESTINATION lib
+    ARCHIVE DESTINATION lib
+    RUNTIME DESTINATION bin
+    INCLUDES DESTINATION include
     )
 endmacro()
 
