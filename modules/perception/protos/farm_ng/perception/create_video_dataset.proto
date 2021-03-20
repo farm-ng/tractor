@@ -4,6 +4,7 @@ import "farm_ng/core/resource.proto";
 import "farm_ng/perception/capture_video_dataset.proto";
 
 import "google/protobuf/timestamp.proto";
+import "google/protobuf/wrappers.proto";
 
 package farm_ng.perception;
 option go_package = "github.com/farm-ng/genproto/perception";
@@ -18,6 +19,14 @@ message CreateVideoDatasetConfiguration {
   bool detect_apriltags = 2;
   repeated VideoFileCamera video_file_cameras = 3;
   repeated farm_ng.core.Resource apriltag_rigs = 4;
+
+  // These options are for very high resolution or high frame datasets, where apriltag detection takes a long time.
+  // Allow the image by this ammount prior to apriltag detection, this may effect corner quality
+  google.protobuf.DoubleValue detection_scale = 5;
+
+  // Number of frames to skip
+  google.protobuf.Int32Value skip_frames = 6;
+
 }
 
 

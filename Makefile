@@ -18,12 +18,17 @@ clean:
 cmakelists := CMakeLists.txt doc/CMakeLists.txt $(shell find modules/ -type f -name "CMakeLists.txt")
 
 build/CMakeCache.txt: $(cmakelists)
-	mkdir -p build && cd build && cmake -DCMAKE_PREFIX_PATH=$(FARM_NG_PREFIX) -DCMAKE_BUILD_TYPE=Release -DBUILD_DOCS=TRUE ..
+	mkdir -p build && cd build && cmake -DCMAKE_PREFIX_PATH=$(FARM_NG_PREFIX) -DCMAKE_INSTALL_PREFIX=$(FARM_NG_PREFIX) -DCMAKE_BUILD_TYPE=Release -DBUILD_DOCS=TRUE ..
 
 cmake: build/CMakeCache.txt
 
 cpp: build/CMakeCache.txt
 	make -C build -j`nproc --ignore=1`
+
+install: build/CMakeCache.txt
+	cd build && cmake -DCMAKE_INSTALL_PREFIX=${FARM_NG_PREFIX} ..
+	make cpp
+	sudo make -C build install
 
 docs: build/CMakeCache.txt
 	make -C build docs

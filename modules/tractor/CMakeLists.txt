@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 3.10)
-project(farm_ng_tractor)
+farm_ng_project(tractor)
 
 add_subdirectory(protos)
 add_subdirectory(cpp/farm_ng)
+
+farm_ng_export_module()

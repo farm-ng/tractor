@@ -36,54 +36,34 @@ foreach(grabber ${supported_grabbers})
 endforeach(grabber)
 
 
-add_library(farm_ng_perception SHARED
-  frame_grabber.h
-  frame_grabber.cpp
-  frame_grabber_intel.cpp
-  image_loader.cpp
-  image_loader.h
-  video_streamer.h
-  video_streamer.cpp
-  eigen_cv.h
-  pose_graph.h
-  point_cloud.h
-  point_cloud.cpp
-  robot_arm_fk.h
-  tensor.h
-  tensor.cpp
-  ${h_files}
-  ${cpp_files}
-  )
-
-target_include_directories(
-  farm_ng_perception
-  PUBLIC
-  ${CMAKE_CURRENT_SOURCE_DIR}/../..
-  ${EIGEN3_INCLUDE_DIRS})
-
-target_link_libraries(
-  farm_ng_perception
-  PUBLIC
-  farm_ng_perception_protobuf
-  farm_ng_core
-  apriltag::apriltag
-  opencv_imgcodecs
-  ${OpenCV_LIBS}
-  Sophus::Sophus
-
-  PRIVATE
-
-  ${grabber_deps}
-  )
-
-
-# TODO add tests!
-# add_executable(farm_ng_perception-test
-#   ${test_files}
-#  )
-
-# target_link_libraries(farm_ng_perception-test
-#     farm_ng_perception
-#     gtest gmock gtest_main
-#  )
-# gtest_discover_tests(farm_ng_perception-test)
+farm_ng_add_library(farm_ng_perception
+  SOURCES
+    frame_grabber.cpp
+    frame_grabber_intel.cpp
+    image_loader.cpp
+    video_streamer.cpp
+    point_cloud.cpp
+    tensor.cpp
+    ${cpp_files}
+  HEADERS
+    frame_grabber.h
+    image_loader.h
+    video_streamer.h
+    eigen_cv.h
+    pose_graph.h
+    point_cloud.h
+    robot_arm_fk.h
+    tensor.h
+    ${h_files}
+  LINK_LIBRARIES
+    farm_ng_perception_protobuf
+    farm_ng_core
+    apriltag::apriltag
+    opencv_imgcodecs
+    ${OpenCV_LIBS}
+    Sophus::Sophus
+  PRIVATE_LINK_LIBRARIES
+    ${grabber_deps}
+  PUBLIC_INCLUDE_DIRS
+    ${EIGEN3_INCLUDE_DIRS}
+)

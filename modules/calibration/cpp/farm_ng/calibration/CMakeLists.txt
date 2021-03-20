@@ -14,29 +14,18 @@ foreach(src_prefix
    list(APPEND test_files ${src_prefix}_test.cpp)
 endforeach()
 
-add_library(farm_ng_calibration
-  ${cpp_files}
-  ${h_files}
-)
-target_include_directories(farm_ng_calibration PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../..)
-target_link_libraries(farm_ng_calibration
-  farm_ng_calibration_protobuf
-  farm_ng_perception
-  ${CERES_LIBRARIES}
+farm_ng_add_library(farm_ng_calibration
+  SOURCES ${cpp_files}
+  HEADERS ${h_files}
+  LINK_LIBRARIES
+    farm_ng_calibration_protobuf
+    farm_ng_perception
+    ${CERES_LIBRARIES}
 )
 
-add_library(farm_ng_calibration_robot_hal_client robot_hal_client.h robot_hal_client.cc)
-target_include_directories(farm_ng_calibration_robot_hal_client PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../..)
-
-target_link_libraries(farm_ng_calibration_robot_hal_client farm_ng_calibration_grpc)
-
-# TODO add tests!
-# add_executable(farm_ng_calibration_test
-#   ${test_files}
-# )
-
-# target_link_libraries(farm_ng_calibration_test
-#     farm_ng_calibration
-#     gtest gmock gtest_main
-# )
-# gtest_discover_tests(farm_ng_calibration_test)
+farm_ng_add_library(farm_ng_calibration_robot_hal_client
+  SOURCES robot_hal_client.cc
+  HEADERS robot_hal_client.h
+  LINK_LIBRARIES
+    farm_ng_calibration_grpc
+)
