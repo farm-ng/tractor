@@ -76,7 +76,7 @@ endmacro()
 
 macro(farm_ng_add_executable target)
   add_executable(${target} ${target}.cpp)
-      
+
   install(TARGETS ${target} EXPORT ${FARM_NG_PROJECT_NAME}Targets
     LIBRARY DESTINATION lib
     ARCHIVE DESTINATION lib

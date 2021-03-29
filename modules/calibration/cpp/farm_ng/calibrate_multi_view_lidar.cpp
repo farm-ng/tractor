@@ -16,6 +16,8 @@
 #include "farm_ng/calibration/multi_view_lidar_model.pb.h"
 
 #include "farm_ng/perception/apriltag.h"
+#include "farm_ng/perception/camera_model.h"
+#include "farm_ng/perception/image_loader.h"
 #include "farm_ng/perception/point_cloud.h"
 
 #include "farm_ng/core/blobstore.h"
@@ -23,6 +25,7 @@
 #include "farm_ng/core/init.h"
 #include "farm_ng/core/ipc.h"
 
+#include <opencv2/imgproc.hpp>
 #include "farm_ng/perception/tensor.h"
 #include "farm_ng/perception/time_series.h"
 
@@ -105,12 +108,26 @@ void SavePlyFilesInTagRig(MultiViewLidarModel model, std::string prefix) {
   posegraph = posegraph.AveragePoseGraph(model.camera_rig().name());
   std::ofstream report_csv(prefix + "_report.csv");
   report_csv << "# frame_number, point_coud, tag_id, error";
+  perception::ImageLoader loader;
   for (int i = 0; i < model.measurements_size(); ++i) {
     const auto& m_i0 = model.measurements(i);
+    std::map<std::string, cv::Mat> images;
+    std::map<std::string, perception::CameraModel> cameras;
+
+    for (auto mvd : m_i0.multi_view_detections().detections_per_view()) {
+      std::string camera_name = mvd.image().camera_model().frame_name();
+      images[camera_name] = loader.LoadImage(mvd.image());
+      if (images[camera_name].channels() == 1) {
+        cv::cvtColor(images[camera_name], images[camera_name],
+                     cv::COLOR_GRAY2BGR);
+      }
+      cameras[camera_name] = mvd.image().camera_model();
+    }
+
     Sophus::SE3d camera_rig_pose_apriltag_rig =
         ProtoToSophus(m_i0.camera_rig_pose_apriltag_rig(),
                       model.camera_rig().name(), model.apriltag_rig().name());
-    for (const auto& cloud :
+    for (perception::PointCloud cloud :
          m_i0.multi_view_pointclouds().point_clouds_per_view()) {
       Sophus::SE3d cloud_pose_camera_rig = posegraph.CheckAverageAPoseB(
           cloud.frame_name(), model.camera_rig().name());
@@ -119,9 +136,51 @@ void SavePlyFilesInTagRig(MultiViewLidarModel model, std::string prefix) {
       auto points_cloud = PointCloudGetData(cloud, "xyz");
       auto points_apriltag_rig = perception::TransformPoints<double>(
           cloud_pose_apriltag_rig.inverse(), points_cloud);
+      Eigen::Matrix3Xd colors = Eigen::Matrix3Xd::Zero(3, points_cloud.cols());
+      Eigen::MatrixXd count = Eigen::Matrix3Xd::Zero(1, points_cloud.cols());
+      for (auto camera_image : images) {
+        perception::PoseGraph c_pg =
+            posegraph.AveragePoseGraph(camera_image.first);
+        Sophus::SE3d camera_pose_cloud =
+            c_pg.CheckAverageAPoseB(camera_image.first, cloud.frame_name());
+
+        auto points_camera = perception::TransformPoints<double>(
+            camera_pose_cloud, points_cloud);
+        const auto& camera_model = cameras[camera_image.first];
+        cv::Rect roi(cv::Point(0, 0), camera_image.second.size());
+        for (int i = 0; i < points_camera.cols(); ++i) {
+          const Eigen::Vector3d& point_camera = points_camera.col(i);
+          if (point_camera.z() < 0.01) {
+            continue;
+          }
+          auto xyf =
+              perception::ProjectPointToPixel(camera_model, point_camera);
+          cv::Point xy(xyf.x() + 0.5, xyf.y() + 0.5);
+          if (roi.contains(xy)) {
+            cv::Vec3b c = camera_image.second.at<cv::Vec3b>(xy);
+            colors(0, i) = c[0] / 255.0;
+            colors(1, i) = c[1] / 255.0;
+            colors(2, i) = c[2] / 255.0;
+            count(0, i) += 1.0;
+          }
+        }
+      }
+      std::vector<Eigen::Vector3d> points_valid;
+      std::vector<Eigen::Vector3d> color_valid;
+      for (int i = 0; i < count.cols(); ++i) {
+        if (count(0, i) > 0) {
+          color_valid.push_back(colors.col(i));
+          points_valid.push_back(points_apriltag_rig.col(i));
+        }
+      }
+
       perception::SavePly(
           prefix + cloud.frame_name() + std::to_string(i) + ".ply",
-          points_apriltag_rig);
+          Eigen::Map<const Eigen::MatrixXd>(points_valid[0].data(),
+                                            3, points_valid.size()),
+          Eigen::Map<const Eigen::MatrixXd>(color_valid[0].data(),
+                                            3, color_valid.size()));
+
       auto apriltag_rig_matches = ApriltagRigPointCloudMatch(
           model.apriltag_rig(), points_apriltag_rig, 0.1);
       for (auto [node, indices, error] : apriltag_rig_matches) {
@@ -399,10 +458,10 @@ class CalibrateMultiViewLidarProgram {
     model = Solve(model);
     SavePlyFilesInTagRig(model, "/blobstore/scratch/solved_");
 
- auto model_bin = core::GetUniqueArchiveResource(
+    auto model_bin = core::GetUniqueArchiveResource(
         "multi_view_lidar_model", "pb",
         core::ContentTypeProtobufBinary<MultiViewLidarModel>());
-            core::WriteProtobufToBinaryFile(model_bin.second, model);
+    core::WriteProtobufToBinaryFile(model_bin.second, model);
 
     auto temp_model = model;
     temp_model.clear_measurements();

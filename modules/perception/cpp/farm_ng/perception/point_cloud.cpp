@@ -66,4 +66,25 @@ void SavePly(const std::string& ply_path, const Eigen::MatrixXd& points) {
   }
   out.close();
 }
+void SavePly(const std::string& ply_path, const Eigen::MatrixXd& points, const Eigen::MatrixXd& colors_bgr) {
+  std::ofstream out(ply_path);
+  out << "ply\n";
+  out << "format ascii 1.0\n";
+  out << "element vertex " << points.cols() << "\n";
+  out << "property float x\n";
+  out << "property float y\n";
+  out << "property float z\n";
+  out << "property uchar red\n";
+  out << "property uchar green\n";
+  out << "property uchar blue\n";
+  out << "end_header\n";
+  CHECK_EQ(colors_bgr.cols(), points.cols());
+  for (int i = 0; i < points.cols(); ++i) {
+    auto p = points.col(i);
+    auto c = colors_bgr.col(i);
+    out << float(p.x()) << " " << float(p.y()) << " " << float(p.z()) << " " << int(255*c.z()) << " " << int(255*c.y()) << " " << int(255*c.x()) << "\n";
+  }
+  out.close();
+}
+
 }  // namespace farm_ng::perception
