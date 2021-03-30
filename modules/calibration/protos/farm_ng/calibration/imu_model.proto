@@ -1,0 +1,28 @@
+syntax = "proto3";
+
+import "farm_ng/perception/apriltag.proto";
+import "farm_ng/perception/camera_model.proto";
+import "farm_ng/perception/geometry.proto";
+import "farm_ng/perception/imu.proto";
+import "farm_ng/calibration/calibrator.proto";
+
+package farm_ng.calibration;
+option go_package = "github.com/farm-ng/genproto/calibration";
+
+message ImuModel {
+  message Measurement {
+    farm_ng.perception.MultiViewApriltagDetections multi_view_detections = 1;
+    farm_ng.perception.NamedSE3Pose camera_rig_pose_apriltag_rig = 2;
+    farm_ng.perception.Imu imu = 3;
+  }
+  string imu_name = 1;
+  repeated Measurement measurements = 2;
+  farm_ng.perception.MultiViewCameraRig camera_rig = 3;
+  farm_ng.perception.ApriltagRig apriltag_rig = 4;
+
+  string base_frame = 5;
+  repeated farm_ng.perception.NamedSE3Pose base_pose_sensor = 6;
+
+  repeated ApriltagRigTagStats tag_stats = 7;
+  double rmse = 8;
+}

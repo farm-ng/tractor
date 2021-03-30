@@ -12,6 +12,9 @@ target_link_libraries(calibrate_intrinsics farm_ng_calibration)
 add_executable(calibrate_multi_view_lidar calibrate_multi_view_lidar.cpp)
 target_link_libraries(calibrate_multi_view_lidar farm_ng_calibration)
 
+add_executable(calibrate_imu calibrate_imu.cpp)
+target_link_libraries(calibrate_imu farm_ng_calibration)
+
 add_executable(capture_robot_extrinsics_dataset capture_robot_extrinsics_dataset.cpp)
 target_link_libraries(capture_robot_extrinsics_dataset farm_ng_calibration farm_ng_calibration_robot_hal_client)
 

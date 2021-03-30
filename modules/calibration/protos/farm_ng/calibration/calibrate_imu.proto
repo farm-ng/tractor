@@ -1,0 +1,65 @@
+syntax = "proto3";
+
+import "google/protobuf/timestamp.proto";
+
+import "farm_ng/core/resource.proto";
+import "farm_ng/calibration/calibrator.proto";
+import "farm_ng/perception/geometry.proto";
+
+package farm_ng.calibration;
+option go_package = "github.com/farm-ng/genproto/calibration";
+
+message CalibrateImuConfiguration {
+  oneof input {
+    // Expects to find topics:
+    //  - <camera_name>/apriltags # ApriltagDetections
+    //  - <lidar_name> # PointCloud
+    //
+    // Its assumed that the apriltags and point clouds are captured while the
+    // robot is stationary, and that the timestamps can be used to correspond
+    // messages.
+    //
+    // Suggest using the same event_log as used for input of
+    // calibrate_multi_view_apriltag_rig. This isn't a strict requirement as
+    // long as the camera rig and apriltag rig have not changes, and the data
+    // contains detections from the camera rig of the solved for apriltag rig.
+    farm_ng.core.Resource event_log = 1;
+  }
+
+
+  // type: CalibrateMultiViewApriltagRigResult
+  // The solver uses the apriltag rig and camera rig, and will estimate the pose
+  // of the LIDARs with respect to the camera_rig.
+  farm_ng.core.Resource calibrate_multi_view_apriltag_rig_result = 2;
+
+  // name of the result.
+  string name = 3;
+
+  // An inclusive list of IMU topics to calibrate.
+  repeated string include_imus = 4;
+
+  // Initial values for lidar poses, attached to some frame in the camera_rig.
+  repeated farm_ng.perception.NamedSE3Pose imu_poses = 5;
+
+  // An aligned sensor rig result, to report the IMU in some base frame.
+  farm_ng.core.Resource align_sensor_rig_result = 6;
+}
+
+message CalibrateImuStatus {
+  oneof input_required {
+    CalibrateImuConfiguration input_required_configuration = 1;
+  }
+  // Serialized CalibrateImuResult
+  farm_ng.core.Resource result = 2;
+
+  SolverIterationSummary iteration_summary = 3;
+}
+
+message CalibrateImuResult {
+  // Configuration which initiated the computation of this result.
+  CalibrateImuConfiguration configuration = 1;
+
+  SolverStatus solver_status = 3;
+  google.protobuf.Timestamp stamp_begin = 4;
+  google.protobuf.Timestamp stamp_end = 5;
+}

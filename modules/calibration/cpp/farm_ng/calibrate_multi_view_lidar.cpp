@@ -33,7 +33,7 @@
 DEFINE_bool(interactive, false, "receive program args via eventbus");
 DEFINE_string(output_config, "", "Output the config to a file.");
 DEFINE_string(
-    config, "/blobstore/logs/calibration_capture/multi_view_lidar_config.json",
+    config, "",
     "Load config from a file rather than args.");
 
 DEFINE_string(name, "", "Name of calibration output.");
