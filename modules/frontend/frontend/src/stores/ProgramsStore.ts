@@ -86,7 +86,7 @@ export class ProgramsStore {
         return;
       }
 
-      if (busEvent.name.startsWith(`${this.program?.programId}/`)) {
+      if (busEvent.name.startsWith("programd/stdout") || busEvent.name.startsWith("programd/stderr")) {
         if (
           (busEvent.data.typeUrl as EventTypeId) ==
           "type.googleapis.com/farm_ng.core.ProgramOutput"
@@ -99,6 +99,8 @@ export class ProgramsStore {
           this.outputLog.push(decoded.line);
           return;
         }
+      }
+      if (busEvent.name.startsWith(`${this.program?.programId}/`)) {
         this.statusLog.push([
           busEvent.stamp?.getTime() || Date.now(),
           busEvent,

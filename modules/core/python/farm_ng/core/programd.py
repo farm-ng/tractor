@@ -106,7 +106,7 @@ class ProgramSupervisor:
             out_buffer.write(line)
             out_buffer.flush()
             event = make_event(
-                f'{self.status.running.program.id}/{out_name}',
+                f'programd/{out_name}',
                 ProgramOutput(line=str(line, sys.stdout.encoding)),
             )
             self._event_bus.send(event)
