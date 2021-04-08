@@ -11,7 +11,7 @@ import {
   FileActionData,
 } from "chonky";
 import "chonky/style/main.css";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { File } from "@farm-ng/genproto-core/farm_ng/core/resource";
 import styles from "./BlobstoreBrowser.module.scss";
 import { eventRegistry, EventType, EventTypeId } from "../registry/events";
@@ -21,6 +21,7 @@ import { useStores } from "../hooks/useStores";
 import { useHistory, useParams } from "react-router-dom";
 import Form from "./scope/visualizers/Form";
 import { Icon } from "./Icon";
+import { debounce } from "../utils/debounce";
 
 const fileToFileData = (f: File): FileData => ({
   id: f.name,
@@ -119,6 +120,7 @@ export const BlobstoreBrowser: React.FC<IProps> = ({
   useEffect(() => {
     const fetchSelected = async (): Promise<void> => {
       if (!selectedPath) {
+        setSelectedResource(undefined);
         return;
       }
       if (modificationInFlight) {
@@ -183,17 +185,41 @@ export const BlobstoreBrowser: React.FC<IProps> = ({
     }
   }, [parentDirs]);
 
-  const handleFileAction = (action: FileAction, data: FileActionData): void => {
-    // Triggered by double-click
-    if (action.id === ChonkyActions.OpenFiles.id) {
-      const target = data?.target;
-      if (!target) {
+  // In certain states, Chonky's ChangeSelection (single-click) event fires multiple times for a
+  // given click, sometimes with stale payloads, before finally settling on a payload that reflects
+  // the actual UI state.
+  //  I don't understand the root cause of this behavior yet.
+  // - Is it a bug in Chonky, perhaps related to https://github.com/TimboKZ/Chonky/issues/73?
+  // - Is it related to the lifecycle of this React component, re-rendering inappropriately?
+  // - Is it related to our Chonky integration logic, e.g. a shallow equality check failing that should be true?
+  // As a workaround, debounce the ChangeSelection event so the last-fired one wins.
+  const handleChangeSelection = useCallback(
+    debounce<any>((data: FileActionData, parentDirs: FileData[]): void => {
+      const selectedFiles = data.files;
+      if (selectedFiles?.length != 1) {
         return;
       }
+      const target = selectedFiles[0];
       if (!target.isDir) {
         setSelectedPath(`${dirsToPath(parentDirs)}/${target.name}`);
         return;
       }
+    }, 100),
+    []
+  );
+
+  const handleFileAction = (action: FileAction, data: FileActionData): void => {
+    // Single-click; select file
+    if (action.id === ChonkyActions.ChangeSelection.id) {
+      handleChangeSelection(data, parentDirs);
+    }
+    // Double-click; open folder
+    else if (action.id === ChonkyActions.OpenFiles.id) {
+      const target = data?.target;
+      if (!target?.isDir) {
+        return;
+      }
+      setSelectedPath(undefined);
       // To detect navigation upwards in the directory hierarchy, look for
       // a parentDir with the target ID.
       // TODO: Support nested directories that have the same name. One approach would be to

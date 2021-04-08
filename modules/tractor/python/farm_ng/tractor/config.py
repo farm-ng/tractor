@@ -179,7 +179,7 @@ def genprograms(args):
 
 
 def main():
-    parser = argparse.ArgumentParser(epilog='e.g. python -m farm_ng.config gentractor > $BLOBSTORE_ROOT/configurations/tractor.json')
+    parser = argparse.ArgumentParser(epilog='e.g. python -m farm_ng.tractor.config gentractor > $BLOBSTORE_ROOT/configurations/tractor.json')
     subparsers = parser.add_subparsers()
     gentractor_parser = subparsers.add_parser('gentractor')
     gentractor_parser.set_defaults(func=gentractor)

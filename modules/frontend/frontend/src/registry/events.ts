@@ -39,6 +39,7 @@ import {
 } from "@farm-ng/genproto-tractor/farm_ng/tractor/tractor";
 import { Message } from "../types/common";
 import {
+  ProgramOutput,
   ProgramSupervisorStatus,
   StartProgramRequest,
   StopProgramRequest,
@@ -103,7 +104,11 @@ import {
   LogPlaybackStatus,
 } from "@farm-ng/genproto-core/farm_ng/core/log_playback";
 import { JointState } from "@farm-ng/genproto-calibration/farm_ng/perception/kinematics";
-import { ValidateRobotExtrinsicsConfiguration, ValidateRobotExtrinsicsResult, ValidateRobotExtrinsicsStatus } from "@farm-ng/genproto-calibration/farm_ng/calibration/validate_robot_extrinsics";
+import {
+  ValidateRobotExtrinsicsConfiguration,
+  ValidateRobotExtrinsicsResult,
+  ValidateRobotExtrinsicsStatus,
+} from "@farm-ng/genproto-calibration/farm_ng/calibration/validate_robot_extrinsics";
 
 export type EventType =
   | Announce
@@ -166,6 +171,7 @@ export type EventType =
   | MultiViewApriltagRigModel
   | MultiViewCameraRig
   | NamedSE3Pose
+  | ProgramOutput
   | ProgramSupervisorStatus
   | Resource
   | SE3Pose
@@ -187,7 +193,6 @@ export type EventType =
 const inferKeys = <T>(
   o: { [K in keyof T]: Message<EventType> }
 ): { [K in keyof T]: Message<EventType> } => o;
-
 
 export const eventRegistry = inferKeys({
   "type.googleapis.com/farm_ng.calibration.BaseToCameraInitialization": BaseToCameraInitialization,
@@ -229,6 +234,7 @@ export const eventRegistry = inferKeys({
   "type.googleapis.com/farm_ng.core.LoggingStatus": LoggingStatus,
   "type.googleapis.com/farm_ng.core.LogPlaybackConfiguration": LogPlaybackConfiguration,
   "type.googleapis.com/farm_ng.core.LogPlaybackStatus": LogPlaybackStatus,
+  "type.googleapis.com/farm_ng.core.ProgramOutput": ProgramOutput,
   "type.googleapis.com/farm_ng.core.Resource": Resource,
   "type.googleapis.com/farm_ng.core.ProgramSupervisorStatus": ProgramSupervisorStatus,
   "type.googleapis.com/farm_ng.core.StartProgramRequest": StartProgramRequest,

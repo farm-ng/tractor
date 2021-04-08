@@ -10,6 +10,7 @@ import { useEffect, useMemo } from "react";
 import { formatValue } from "../utils/formatValue";
 import styles from "./Programs.module.scss";
 import { EventVisualizer } from "./scope/visualizers/Event";
+import { ProgramOutput } from "./ProgramOutput";
 
 export const Programs: React.FC = () => {
   const { busClient, httpResourceArchive, programsStore: store } = useStores();
@@ -21,6 +22,7 @@ export const Programs: React.FC = () => {
 
   const handleStart = (id: string): void => {
     busClient.send({ id }, "programd/request", StartProgramRequest);
+    store.clearLogs();
   };
 
   const handleStop = (id: string): void => {
@@ -121,8 +123,11 @@ export const Programs: React.FC = () => {
               </div>
             </div>
           </Collapse>
+          <div className={styles.programOutput}>
+            <ProgramOutput log={store.outputLog} />
+          </div>
           <EventVisualizer.MultiElement
-            values={store.eventLog}
+            values={store.statusLog}
             options={[{ label: "", options: [], value: "overlay" }]}
             resources={httpResourceArchive}
           />

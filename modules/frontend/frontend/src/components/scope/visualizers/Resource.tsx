@@ -32,16 +32,13 @@ const ResourceForm: React.FC<ResourceFormProps> = (props) => {
 
   const handleShowModal = () => setShowModal(true);
   const handleFileSelected = (path: string) => {
-    console.log("handleFileSelected");
     fileSelected.current = path;
   };
   const handleCancelModal = () => {
-    console.log("handleCancelModal");
     fileSelected.current = null;
     setShowModal(false);
   };
   const handleSubmitModal = () => {
-    console.log("handleSubmitModal");
     const fileSelectedCurrent = fileSelected.current;
     if (fileSelectedCurrent) {
       setValue((v) => ({

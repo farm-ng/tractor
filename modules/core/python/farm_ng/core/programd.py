@@ -12,6 +12,7 @@ from farm_ng.core.ipc import get_event_bus
 from farm_ng.core.ipc import get_message
 from farm_ng.core.ipc import make_event
 from farm_ng.core.programd_pb2 import ProgramdConfig
+from farm_ng.core.programd_pb2 import ProgramOutput
 from farm_ng.core.programd_pb2 import ProgramSupervisorStatus
 from farm_ng.core.programd_pb2 import StartProgramRequest
 from farm_ng.core.programd_pb2 import StopProgramRequest
@@ -87,12 +88,34 @@ class ProgramSupervisor:
             program_info.launch_path.path,
         )
         logger.info('Launching %s %s', launch_path, program_info.launch_args)
-        self.child_process = await asyncio.create_subprocess_exec(launch_path, *program_info.launch_args)
+        self.child_process = await asyncio.create_subprocess_exec(
+            launch_path,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+            *program_info.launch_args,
+        )
         self.status.running.program.pid = self.child_process.pid
         self.status.running.program.stamp_start.GetCurrentTime()
         await self.monitor_child_process()
 
+    def io_stream_to_event_bus(self, stream, out_buffer, out_name):
+        while True:
+            line = yield from stream.readline()
+            if not line:
+                return
+            out_buffer.write(line)
+            out_buffer.flush()
+            event = make_event(
+                f'programd/{out_name}',
+                ProgramOutput(line=str(line, sys.stdout.encoding)),
+            )
+            self._event_bus.send(event)
+
     async def monitor_child_process(self):
+        await asyncio.gather(
+            self.io_stream_to_event_bus(self.child_process.stdout, sys.stdout.buffer, 'stdout'),
+            self.io_stream_to_event_bus(self.child_process.stderr, sys.stderr.buffer, 'stderr'),
+        )
         await self.child_process.wait()
         self.status.stopped.last_program.CopyFrom(self.status.running.program)
         self.status.stopped.last_program.stamp_end.GetCurrentTime()

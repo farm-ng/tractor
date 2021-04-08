@@ -59,3 +59,7 @@ message StartProgramRequest {
 message StopProgramRequest {
   string id = 1;
 }
+
+message ProgramOutput {
+  string line = 1;
+}

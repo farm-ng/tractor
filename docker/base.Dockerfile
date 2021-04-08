@@ -4,6 +4,7 @@ FROM $FARM_NG_DEVEL_IMAGE
 WORKDIR $FARM_NG_ROOT
 
 # Build first-party c++
+COPY version.sh .
 COPY Makefile .
 COPY CMakeLists.txt .
 COPY cmake cmake
