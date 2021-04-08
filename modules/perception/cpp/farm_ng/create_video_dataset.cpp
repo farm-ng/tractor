@@ -121,9 +121,9 @@ class CreateVideoDatasetProgram {
         configuration_.video_file_cameras(0).video_file_resource());
 
     while (true) {
-      
+
       capture.set(cv::CAP_PROP_POS_FRAMES, image_pb.frame_number().value());
-            
+
       cv::Mat image;
       capture >> image;
       if (image.empty()) {
@@ -171,7 +171,7 @@ class CreateVideoDatasetProgram {
         double scale = 0.0;
         if(configuration_.has_detection_scale()) {
             scale = configuration_.detection_scale().value();
-        } 
+        }
         auto detections = detector->Detect(gray, stamp, scale);
         detections.mutable_image()->CopyFrom(image_pb);
         log_writer.Write(MakeEvent(camera_model->frame_name() + "/apriltags",

@@ -368,7 +368,7 @@ class ApriltagDetector::Impl {
           det->p[j][0] /= scale;
           det->p[j][1] /= scale;
         }
-      }        
+      }
       auto tag_size = TagSize(apriltag_config_.value().tag_library(), det->id);
       if (!tag_size) {
         continue;
