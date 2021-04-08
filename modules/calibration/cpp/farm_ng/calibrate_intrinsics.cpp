@@ -178,7 +178,7 @@ int Main(farm_ng::core::EventBus& bus) {
       ContentTypeProtobufJson<CreateVideoDatasetResult>());
   config.set_camera_name(FLAGS_camera_name);
   config.set_filter_stable_tags(FLAGS_filter_stable_tags);
-
+  config.set_distortion_model(farm_ng::perception::CameraModel::DISTORTION_MODEL_PANO_TOOLS_DERSCH);
   if (FLAGS_steady_window_size > 0) {
     config.mutable_steady_window_size()->set_value(FLAGS_steady_window_size);
   }

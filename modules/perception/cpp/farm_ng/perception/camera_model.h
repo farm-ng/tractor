@@ -159,10 +159,21 @@ Eigen::Matrix<T, 2, 1> ProjectPointToPixel(
     T rd = theta * series;
     x *= rd / r;
     y *= rd / r;
+  } else if(camera.distortion_model() == CameraModel::DISTORTION_MODEL_PANO_TOOLS_DERSCH) {
+    T r_corr = sqrt(x * x + y * y);
+    if (r_corr < eps) {
+      r_corr = eps;
+    }
+    T a(camera.distortion_coefficients(0));
+    T b(camera.distortion_coefficients(1));
+    T c(camera.distortion_coefficients(2));
+    const T d(1.0); // here d is 1, TODO support d = 1 - (a+b+c), possibly through another camera model type.?
+    T r_dist = a*r_corr*r_corr*r_corr*r_corr + b*r_corr*r_corr*r_corr + c*r_corr*r_corr + r_corr;
+    x *= r_dist/r_corr;
+    y *= r_dist/r_corr;
   } else {
     LOG(FATAL) << "Unsupported distortion model: " << camera.ShortDebugString();
   }
-
   return Eigen::Matrix<T, 2, 1>(x * T(camera.fx()) + T(camera.cx()),
                                 y * T(camera.fy()) + T(camera.cy()));
 }

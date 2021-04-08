@@ -26,6 +26,8 @@ message CameraModel {
     DISTORTION_MODEL_INVERSE_BROWN_CONRADY = 2;
     // Azure Kinect uses BROWN_CONRADY, compatible with opencv
     DISTORTION_MODEL_BROWN_CONRADY = 3;
+    // Panorama stitching model - https://wiki.panotools.org/Lens_correction_model
+    DISTORTION_MODEL_PANO_TOOLS_DERSCH = 4;
   };
 
   // Specifies the distortion model.

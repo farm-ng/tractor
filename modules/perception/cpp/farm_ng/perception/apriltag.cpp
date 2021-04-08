@@ -332,7 +332,7 @@ class ApriltagDetector::Impl {
     CHECK_EQ(gray.type(), CV_8UC1);
 
     auto start = std::chrono::high_resolution_clock::now();
-
+    const int border = 10;
   cv::Mat image;
     if(scale > 0.0 && scale != 1.0) {
       int interp = cv::INTER_AREA;
@@ -373,7 +373,21 @@ class ApriltagDetector::Impl {
       if (!tag_size) {
         continue;
       }
+      bool close_to_image_edge = false;
+
+      for (int j = 0; j < 4; j++) {
+        auto x = det->p[j][0];
+        auto y = det->p[j][1];
+        if(x < border  || y < border || x > image.cols - border || y > image.rows - border) {
+          close_to_image_edge = true;
+          break;
+        }
+      }
+      if(close_to_image_edge) {
+        continue;
+      }
       ApriltagDetection* detection = pb_out.add_detections();
+
       for (int j = 0; j < 4; j++) {
         Vec2* p_j = detection->add_p();
         p_j->set_x(det->p[j][0]);

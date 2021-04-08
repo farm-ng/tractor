@@ -348,7 +348,7 @@ IntrinsicModel SolveIntrinsicsModel(IntrinsicModel model) {
           camera_to_tag_rig->GetAPoseBMap(camera_frame, frame_names->rig_frame),
           tag_to_tag_rig->GetAPoseBMap(frame_names->rig_frame,
                                        frame_names->tag_frame)));
-      problem.AddResidualBlock(cost_function1, nullptr,
+      problem.AddResidualBlock(cost_function1, new ceres::HuberLoss(1.0),
                                camera_model_param.data(),
                                camera_to_tag_rig->GetAPoseB().data(),
                                tag_to_tag_rig->GetAPoseB().data());
@@ -454,6 +454,7 @@ IntrinsicModel InitialIntrinsicModelFromConfig(
                            config.distortion_model());
           intrinsic_model.mutable_camera_model()->set_distortion_model(
               config.distortion_model());
+          detections.mutable_image()->mutable_camera_model()->set_distortion_model(config.distortion_model());
         }
       } else {
         CHECK_EQ(intrinsic_model.camera_model().image_height(),
