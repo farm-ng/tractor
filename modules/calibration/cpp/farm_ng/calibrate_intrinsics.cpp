@@ -33,7 +33,10 @@ DEFINE_int32(steady_count, 0, "Number of frames to hold steady.");
 DEFINE_int32(steady_window_size, 0,
              "Size of window for stable tag detection in pixels.");
 
-DEFINE_int32(novel_window_size, 0, "Size of window to determine if detection is novel.");
+DEFINE_int32(novel_window_size, 0,
+             "Size of window to determine if detection is novel.");
+
+DEFINE_string(distortion_model, "", "Specify a distortion model.");
 
 typedef farm_ng::core::Event EventPb;
 using farm_ng::core::ArchiveProtobufAsBinaryResource;
@@ -178,7 +181,18 @@ int Main(farm_ng::core::EventBus& bus) {
       ContentTypeProtobufJson<CreateVideoDatasetResult>());
   config.set_camera_name(FLAGS_camera_name);
   config.set_filter_stable_tags(FLAGS_filter_stable_tags);
-  config.set_distortion_model(farm_ng::perception::CameraModel::DISTORTION_MODEL_PANO_TOOLS_DERSCH);
+  if (!FLAGS_distortion_model.empty()) {
+    farm_ng::perception::CameraModel::DistortionModel distortion_model;
+    if (!farm_ng::perception::CameraModel::DistortionModel_Parse(
+            FLAGS_distortion_model, &distortion_model)) {
+      LOG(INFO) << "Bad distortion model name.";
+      LOG(INFO)
+          << farm_ng::perception::CameraModel::DistortionModel_descriptor()
+                 ->DebugString();
+      return -1;
+    }
+    config.set_distortion_model(distortion_model);
+  }
   if (FLAGS_steady_window_size > 0) {
     config.mutable_steady_window_size()->set_value(FLAGS_steady_window_size);
   }
@@ -186,8 +200,8 @@ int Main(farm_ng::core::EventBus& bus) {
     config.mutable_steady_count()->set_value(FLAGS_steady_count);
   }
 
-  if(FLAGS_novel_window_size > 0) {
-config.mutable_novel_window_size()->set_value(FLAGS_novel_window_size);
+  if (FLAGS_novel_window_size > 0) {
+    config.mutable_novel_window_size()->set_value(FLAGS_novel_window_size);
   }
   farm_ng::calibration::CalibrateIntrinsicsProgram program(bus, config,
                                                            FLAGS_interactive);
