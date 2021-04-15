@@ -80,14 +80,16 @@ int CreateVideoDatasetProgram::run() {
 
   core::EventLogWriter log_writer(resource_path.second);
 
-
   for (int camera_id = 0; camera_id < configuration_.video_file_cameras_size();
        ++camera_id) {
-    std::string video_path = NativePathFromResourcePath( configuration_.video_file_cameras(camera_id)
-                                        .video_file_resource()).string();
+    std::string video_path =
+        NativePathFromResourcePath(
+            configuration_.video_file_cameras(camera_id).video_file_resource())
+            .string();
 
-
-    CHECK(boost::filesystem::exists(video_path)) << configuration_.video_file_cameras(camera_id).ShortDebugString() << " file does not exist.";
+    CHECK(boost::filesystem::exists(video_path))
+        << configuration_.video_file_cameras(camera_id).ShortDebugString()
+        << " file does not exist.";
 
     cv::VideoCapture capture(video_path);
     std::optional<CameraModel> camera_model;
@@ -132,7 +134,8 @@ int CreateVideoDatasetProgram::run() {
         gray = image.clone();
       }
 
-      auto stamp = google::protobuf::util::TimeUtil::NanosecondsToTimestamp(msec*1e9);
+      auto stamp =
+          google::protobuf::util::TimeUtil::NanosecondsToTimestamp(msec * 1e9);
       log_writer.Write(
           MakeEvent(camera_model->frame_name() + "/image", image_pb, stamp));
 

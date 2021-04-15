@@ -5,7 +5,6 @@
 
 #include "farm_ng/perception/create_video_dataset.pb.h"
 
-
 namespace farm_ng {
 namespace perception {
 
