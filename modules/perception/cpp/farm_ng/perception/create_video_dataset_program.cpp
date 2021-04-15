@@ -100,7 +100,7 @@ int CreateVideoDatasetProgram::run() {
     image_pb.mutable_fps()->set_value(capture.get(cv::CAP_PROP_FPS));
     image_pb.mutable_frame_number()->set_value(0);
     image_pb.mutable_resource()->CopyFrom(
-        configuration_.video_file_cameras(0).video_file_resource());
+        configuration_.video_file_cameras(camera_id).video_file_resource());
 
     while (true) {
       capture.set(cv::CAP_PROP_POS_FRAMES, image_pb.frame_number().value());
@@ -116,7 +116,7 @@ int CreateVideoDatasetProgram::run() {
           << " Frame: " << image_pb.frame_number().value() << " msec: " << msec;
       if (!camera_model) {
         camera_model = DefaultCameraModel(
-            configuration_.video_file_cameras(0).camera_frame_name(),
+            configuration_.video_file_cameras(camera_id).camera_frame_name(),
             image.size().width, image.size().height);
         detector = ApriltagDetector(*camera_model, nullptr, &apriltag_config);
         image_pb.mutable_camera_model()->CopyFrom(*camera_model);
