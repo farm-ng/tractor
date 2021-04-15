@@ -44,6 +44,7 @@ farm_ng_add_library(farm_ng_perception
     video_streamer.cpp
     point_cloud.cpp
     tensor.cpp
+    create_video_dataset_program.cpp
     ${cpp_files}
   HEADERS
     frame_grabber.h
@@ -54,6 +55,7 @@ farm_ng_add_library(farm_ng_perception
     point_cloud.h
     robot_arm_fk.h
     tensor.h
+    create_video_dataset_program.h
     ${h_files}
   LINK_LIBRARIES
     farm_ng_perception_protobuf
